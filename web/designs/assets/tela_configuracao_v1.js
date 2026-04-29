@@ -2633,7 +2633,7 @@ function renderConnectedBadge(){
     badge.style.color = 'var(--ink-2)';
     badge.style.background = 'rgba(108,194,108,.08)';
     badge.style.borderColor = 'rgba(108,194,108,.22)';
-    badge.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#6fd17a"></span><span>' + escapeHtml(name) + '</span><span style="color:var(--muted);margin-left:4px">(' + total + ')</span>';
+    badge.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#6fd17a"></span><span>' + escapeHtmlInline(name) + '</span><span style="color:var(--muted);margin-left:4px">(' + total + ')</span>';
   }
 }
 
