@@ -528,6 +528,82 @@ def env_write_deprecated(_=None):
     }), 410
 
 
+@app.route("/api/discover-pipes", methods=["POST"])
+def discover_pipes():
+    """Lista pipes da organização Pipefy via GraphQL.
+    Body: { token, base_url, org_id, verify_ssl? }
+    Retorna: { pipes: [{ name, uuid, repo_id }] }
+
+    Endpoint isolado: não toca em /api/run nem altera estado global.
+    """
+    raw = request.get_json(silent=True)
+    data = raw if isinstance(raw, dict) else {}
+    creds = _extract_pipefy_creds(data)
+    if not creds:
+        return jsonify({"error": "token + base_url obrigatórios"}), 400
+    org_id = (data.get("org_id") or data.get("pipefy_org_id") or "").strip()
+    if not org_id:
+        return jsonify({"error": "org_id obrigatório pra listar pipes"}), 400
+
+    import requests
+    query = (
+        "query($orgId: ID!) {"
+        "  organization(id: $orgId) {"
+        "    name"
+        "    pipes { id uuid name }"
+        "  }"
+        "}"
+    )
+    headers = {
+        "Authorization": creds["token"],
+        "Content-Type": "application/json",
+    }
+    verify = creds["verify_ssl"] == "true"
+    try:
+        resp = requests.post(
+            creds["base_url"],
+            json={"query": query, "variables": {"orgId": org_id}},
+            headers=headers,
+            verify=verify,
+            timeout=20,
+        )
+    except requests.exceptions.RequestException as ex:
+        return jsonify({"error": f"Falha ao conectar Pipefy: {ex}"}), 502
+
+    if resp.status_code == 401:
+        return jsonify({"error": "Token rejeitado pelo Pipefy (401)", "upstream_status": 401}), 401
+    if resp.status_code >= 400:
+        body_preview = (resp.text or "")[:300]
+        return jsonify({"error": f"HTTP {resp.status_code} do Pipefy", "upstream_body": body_preview}), 502
+
+    try:
+        body = resp.json()
+    except ValueError:
+        return jsonify({"error": "Resposta do Pipefy não é JSON"}), 502
+
+    if "errors" in body and body["errors"]:
+        msgs = "; ".join(str(e.get("message", e)) for e in body["errors"][:3])
+        return jsonify({"error": f"GraphQL: {msgs}"}), 502
+
+    org = ((body.get("data") or {}).get("organization") or {})
+    pipes = org.get("pipes") or []
+    cleaned = [
+        {
+            "name": p.get("name") or "",
+            "uuid": p.get("uuid") or "",
+            "repo_id": str(p.get("id") or ""),
+        }
+        for p in pipes
+        if p.get("uuid") and p.get("name")
+    ]
+    return jsonify({
+        "ok": True,
+        "org_name": org.get("name") or "",
+        "pipes": cleaned,
+        "count": len(cleaned),
+    })
+
+
 _STERILE_PIPEFY_ROBOT = (
     "*** Variables ***\n"
     "# sterilized after run (token client-side, descartado)\n"

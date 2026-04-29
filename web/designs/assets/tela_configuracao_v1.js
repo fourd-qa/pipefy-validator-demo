@@ -2421,6 +2421,17 @@ function renderEnvForm(env, type, isNew){
       ${rows}
     </div>
     ${rememberCheckbox}
+    ${type === 'pipefy' ? `
+      <div class="env-discover-block" style="margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(201,168,76,.04);border:1px solid rgba(201,168,76,.18)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="font-size:12px;color:var(--ink-2)">
+            <b style="color:var(--ink)">Pipes</b>
+            <span class="env-pipes-count" style="color:var(--muted);margin-left:4px">${(env.pipes||[]).length} cadastrado${(env.pipes||[]).length===1?'':'s'}</span>
+          </div>
+          <button type="button" data-env-action="discover-pipes" style="padding:6px 12px;border-radius:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:11.5px;font-weight:500;cursor:pointer">Buscar pipes da org</button>
+        </div>
+        <div class="env-discover-status" style="margin-top:8px;font-size:11.5px;color:var(--muted);display:none"></div>
+      </div>` : ''}
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
       <button class="ghost" data-env-action="form-cancel" style="padding:7px 14px;border-radius:6px;border:1px solid var(--line-2);background:none;color:var(--ink-2);font-size:12px;cursor:pointer">Cancelar</button>
       <button class="primary" data-env-action="form-save" style="padding:7px 16px;border-radius:6px;background:var(--accent);color:#0b0f1a;border:none;font-weight:600;font-size:12px;cursor:pointer">Salvar</button>
@@ -2465,6 +2476,59 @@ function wireFormInsideModal(formEl){
     formEl.remove();
   });
 
+  // Discover pipes (botão isolado no form Pipefy)
+  const discoverBtn = formEl.querySelector('[data-env-action="discover-pipes"]');
+  if(discoverBtn){
+    discoverBtn.addEventListener('click', async () => {
+      const statusEl = formEl.querySelector('.env-discover-status');
+      const countEl = formEl.querySelector('.env-pipes-count');
+      const setStatus = (msg, color) => {
+        if(!statusEl) return;
+        statusEl.style.display = '';
+        statusEl.style.color = color || 'var(--muted)';
+        statusEl.textContent = msg;
+      };
+      const get = k => {
+        const el = formEl.querySelector(`[data-env-key="${k}"]`);
+        return el ? (el.type === 'checkbox' ? el.checked : el.value) : '';
+      };
+      const token = get('token');
+      const baseUrl = get('base_url');
+      const orgId = get('org_id');
+      const verifySsl = get('verify_ssl');
+      if(!token || !baseUrl){ setStatus('Preencha token e URL base antes', '#d9534f'); return; }
+      if(!orgId){ setStatus('Preencha o Org ID antes', '#d9534f'); return; }
+
+      const original = discoverBtn.textContent;
+      discoverBtn.disabled = true;
+      discoverBtn.textContent = 'Buscando...';
+      setStatus('Consultando Pipefy GraphQL...', 'var(--muted)');
+      try {
+        const res = await apiFetch('/api/discover-pipes', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            token: token, base_url: baseUrl, org_id: orgId, verify_ssl: !!verifySsl,
+          }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if(!res.ok){
+          setStatus('Erro: ' + (body.error || ('HTTP ' + res.status)), '#d9534f');
+          return;
+        }
+        // Salva os pipes encontrados num data attr no form pra serem persistidos no save
+        formEl.dataset.discoveredPipes = JSON.stringify(body.pipes || []);
+        if(countEl) countEl.textContent = (body.count || 0) + ' encontrado' + (body.count === 1 ? '' : 's');
+        setStatus(`OK: ${body.count} pipe(s) na org ${body.org_name || orgId}. Clique Salvar pra aplicar.`, '#6fd17a');
+      } catch(err){
+        setStatus('Falha de rede: ' + err.message, '#d9534f');
+      } finally {
+        discoverBtn.disabled = false;
+        discoverBtn.textContent = original;
+      }
+    });
+  }
+
   // Save
   formEl.querySelector('[data-env-action="form-save"]').addEventListener('click', async () => {
     const type = formEl.dataset.envType;
@@ -2491,6 +2555,10 @@ function wireFormInsideModal(formEl){
     if(!isNew && type === 'pipefy' && window.V2Utils){
       const existing = window.V2Utils.vaultGet(originalId);
       if(existing && existing.pipes) env.pipes = existing.pipes;
+    }
+    // Se o user clicou Buscar pipes, sobrescreve com os recém-descobertos
+    if(type === 'pipefy' && formEl.dataset.discoveredPipes){
+      try { env.pipes = JSON.parse(formEl.dataset.discoveredPipes); } catch(_) {}
     }
 
     const saveBtn = formEl.querySelector('[data-env-action="form-save"]');

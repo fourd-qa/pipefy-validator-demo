@@ -477,6 +477,104 @@ def test_api_status_inclui_progress_quando_arquivo_existe(workdir, client):
     assert data["progress"] == progress
 
 
+# ---------- /api/discover-pipes ----------
+
+def _mock_requests_post(monkeypatch, server, status_code=200, json_body=None, raise_exc=None):
+    """Mocka requests.post pro endpoint discover-pipes."""
+    fake_resp = MagicMock()
+    fake_resp.status_code = status_code
+    fake_resp.json.return_value = json_body if json_body is not None else {}
+    fake_resp.text = json.dumps(json_body) if json_body is not None else ""
+
+    captured = {}
+    def fake_post(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        if raise_exc:
+            raise raise_exc
+        return fake_resp
+
+    import requests as _req
+    monkeypatch.setattr(_req, "post", fake_post)
+    return captured
+
+
+def test_discover_pipes_sem_token_retorna_400(client):
+    res = client.post("/api/discover-pipes", json={"org_id": "999"})
+    assert res.status_code == 400
+    assert "token" in res.get_json()["error"].lower()
+
+
+def test_discover_pipes_sem_org_id_retorna_400(client, pipefy_payload):
+    payload = dict(pipefy_payload)
+    payload.pop("org_id")
+    res = client.post("/api/discover-pipes", json=payload)
+    assert res.status_code == 400
+    assert "org_id" in res.get_json()["error"].lower()
+
+
+def test_discover_pipes_sucesso_retorna_lista(workdir, client, pipefy_payload, monkeypatch):
+    _, server = workdir
+    captured = _mock_requests_post(monkeypatch, server, status_code=200, json_body={
+        "data": {
+            "organization": {
+                "name": "FourD",
+                "pipes": [
+                    {"id": "111", "uuid": "uuid-a", "name": "Pipe A"},
+                    {"id": "222", "uuid": "uuid-b", "name": "Pipe B"},
+                ]
+            }
+        }
+    })
+    res = client.post("/api/discover-pipes", json=pipefy_payload)
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["ok"] is True
+    assert body["count"] == 2
+    assert body["org_name"] == "FourD"
+    assert body["pipes"][0] == {"name": "Pipe A", "uuid": "uuid-a", "repo_id": "111"}
+    # URL e Authorization corretos
+    assert captured["url"] == "https://api.pipefy.com/graphql"
+    assert captured["kwargs"]["headers"]["Authorization"] == "Bearer fake_token_xyz"
+
+
+def test_discover_pipes_filtra_pipes_sem_uuid(workdir, client, pipefy_payload, monkeypatch):
+    _mock_requests_post(monkeypatch, workdir[1], status_code=200, json_body={
+        "data": {"organization": {"name": "X", "pipes": [
+            {"id": "111", "uuid": "uuid-ok", "name": "OK"},
+            {"id": "222", "uuid": None, "name": "Sem UUID"},
+            {"id": "333", "uuid": "uuid-3", "name": ""},
+        ]}}
+    })
+    res = client.post("/api/discover-pipes", json=pipefy_payload)
+    body = res.get_json()
+    assert body["count"] == 1
+    assert body["pipes"][0]["name"] == "OK"
+
+
+def test_discover_pipes_401_propaga(workdir, client, pipefy_payload, monkeypatch):
+    _mock_requests_post(monkeypatch, workdir[1], status_code=401, json_body={"errors": [{"message": "unauth"}]})
+    res = client.post("/api/discover-pipes", json=pipefy_payload)
+    assert res.status_code == 401
+    assert "rejeitado" in res.get_json()["error"].lower() or "401" in res.get_json()["error"]
+
+
+def test_discover_pipes_graphql_errors_502(workdir, client, pipefy_payload, monkeypatch):
+    _mock_requests_post(monkeypatch, workdir[1], status_code=200, json_body={
+        "errors": [{"message": "Organization not found"}]
+    })
+    res = client.post("/api/discover-pipes", json=pipefy_payload)
+    assert res.status_code == 502
+    assert "graphql" in res.get_json()["error"].lower() or "Organization" in res.get_json()["error"]
+
+
+def test_discover_pipes_network_error_502(workdir, client, pipefy_payload, monkeypatch):
+    import requests as _req
+    _mock_requests_post(monkeypatch, workdir[1], raise_exc=_req.exceptions.ConnectionError("dns failed"))
+    res = client.post("/api/discover-pipes", json=pipefy_payload)
+    assert res.status_code == 502
+
+
 # ---------- Basic Auth ----------
 
 def test_basic_auth_quando_app_password_setada(authed_client):
