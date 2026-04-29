@@ -761,6 +761,8 @@ let lastFocus = null;
 
 function openModal(){
   lastFocus = document.activeElement;
+  // Re-render do modal antes de abrir, garantindo que reflete o vault atual
+  if(typeof populateEnvModal === 'function') populateEnvModal();
   modal.classList.add('open');
   // focus first focusable inside
   setTimeout(()=>{
@@ -2737,6 +2739,9 @@ function showOnboardingModal(){
     });
     close();
     state.single.env = slug;
-    loadEnvironments();
+    loadEnvironments().then(() => {
+      if(typeof populateEnvModal === 'function') populateEnvModal();
+      if(typeof updatePresetInfoCard === 'function') updatePresetInfoCard();
+    });
   });
 }
