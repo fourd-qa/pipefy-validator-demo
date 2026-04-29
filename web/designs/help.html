@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ajuda · Pipefy Validator</title>
+<link rel="stylesheet" href="/v2/assets/v2_theme.css">
+<script src="/v2/assets/v2_theme.js" defer></script>
+<style>
+  :root{
+    --bg:#0b0f1a;
+    --bg-1:#0f1424;
+    --bg-2:#141a2e;
+    --line:rgba(255,255,255,.06);
+    --line-2:rgba(255,255,255,.1);
+    --ink:#e9ecf3;
+    --ink-2:#c5cad6;
+    --muted:#8089a0;
+    --dim:#5b6480;
+    --accent:#c9a84c;
+    --accent-2:#d4b766;
+    --green:#6fd17a;
+    --red:#d9534f;
+    --yellow:#e0b341;
+    --blue:#6ca9d9;
+    --mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+    --sans:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.65}
+  ::selection{background:rgba(201,168,76,.25);color:var(--ink)}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink-2)}
+
+  /* Topbar */
+  .help-topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;border-bottom:1px solid var(--line);
+    background:var(--bg-1);position:sticky;top:0;z-index:50;
+  }
+  .help-brand{display:flex;align-items:center;gap:12px}
+  .help-brand .mark{
+    width:30px;height:30px;border-radius:7px;
+    background:linear-gradient(135deg,var(--accent),#8a6f1e);
+    display:flex;align-items:center;justify-content:center;
+    color:#0b0f1a;font-weight:700;font-size:15px;
+  }
+  .help-brand .name{font-size:14.5px;font-weight:500;letter-spacing:-.01em}
+  .help-brand .name span{color:var(--muted);font-weight:400;margin-left:6px}
+  .help-actions{display:flex;gap:8px;align-items:center}
+  .help-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:6px;
+    background:rgba(255,255,255,.03);border:1px solid var(--line-2);
+    color:var(--ink-2);font-size:12px;font-weight:500;cursor:pointer;text-decoration:none;
+    transition:all .15s;font-family:var(--sans);
+  }
+  .help-btn:hover{background:rgba(201,168,76,.08);color:var(--accent);border-color:rgba(201,168,76,.3);text-decoration:none}
+  .help-btn.primary{background:rgba(201,168,76,.12);color:var(--accent);border-color:rgba(201,168,76,.35)}
+  .help-btn.primary:hover{background:rgba(201,168,76,.2)}
+
+  /* Main */
+  .help-main{
+    max-width:780px;margin:0 auto;padding:48px 28px 80px;
+  }
+  h1{
+    font-size:30px;font-weight:600;letter-spacing:-.02em;
+    margin:0 0 8px;line-height:1.2;
+  }
+  .lead{
+    font-size:15px;color:var(--muted);margin:0 0 36px;
+  }
+  h2{
+    font-size:18px;font-weight:600;letter-spacing:-.015em;
+    margin:36px 0 14px;color:var(--ink);
+  }
+  p{margin:8px 0;color:var(--ink-2)}
+  ul,ol{padding-left:20px;color:var(--ink-2)}
+  li{margin:5px 0}
+
+  /* Section card */
+  .section{
+    background:var(--bg-1);border:1px solid var(--line-2);border-radius:12px;
+    padding:24px;margin-bottom:18px;
+  }
+  .section .head{
+    display:flex;align-items:center;gap:10px;margin-bottom:14px;
+  }
+  .section .head .ico{
+    width:32px;height:32px;border-radius:8px;
+    background:rgba(201,168,76,.1);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;flex:0 0 auto;
+  }
+  .section .head .title{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+
+  /* Atalhos */
+  .shortcuts{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+  .shortcut{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px;background:rgba(255,255,255,.02);
+    border:1px solid var(--line);border-radius:8px;
+  }
+  .shortcut .label{font-size:12.5px;color:var(--ink-2)}
+  .kbd{
+    display:inline-flex;font-family:var(--mono);font-size:11px;font-weight:600;
+    background:rgba(255,255,255,.06);border:1px solid var(--line-2);
+    border-bottom-width:2px;border-radius:5px;padding:2px 7px;color:var(--ink);
+    align-items:center;gap:3px;
+  }
+
+  /* FAQ */
+  details{
+    border-top:1px solid var(--line);padding:14px 0;
+  }
+  details:first-of-type{border-top:none;padding-top:0}
+  details:last-of-type{padding-bottom:0}
+  details > summary{
+    cursor:pointer;font-size:14px;font-weight:500;color:var(--ink);
+    list-style:none;padding-right:24px;position:relative;line-height:1.5;
+  }
+  details > summary::-webkit-details-marker{display:none}
+  details > summary::after{
+    content:"+";position:absolute;right:0;top:0;
+    font-size:18px;font-weight:300;color:var(--muted);line-height:1;
+    transition:transform .15s;
+  }
+  details[open] > summary::after{content:"−"}
+  details > .answer{
+    margin-top:10px;color:var(--ink-2);font-size:13px;line-height:1.65;
+  }
+  details > .answer p{margin:6px 0}
+
+  /* Steps */
+  .steps{counter-reset:step;padding:0;list-style:none;margin:0}
+  .steps li{
+    counter-increment:step;
+    padding:10px 0 10px 38px;position:relative;font-size:13px;color:var(--ink-2);
+  }
+  .steps li::before{
+    content:counter(step);
+    position:absolute;left:0;top:8px;
+    width:24px;height:24px;border-radius:50%;
+    background:rgba(201,168,76,.1);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:600;font-family:var(--mono);
+  }
+
+  /* Contact */
+  .contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .contact-card{
+    padding:14px;border:1px solid var(--line);border-radius:8px;
+    background:rgba(255,255,255,.02);
+  }
+  .contact-card .role{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:4px}
+  .contact-card .name{font-size:13.5px;font-weight:500;color:var(--ink);margin-bottom:2px}
+  .contact-card .org{font-size:11.5px;color:var(--muted)}
+
+  /* Callout */
+  .callout{
+    margin:14px 0;padding:12px 16px;
+    border-radius:8px;border:1px solid;
+    display:flex;gap:10px;align-items:flex-start;font-size:12.5px;
+  }
+  .callout .ico{flex:0 0 auto;font-size:16px}
+  .callout.info{background:rgba(108,169,217,.06);border-color:rgba(108,169,217,.25);color:var(--ink-2)}
+  .callout.info .ico{color:var(--blue)}
+
+  @media (max-width:640px){
+    .help-main{padding:24px 18px 60px}
+    .shortcuts{grid-template-columns:1fr}
+    .help-brand .name span{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="help-topbar">
+  <div class="help-brand">
+    <div class="mark">P</div>
+    <div class="name">Pipefy Validator <span>· ajuda</span></div>
+  </div>
+  <div class="help-actions">
+    <a href="/v2/docs" class="help-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Documentação completa
+    </a>
+    <a href="/v2/configuracao" class="help-btn primary">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar pro app
+    </a>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="help-main">
+
+  <h1>Como usar o Validator</h1>
+  <p class="lead">
+    Atalhos, perguntas frequentes, fluxo de reporte de bug e contatos.
+    Pra entender a fundo cada modo e a arquitetura, abre a <a href="/v2/docs">documentação completa</a>.
+  </p>
+
+  <!-- ATALHOS -->
+  <section class="section">
+    <div class="head">
+      <div class="ico">⌨</div>
+      <div class="title">Atalhos de teclado</div>
+    </div>
+    <div class="shortcuts">
+      <div class="shortcut">
+        <span class="label">Buscar nos resultados</span>
+        <span class="kbd">Ctrl + K</span>
+      </div>
+      <div class="shortcut">
+        <span class="label">Executar validação</span>
+        <span class="kbd">Enter</span>
+      </div>
+      <div class="shortcut">
+        <span class="label">Fechar modal</span>
+        <span class="kbd">Esc</span>
+      </div>
+      <div class="shortcut">
+        <span class="label">Forçar recarga (cache)</span>
+        <span class="kbd">Ctrl + F5</span>
+      </div>
+      <div class="shortcut">
+        <span class="label">Abrir DevTools</span>
+        <span class="kbd">F12</span>
+      </div>
+      <div class="shortcut">
+        <span class="label">Re-focar busca</span>
+        <span class="kbd">/</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section">
+    <div class="head">
+      <div class="ico">?</div>
+      <div class="title">Perguntas frequentes</div>
+    </div>
+
+    <details>
+      <summary>Por que minha run falha com <code>PERMISSION_DENIED</code>?</summary>
+      <div class="answer">
+        <p>O token usado não tem permissão de leitura no pipe ou organização. Causas comuns:</p>
+        <ul>
+          <li>Token sem permissão de leitura no pipe escolhido (limitação por usuário no Pipefy).</li>
+          <li>Você está rodando Batch com pipes de organizações diferentes. O backend filtra por env_id, mas se você forçar manualmente vai dar 401.</li>
+          <li>Token expirou. Ver pergunta de renovação abaixo.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Como renovo um token expirado (Pipefy ou iPaaS)?</summary>
+      <div class="answer">
+        <ol>
+          <li>Faz login no Pipefy ou Activepieces na UI web</li>
+          <li>Gera novo Personal Access Token (PAT)</li>
+          <li>Volta pro Validator → ícone de <strong>engrenagem</strong> no topbar (Gerenciar Ambientes)</li>
+          <li>Aba Pipefy ou iPaaS → Editar o ambiente → cola novo token → Salvar</li>
+          <li><code>environments.json</code> reflete imediato (volume mount, sem rebuild)</li>
+        </ol>
+        <p>Alternativa rápida: edita direto <code>config/environments.json</code> no campo <code>token</code>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>O que é a "Decisão D" mencionada nos avisos?</summary>
+      <div class="answer">
+        <p>Decisão arquitetural <strong>MVP Honesto</strong>: features cuja UI mentia foram removidas até o backend respeitar de verdade.</p>
+        <p>Por exemplo, dropdowns de pipe origem/destino no Single-env existiam mas não viajavam no payload. Em vez de manter UI fachada, foram removidos. Voltam quando o A+ for implementado (já feito pra Snapshot Gerar/Comparar e Batch).</p>
+        <p>Detalhes na <a href="/v2/docs#roadmap">documentação · Roadmap A+</a>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Onde ficam os arquivos gerados (snapshots, relatórios)?</summary>
+      <div class="answer">
+        <ul>
+          <li><code>snapshots/</code> · arquivos JSON de baseline (volume mount)</li>
+          <li><code>results/validations.json</code> · último relatório Pipefy</li>
+          <li><code>results/ipaas_validations.json</code> · último relatório iPaaS</li>
+          <li><code>results/log.html</code> e <code>report.html</code> · saída padrão do Robot Framework (acessível via botão Log/Report na tela de Resultados)</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Editei um arquivo e a mudança não aparece</summary>
+      <div class="answer">
+        <p>Depende do arquivo:</p>
+        <ul>
+          <li><strong>Volume mount</strong> (<code>config/</code>, <code>results/</code>, <code>snapshots/</code>): reflete imediato. Faz <span class="kbd">Ctrl + F5</span> no browser pra forçar recarga dos assets.</li>
+          <li><strong>Dentro da imagem</strong> (<code>server.py</code>, <code>web/</code>, <code>resources/</code>, <code>tests/</code>): precisa rebuild com <code>docker-compose up --build -d</code>.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>A tela de Resultados ficou "morta" (filtros e diff não respondem)</summary>
+      <div class="answer">
+        <p>Significa que o run abortou antes de gerar <code>validations.json</code> e o frontend caiu em estado de empty state. O backend agora grava um fallback com <code>status: EXECUTION_FAILED</code> e mensagem real (parseada do <code>output.xml</code>) com <em>hint</em> sugerindo a correção.</p>
+        <p>Se ainda assim os controles ficarem dead, abre F12 console e me passa o que aparece como <code>[v2]</code>.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Quero rodar com um pipe que não está no preset</summary>
+      <div class="answer">
+        <p>Caminhos:</p>
+        <ul>
+          <li><strong>Snapshot Gerar/Comparar</strong>: já permite, basta selecionar no dropdown Ambiente · Pipe ou Pipe atual.</li>
+          <li><strong>Single ou Cross</strong>: ainda não, faz parte do roadmap A+. Workaround: edita o <code>config/&lt;env&gt;.robot</code> manualmente trocando os UUIDs e roda.</li>
+          <li><strong>Batch</strong>: adiciona o pipe em <code>config/batch_pipes.json</code> com <code>env_id</code> correspondente. Lembrando que o backend roda todos do JSON filtrados por env, não respeita a checkbox da UI ainda.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- COMO REPORTAR BUG -->
+  <section class="section">
+    <div class="head">
+      <div class="ico">🐞</div>
+      <div class="title">Como reportar um bug</div>
+    </div>
+    <p>Pra cada bug, descreve nesse formato:</p>
+    <ol class="steps">
+      <li><strong>Cenário</strong>: qual modo + preset (ex: "Cross-env · cross_fourd_hmg_x_fourd_stg")</li>
+      <li><strong>Ação</strong>: o que você fez (cliquei X, digitei Y, troquei dropdown Z)</li>
+      <li><strong>Esperado vs aconteceu</strong>: o que devia acontecer e o que aconteceu</li>
+      <li><strong>Print + console</strong>: tira print da tela (<span class="kbd">Win + Shift + S</span>) e copia mensagens do F12 console que comecem com <code>[v2]</code></li>
+    </ol>
+    <div class="callout info">
+      <div class="ico">ⓘ</div>
+      <div>
+        Em vez de "não funciona" ou "tá quebrado", esses 4 itens reduzem o ciclo de fix em horas.
+        Reproduzir é 80% do trabalho.
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTATOS -->
+  <section class="section">
+    <div class="head">
+      <div class="ico">👥</div>
+      <div class="title">Contatos</div>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-card">
+        <div class="role">Mantenedor</div>
+        <div class="name">André Zimermann</div>
+        <div class="org">github.com/fourd-qa</div>
+      </div>
+    </div>
+  </section>
+
+  <div style="margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);text-align:center">
+    Não achou resposta aqui? Abre a <a href="/v2/docs">documentação completa</a> ou abre uma issue no repositório.
+  </div>
+
+</main>
+
+</body>
+</html>

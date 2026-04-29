@@ -1,0 +1,630 @@
+{
+  "metadata": {
+    "timestamp": "2026-04-28T17:38:56.580313",
+    "label": "mesa_credito_pf_copia_fourd_hmg",
+    "pipe_name": "[Agentic] - Mesa de Crédito – Pessoa Física",
+    "tool_version": "1.0"
+  },
+  "pipe": {
+    "name": "[Agentic] - Mesa de Crédito – Pessoa Física",
+    "start_form_fields": [
+      {
+        "id": "nome",
+        "label": "Nome Completo",
+        "type": "short_text",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "cpf",
+        "label": "CPF",
+        "type": "cpf",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "data_de_nascimento",
+        "label": "Data de nascimento",
+        "type": "date",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "telefone",
+        "label": "Telefone",
+        "type": "phone",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "email",
+        "label": "Email",
+        "type": "email",
+        "required": false,
+        "options": []
+      }
+    ],
+    "phases": [
+      {
+        "id": "342880395",
+        "name": "Agent - Verificação de Crédito",
+        "fields": [
+          {
+            "id": "statement_7a17cfc4_edd8_45a5_b089_044f728f4555",
+            "label": "Statement-7a17cfc4-edd8-45a5-b089-044f728f4555",
+            "type": "statement",
+            "required": null,
+            "options": []
+          },
+          {
+            "id": "valida_o_financeira",
+            "label": "Validação Financeira",
+            "type": "connector",
+            "required": false,
+            "options": []
+          },
+          {
+            "id": "observa_es_da_valida_o_1",
+            "label": "Observações da Validação Credito",
+            "type": "long_text",
+            "required": false,
+            "options": []
+          },
+          {
+            "id": "resultado_da_valida_o_o",
+            "label": "Resultado da Validação Credito",
+            "type": "radio_horizontal",
+            "required": false,
+            "options": [
+              "Aprovado",
+              "Reprovado"
+            ]
+          },
+          {
+            "id": "status_de_processamento_2",
+            "label": "Status de Processamento Validação Credito",
+            "type": "short_text",
+            "required": false,
+            "options": []
+          }
+        ]
+      },
+      {
+        "id": "342880399",
+        "name": "Agent - Open Banking",
+        "fields": [
+          {
+            "id": "statement_3db783a8_4f05_419c_aef0_5d0dfef030fd",
+            "label": "Statement-3db783a8-4f05-419c-aef0-5d0dfef030fd",
+            "type": "statement",
+            "required": null,
+            "options": []
+          },
+          {
+            "id": "observa_es_da_valida_o_2",
+            "label": "Observações da Validação Open Banking",
+            "type": "long_text",
+            "required": false,
+            "options": []
+          },
+          {
+            "id": "statement_ffefc2a0_15d1_41e3_a3bd_5974d8f9c435",
+            "label": "Statement-ffefc2a0-15d1-41e3-a3bd-5974d8f9c435",
+            "type": "statement",
+            "required": null,
+            "options": []
+          },
+          {
+            "id": "resultado_da_analise",
+            "label": "Resultado da Analise Validação Open Banking",
+            "type": "radio_horizontal",
+            "required": false,
+            "options": [
+              "Aprovado",
+              "Reprovado"
+            ]
+          },
+          {
+            "id": "link_openbanking",
+            "label": "Link Openbanking",
+            "type": "long_text",
+            "required": false,
+            "options": []
+          },
+          {
+            "id": "agent_open_banking",
+            "label": "Agent - Open Banking",
+            "type": "connector",
+            "required": false,
+            "options": []
+          }
+        ]
+      },
+      {
+        "id": "342880396",
+        "name": "Tomada de Decisão",
+        "fields": [
+          {
+            "id": "statement_090057ed_a536_4ad3_8562_be50a8de2495",
+            "label": "Statement-090057ed-a536-4ad3-8562-be50a8de2495",
+            "type": "statement",
+            "required": null,
+            "options": []
+          },
+          {
+            "id": "respons_vel_pela_decis_o",
+            "label": "Responsável pela Decisão",
+            "type": "assignee_select",
+            "required": true,
+            "options": []
+          },
+          {
+            "id": "statement_19563698_e74c_4686_a7e3_1a416e27ac5d",
+            "label": "Statement-19563698-e74c-4686-a7e3-1a416e27ac5d",
+            "type": "statement",
+            "required": null,
+            "options": []
+          },
+          {
+            "id": "usar_ia",
+            "label": "Usar IA:",
+            "type": "radio_vertical",
+            "required": false,
+            "options": [
+              "🤖"
+            ]
+          },
+          {
+            "id": "resumo_das_analises",
+            "label": "Resumo das analises",
+            "type": "long_text",
+            "required": false,
+            "options": []
+          },
+          {
+            "id": "decis_o_final",
+            "label": "Decisão Final",
+            "type": "radio_vertical",
+            "required": true,
+            "options": [
+              "✔️ Aprovado",
+              "❌ Reprovado",
+              "❓Pendente"
+            ]
+          },
+          {
+            "id": "motivo_da_decis_o",
+            "label": "Motivo da Decisão",
+            "type": "long_text",
+            "required": false,
+            "options": []
+          },
+          {
+            "id": "teste",
+            "label": "Teste",
+            "type": "number",
+            "required": false,
+            "options": []
+          }
+        ]
+      },
+      {
+        "id": "342880398",
+        "name": "Pendencias",
+        "fields": []
+      },
+      {
+        "id": "342880397",
+        "name": "Aprovado",
+        "fields": []
+      },
+      {
+        "id": "342880400",
+        "name": "Reprovado",
+        "fields": []
+      }
+    ],
+    "labels": [
+      {
+        "name": "SAC",
+        "color": "#00FF00"
+      },
+      {
+        "name": "PRICE",
+        "color": "#4A90E2"
+      },
+      {
+        "name": "Imóvel",
+        "color": "#B8E986"
+      },
+      {
+        "name": "Veiculo",
+        "color": "#F5A623"
+      }
+    ]
+  },
+  "automations": [
+    {
+      "id": "306924323",
+      "name": "[CRIA] Card em Open Banking-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "create_connected_card",
+      "event_id": "card_moved",
+      "action_params": {
+        "to_phase_id": null,
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": null,
+        "phase": null,
+        "to_phase_id": "342880399",
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [],
+        "expressions_structure": []
+      }
+    },
+    {
+      "id": "306924324",
+      "name": "[Responsável] Tomada de decisão-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "distribute_assignments",
+      "event_id": "card_moved",
+      "action_params": {
+        "to_phase_id": null,
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": null,
+        "phase": null,
+        "to_phase_id": "342880396",
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [],
+        "expressions_structure": []
+      }
+    },
+    {
+      "id": "306924325",
+      "name": "[CRIA] Card em Dados financeiros-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "create_connected_card",
+      "event_id": "card_moved",
+      "action_params": {
+        "to_phase_id": null,
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": null,
+        "phase": null,
+        "to_phase_id": "342880395",
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [],
+        "expressions_structure": []
+      }
+    },
+    {
+      "id": "306924326",
+      "name": "[MOVER] Aprovado-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "move_single_card",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": "342880397",
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313921"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313921",
+            "operation": "equals",
+            "value": "✔️ Aprovado"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "306924327",
+      "name": "[MOVER] Open Banking -> Decisão Final-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "move_single_card",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": "342880396",
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313925"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313925",
+            "operation": "equals",
+            "value": "Aprovado"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "306924328",
+      "name": "[MOVER] Reprovado-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "move_single_card",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": "342880399",
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313921"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313921",
+            "operation": "equals",
+            "value": "❌ Reprovado"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "306924329",
+      "name": "[MOVER] Verificação de Credito -> Open Banking-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "move_single_card",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": "342880399",
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313936"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313936",
+            "operation": "equals",
+            "value": "Aprovado"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "306924330",
+      "name": "[MOVER] Verificação de Credito -> Pendencia-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "move_single_card",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": "342880398",
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313936"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313936",
+            "operation": "equals",
+            "value": "Reprovado"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "306924331",
+      "name": "[IA] Validação Final-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "generate_with_ai",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": null,
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313918"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313918",
+            "operation": "equals",
+            "value": "🤖"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "306924332",
+      "name": "[MOVER] Open Banking -> Pendencia-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "move_single_card",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": "342880396",
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313925"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313925",
+            "operation": "equals",
+            "value": "Reprovado"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "306924333",
+      "name": "[MOVER] Pendencia-[Agentic] - Mesa de Crédito – Pessoa Física",
+      "active": true,
+      "action_id": "move_single_card",
+      "event_id": "field_updated",
+      "action_params": {
+        "to_phase_id": "342880395",
+        "phase": null,
+        "url": null,
+        "body": null,
+        "headers": null,
+        "httpMethod": null
+      },
+      "event_params": {
+        "triggerFieldIds": [
+          "428313921"
+        ],
+        "phase": null,
+        "to_phase_id": null,
+        "fromPhaseId": null,
+        "inPhaseId": null
+      },
+      "condition": {
+        "expressions": [
+          {
+            "field_address": "428313921",
+            "operation": "equals",
+            "value": "❓Pendente"
+          }
+        ],
+        "expressions_structure": [
+          [
+            "0"
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "_comment": "Pares de pipes para validação batch (self-check). Cada pipe tem env_id. Robot filtra por BATCH_ENV via --variable. Edite com seus próprios pipes.",
+  "pipes": [
+    {
+      "nome": "Mesa Credito PF (Origem)",
+      "env_id": "fourd_hmg",
+      "env_origem": "fourd-sandbox",
+      "env_destino": "fourd-sandbox",
+      "uuid_origem": "bc704c08-a6f3-4ce9-904d-b2fef4f79397",
+      "uuid_destino": "bc704c08-a6f3-4ce9-904d-b2fef4f79397",
+      "repo_origem": "307109232",
+      "repo_destino": "307109232"
+    },
+    {
+      "nome": "Mesa Credito PF (Copia)",
+      "env_id": "fourd_hmg",
+      "env_origem": "fourd-sandbox",
+      "env_destino": "fourd-sandbox",
+      "uuid_origem": "0c8bf841-f480-4e76-aa83-5985ad644c57",
+      "uuid_destino": "0c8bf841-f480-4e76-aa83-5985ad644c57",
+      "repo_origem": "307109225",
+      "repo_destino": "307109225"
+    }
+  ]
+}

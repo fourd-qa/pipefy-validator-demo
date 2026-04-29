@@ -1,0 +1,32 @@
+{
+  "_comment": "Schema baseline - campos da API Pipefy que a ferramenta DEPENDE. Se algum sumir ou mudar tipo, a Canary alerta antes de comparar ambientes. Atualizar este arquivo quando validar manualmente que mudanças de schema são aceitáveis.",
+  "tool_version": "1.0",
+  "schema_version": "2026-04-16",
+  "required_fields": {
+    "Pipe": [
+      {"name": "id", "type_name": "ID"},
+      {"name": "name", "type_name": "String"},
+      {"name": "phases", "type_kind": "LIST"},
+      {"name": "start_form_fields", "type_kind": "LIST"},
+      {"name": "labels", "type_kind": "LIST"}
+    ],
+    "Phase": [
+      {"name": "id", "type_name": "ID"},
+      {"name": "name", "type_name": "String"},
+      {"name": "fields", "type_kind": "LIST"}
+    ],
+    "PhaseField": [
+      {"name": "id", "type_name": "ID"},
+      {"name": "label", "type_name": "String"},
+      {"name": "type", "type_name": "String"},
+      {"name": "required", "type_name": "Boolean"}
+    ],
+    "Automation": [
+      {"name": "id", "type_name": "ID"},
+      {"name": "name", "type_name": "String"},
+      {"name": "action_id", "type_name": "String"},
+      {"name": "event_id", "type_name": "String"},
+      {"name": "active", "type_name": "Boolean"}
+    ]
+  }
+}

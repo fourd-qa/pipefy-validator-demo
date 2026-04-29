@@ -1,0 +1,10 @@
+services:
+  pipefy-validator:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./results:/app/results
+      - ./config:/app/config
+      - ./snapshots:/app/snapshots
+      - ./proposals:/app/proposals

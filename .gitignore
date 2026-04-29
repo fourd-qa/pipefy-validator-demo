@@ -1,0 +1,40 @@
+# Dependencias regeneraveis
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Outputs de execucao
+results/
+tmp/
+*.log
+
+# Backups locais
+*.bak
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Configs locais de ferramentas e editor (permissoes especificas da maquina)
+**/settings.local.json
+*.local.json
+.vscode/settings.json
+.idea/workspace.xml
+
+# === SEGREDOS (NUNCA COMMITAR) ===
+# environments.json tem tokens Bearer em plaintext
+config/environments.json
+# active.robot e active_cross.robot sao copias dinamicas dos presets, contem token
+config/active.robot
+config/active_cross.robot
+# Presets de ambiente sao gerados pela UI a partir do environments.json
+# e contem token em plaintext. Regerados via "Gerenciar Ambientes" no V2.
+config/*.robot
+!config/active.robot.example
+config/cross_*.robot
+config/ipaas_*.robot
+# Script de debug local com token hardcoded
+debug_params.py

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Execução · Pipefy Validator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/v2/assets/tela_execucao_v1.css">
+<link rel="stylesheet" href="/v2/assets/v2_theme.css">
+<script src="/v2/assets/v2_theme.js" defer></script>
+</head>
+<body>
+
+<!-- ICON SPRITE -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <a href="/v2/configuracao" class="brand" aria-label="Voltar pra home">
+      <div class="brand-mark">P</div>
+      <div class="brand-name">Pipefy Validator <span>/ demo</span></div>
+    </a>
+    <nav class="crumbs" aria-label="breadcrumb">
+      <a href="#">Validações</a>
+      <span class="sep">/</span>
+      <a href="#">Cross Env</a>
+      <span class="sep">/</span>
+      <span class="current">run_4f82a1cb · em execução</span>
+    </nav>
+    <div class="top-right">
+      <div class="run-status">
+        <span class="dot"></span>
+        <span class="txt">RUNNING · 42%</span>
+      </div>
+      <button class="icon-btn" data-tip="Configurações"><svg><use href="#i-settings"/></svg></button>
+    </div>
+  </header>
+
+  <!-- META -->
+  <section class="meta">
+    <div class="meta-block runid" data-tip="run_4f82a1cb_20260424T093812Z · 2026-04-24 09:38:12 BRT">
+      <span class="meta-label">Run</span>
+      <span class="meta-value runid-value">
+        <span class="runid-hash">4f82a1cb</span><span class="runid-suffix">09:38 BRT</span>
+      </span>
+    </div>
+    <div class="meta-block">
+      <span class="meta-label">Pipe</span>
+      <span class="meta-value muted">Mesa Crédito PF (Origem) <span class="meta-value dim">· bc704c08</span></span>
+    </div>
+    <div class="meta-flow-hero" aria-label="Fluxo de validação">
+      <div class="env-pill">
+        <span class="env-tag">Origem</span>
+        <span class="env-name">fourd-sandbox</span>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+      </div>
+      <div class="env-pill dest">
+        <span class="env-tag">Destino</span>
+        <span class="env-name">fourd-staging</span>
+      </div>
+    </div>
+    <div class="meta-block">
+      <span class="meta-label">Decorrido</span>
+      <span class="meta-value muted" id="meta-elapsed">00:04.231</span>
+    </div>
+    <div class="meta-actions">
+      <a href="#" class="icon-btn" data-tip="Abrir dashboard Robot Framework"><svg><use href="#i-external"/></svg></a>
+    </div>
+  </section>
+
+  <!-- KPI STRIP -->
+  <section class="kpis">
+    <div class="kpi">
+      <div class="kpi-num accent" id="kpi-steps">3<span style="font-size:14px;color:var(--muted);margin-left:4px">/ 7</span></div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Steps concluídos</span>
+        <span class="kpi-sub">Robot Framework · <span class="hi">CT03</span> rodando</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-num" id="kpi-pct">42%</div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Progresso total</span>
+        <span class="kpi-sub" id="kpi-pct-sub">3.4s / ~9.8s estimado</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-num live" id="kpi-timer">00:04.231</div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Tempo decorrido</span>
+        <span class="kpi-sub">última atualização <span class="hi" id="kpi-last">agora</span></span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-num" style="font-family:var(--mono);font-size:18px" id="kpi-next">CT04</div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Próxima fase</span>
+        <span class="kpi-sub">Comparar automações</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROGRESS BAR -->
+  <section class="prog">
+    <div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+        <span class="prog-text"><span class="hi" id="prog-code">CT03</span><span>· Comparando campos ·</span><span id="prog-count">3</span><span>de</span><span id="prog-total">35</span><span>fases processadas</span></span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">streaming ao vivo</span>
+      </div>
+    </div>
+    <div class="prog-pct" id="prog-pct">42%</div>
+  </section>
+
+  <!-- LEFT: STEPS TIMELINE -->
+  <aside class="steps">
+    <div class="col-head">
+      <span class="col-title">Steps<span class="hi">Robot Framework</span></span>
+      <div class="col-actions">
+        <span class="chip active"><span class="dot" style="color:var(--accent)"></span>live</span>
+      </div>
+    </div>
+    <div class="steps-list" id="steps-list">
+      <div class="step done">
+        <div class="step-ind">
+          <svg class="ind-done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>
+        </div>
+        <div class="step-body">
+          <span class="step-code">CT01</span>
+          <span class="step-name">Validar estrutura do pipe</span>
+        </div>
+        <span class="step-time">1.284s</span>
+      </div>
+      <div class="step done">
+        <div class="step-ind">
+          <svg class="ind-done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>
+        </div>
+        <div class="step-body">
+          <span class="step-code">CT02</span>
+          <span class="step-name">Comparar fases e ordenação</span>
+        </div>
+        <span class="step-time">2.116s</span>
+      </div>
+      <div class="step running">
+        <div class="step-ind">
+          <svg class="ind-running" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path class="arc" d="M12 3 a9 9 0 0 1 6.36 2.64" fill="none"/></svg>
+        </div>
+        <div class="step-body">
+          <span class="step-code">CT03</span>
+          <span class="step-name">Comparar campos (labels, tipos, obrigatoriedade)</span>
+        </div>
+        <span class="step-time" id="step-live">0.831s</span>
+      </div>
+      <div class="step pending">
+        <div class="step-ind">
+          <svg class="ind-pending" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div class="step-body">
+          <span class="step-code">CT04</span>
+          <span class="step-name">Comparar automações</span>
+        </div>
+        <span class="step-time">—</span>
+      </div>
+      <div class="step pending">
+        <div class="step-ind">
+          <svg class="ind-pending" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div class="step-body">
+          <span class="step-code">CT05</span>
+          <span class="step-name">Resolver fase destino por nome</span>
+        </div>
+        <span class="step-time">—</span>
+      </div>
+      <div class="step pending">
+        <div class="step-ind">
+          <svg class="ind-pending" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div class="step-body">
+          <span class="step-code">CT06</span>
+          <span class="step-name">Comparar conditions</span>
+        </div>
+        <span class="step-time">—</span>
+      </div>
+      <div class="step pending">
+        <div class="step-ind">
+          <svg class="ind-pending" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div class="step-body">
+          <span class="step-code">CT07</span>
+          <span class="step-name">Schema canary</span>
+        </div>
+        <span class="step-time">—</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: LOG TERMINAL -->
+  <section class="logpane">
+    <div class="col-head">
+      <span class="col-title">Log<span class="hi">stream</span></span>
+      <div class="col-actions">
+        <span class="chip active" data-filter="all">all <span style="color:var(--muted);margin-left:2px" id="log-count">42</span></span>
+        <span class="chip" data-filter="info">info</span>
+        <span class="chip" data-filter="warn">warn <span style="color:var(--yellow);margin-left:3px">2</span></span>
+        <span class="chip" data-filter="err">err <span style="color:var(--red);margin-left:3px">1</span></span>
+        <button class="icon-btn" data-tip="Copiar log"><svg><use href="#i-copy"/></svg></button>
+        <button class="icon-btn" data-tip="Auto-scroll ativo"><svg><use href="#i-arrow-down"/></svg></button>
+      </div>
+    </div>
+    <div class="log-stream" id="log-stream"></div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div style="position:relative">
+      <button class="btn-cancel" id="btn-cancel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        Cancelar execução
+      </button>
+      <div class="cancel-pop" id="cancel-pop">
+        <div class="cancel-pop-title">Cancelar execução?</div>
+        <div class="cancel-pop-body">3 steps concluídos serão descartados. Você pode re-executar a qualquer momento.</div>
+        <div class="cancel-pop-actions">
+          <button class="cancel-pop-btn" id="cancel-no">Não, continuar</button>
+          <button class="cancel-pop-btn destructive" id="cancel-yes">Sim, cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="timer-wrap">
+      <span class="timer-live" id="timer-live">00:04.231</span>
+      <span class="timer-sep">/</span>
+      <span class="timer-est-chip">Estimado</span>
+      <span class="timer-est">~00:09.800</span>
+    </div>
+
+    <div class="footer-right">
+      <span class="step-counter">Step <span class="hi" id="footer-step">3</span><span class="slash">/</span>7</span>
+      <a href="#" class="link-btn">
+        <svg><use href="#i-external"/></svg>
+        ver log completo
+      </a>
+    </div>
+  </footer>
+
+</div>
+
+<script src="/v2/assets/tela_execucao_v1.js"></script>
+</body>
+</html>

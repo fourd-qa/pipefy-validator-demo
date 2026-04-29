@@ -1,0 +1,41 @@
+query GetAutomations($repoId: ID!, $orgId: ID!, $after: String) {
+  automations(repoId: $repoId, organizationId: $orgId, after: $after) {
+    edges {
+      node {
+        id
+        name
+        active
+        action_id
+        event_id
+        action_params {
+          to_phase_id
+          phase { id name }
+          url
+          body
+          headers
+          httpMethod
+        }
+        event_params {
+          triggerFieldIds
+          phase { id name }
+          to_phase_id
+          fromPhaseId
+          inPhaseId
+        }
+        condition {
+          expressions {
+            field_address
+            operation
+            value
+          }
+          expressions_structure
+        }
+      }
+    }
+    totalCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

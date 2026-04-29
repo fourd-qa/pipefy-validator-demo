@@ -1,0 +1,46 @@
+query SchemaCanary {
+  pipeType: __type(name: "Pipe") {
+    name
+    fields {
+      name
+      type {
+        name
+        kind
+        ofType {
+          name
+          kind
+        }
+      }
+    }
+  }
+  phaseType: __type(name: "Phase") {
+    name
+    fields {
+      name
+      type {
+        name
+        kind
+      }
+    }
+  }
+  phaseFieldType: __type(name: "PhaseField") {
+    name
+    fields {
+      name
+      type {
+        name
+        kind
+      }
+    }
+  }
+  automationType: __type(name: "Automation") {
+    name
+    fields {
+      name
+      type {
+        name
+        kind
+      }
+    }
+  }
+}

@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentação · Pipefy Validator</title>
+<link rel="stylesheet" href="/v2/assets/v2_theme.css">
+<script src="/v2/assets/v2_theme.js" defer></script>
+<style>
+  :root{
+    --bg:#0b0f1a;
+    --bg-1:#0f1424;
+    --bg-2:#141a2e;
+    --line:rgba(255,255,255,.06);
+    --line-2:rgba(255,255,255,.1);
+    --ink:#e9ecf3;
+    --ink-2:#c5cad6;
+    --muted:#8089a0;
+    --dim:#5b6480;
+    --accent:#c9a84c;
+    --accent-2:#d4b766;
+    --green:#6fd17a;
+    --red:#d9534f;
+    --yellow:#e0b341;
+    --blue:#6ca9d9;
+    --mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+    --sans:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.65}
+  ::selection{background:rgba(201,168,76,.25);color:var(--ink)}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink-2)}
+  pre{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+  pre code{background:transparent;border:none;padding:0}
+
+  /* Layout: sidebar + main */
+  .docs-layout{
+    display:grid;
+    grid-template-columns:280px 1fr;
+    min-height:100vh;
+  }
+
+  /* Topbar */
+  .docs-topbar{
+    grid-column:1/-1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 28px;
+    border-bottom:1px solid var(--line);
+    background:var(--bg-1);
+    position:sticky;top:0;z-index:50;
+  }
+  .docs-brand{display:flex;align-items:center;gap:12px}
+  .docs-brand .mark{
+    width:30px;height:30px;border-radius:7px;
+    background:linear-gradient(135deg,var(--accent),#8a6f1e);
+    display:flex;align-items:center;justify-content:center;
+    color:#0b0f1a;font-weight:700;font-size:15px;
+  }
+  .docs-brand .name{font-size:14.5px;font-weight:500;letter-spacing:-.01em}
+  .docs-brand .name span{color:var(--muted);font-weight:400;margin-left:6px}
+  .docs-back{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:6px;
+    background:rgba(255,255,255,.03);border:1px solid var(--line-2);
+    color:var(--ink-2);font-size:12px;font-weight:500;cursor:pointer;text-decoration:none;
+    transition:all .15s;
+  }
+  .docs-back:hover{background:rgba(201,168,76,.08);color:var(--accent);border-color:rgba(201,168,76,.3);text-decoration:none}
+
+  /* Sidebar */
+  .docs-side{
+    border-right:1px solid var(--line);
+    padding:24px 16px 40px;
+    background:var(--bg-1);
+    position:sticky;top:60px;
+    height:calc(100vh - 60px);
+    overflow-y:auto;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(255,255,255,.12) transparent;
+  }
+  .docs-side::-webkit-scrollbar{width:6px}
+  .docs-side::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
+  .toc-group{margin-bottom:18px}
+  .toc-group-title{
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--muted);font-weight:600;padding:0 12px 8px;
+  }
+  .toc-link{
+    display:block;padding:6px 12px;border-radius:6px;
+    color:var(--ink-2);font-size:13px;line-height:1.4;
+    text-decoration:none;border-left:2px solid transparent;
+    transition:all .12s;
+  }
+  .toc-link:hover{background:rgba(255,255,255,.03);color:var(--ink);text-decoration:none}
+  .toc-link.active{
+    background:rgba(201,168,76,.08);color:var(--accent);
+    border-left-color:var(--accent);font-weight:500;
+  }
+  .toc-sub{padding-left:8px}
+
+  /* Main content */
+  .docs-main{
+    padding:48px 56px 80px;
+    max-width:920px;
+    width:100%;
+  }
+  .docs-main h1{
+    font-size:32px;font-weight:600;letter-spacing:-.02em;
+    margin:0 0 8px;line-height:1.2;
+  }
+  .docs-main h2{
+    font-size:22px;font-weight:600;letter-spacing:-.015em;
+    margin:48px 0 12px;padding-top:12px;
+    border-top:1px solid var(--line);line-height:1.3;
+    scroll-margin-top:80px;
+  }
+  .docs-main h2:first-of-type{border-top:none;padding-top:0;margin-top:32px}
+  .docs-main h3{
+    font-size:17px;font-weight:600;letter-spacing:-.01em;
+    margin:28px 0 10px;color:var(--ink);scroll-margin-top:80px;
+  }
+  .docs-main h4{
+    font-size:14px;font-weight:600;
+    margin:20px 0 6px;color:var(--ink-2);
+  }
+  .docs-main p{margin:10px 0;color:var(--ink-2)}
+  .docs-main ul,.docs-main ol{padding-left:22px;color:var(--ink-2)}
+  .docs-main li{margin:5px 0}
+  .docs-main strong{color:var(--ink);font-weight:600}
+  .lead{
+    font-size:15.5px;color:var(--muted);
+    margin:0 0 32px;line-height:1.6;
+  }
+  .kbd{
+    display:inline-block;font-family:var(--mono);font-size:11px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line-2);
+    border-radius:4px;padding:1px 6px;color:var(--ink);
+  }
+
+  /* Callouts */
+  .callout{
+    margin:18px 0;padding:14px 18px;
+    border-radius:8px;border:1px solid;
+    display:flex;gap:12px;align-items:flex-start;
+  }
+  .callout .ico{flex:0 0 auto;font-size:18px;line-height:1.4}
+  .callout .body{flex:1;font-size:13px;color:var(--ink-2);line-height:1.6}
+  .callout .body strong{display:block;margin-bottom:2px;color:var(--ink)}
+  .callout.info{background:rgba(108,169,217,.06);border-color:rgba(108,169,217,.25)}
+  .callout.info .ico{color:var(--blue)}
+  .callout.warn{background:rgba(224,179,65,.06);border-color:rgba(224,179,65,.25)}
+  .callout.warn .ico{color:var(--yellow)}
+  .callout.success{background:rgba(111,209,122,.06);border-color:rgba(111,209,122,.25)}
+  .callout.success .ico{color:var(--green)}
+  .callout.danger{background:rgba(217,83,79,.06);border-color:rgba(217,83,79,.25)}
+  .callout.danger .ico{color:var(--red)}
+
+  /* Cards */
+  .mode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:18px 0}
+  .mode-card{
+    border:1px solid var(--line-2);border-radius:10px;
+    padding:18px;background:var(--bg-1);
+    transition:all .15s;
+  }
+  .mode-card:hover{border-color:rgba(201,168,76,.3);transform:translateY(-1px)}
+  .mode-card .ico{font-size:22px;margin-bottom:8px}
+  .mode-card .title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px;letter-spacing:-.01em}
+  .mode-card .desc{font-size:12.5px;color:var(--muted);line-height:1.55}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+  th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--ink);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;background:rgba(255,255,255,.02)}
+  td{color:var(--ink-2)}
+  td code{font-size:11.5px}
+
+  /* Categories table */
+  .cat-tag{
+    display:inline-block;padding:2px 8px;border-radius:4px;
+    font-family:var(--mono);font-size:10.5px;font-weight:600;
+    color:#0b0f1a;letter-spacing:.04em;
+  }
+  .cat-SF{background:#d4a84b}
+  .cat-FA{background:#d9534f;color:#fff}
+  .cat-LB{background:#5a9bcf;color:#fff}
+  .cat-AS{background:#c97c4c;color:#fff}
+  .cat-AD{background:#9a7ccf;color:#fff}
+  .cat-AH{background:#5cb85c;color:#fff}
+  .cat-AC{background:#cf6b9a;color:#fff}
+
+  /* Badge */
+  .badge{
+    display:inline-block;padding:2px 8px;border-radius:100px;
+    font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    margin-left:8px;vertical-align:middle;
+  }
+  .badge.beta{background:rgba(201,168,76,.12);color:var(--accent);border:1px solid rgba(201,168,76,.3)}
+  .badge.backlog{background:rgba(108,169,217,.12);color:var(--blue);border:1px solid rgba(108,169,217,.3)}
+
+  /* Responsive */
+  @media (max-width:900px){
+    .docs-layout{grid-template-columns:1fr}
+    .docs-side{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);max-height:280px}
+    .docs-main{padding:32px 24px 60px}
+  }
+</style>
+</head>
+<body>
+
+<div class="docs-layout">
+
+  <!-- TOPBAR -->
+  <header class="docs-topbar">
+    <div class="docs-brand">
+      <div class="mark">P</div>
+      <div class="name">Pipefy Validator <span>· documentação</span></div>
+    </div>
+    <a href="/v2/configuracao" class="docs-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar pro app
+    </a>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="docs-side">
+    <div class="toc-group">
+      <div class="toc-group-title">Começar</div>
+      <a class="toc-link" href="#visao-geral">Visão geral</a>
+      <a class="toc-link" href="#stack">Stack técnica</a>
+      <a class="toc-link" href="#fluxo-tipico">Fluxo típico de uso</a>
+    </div>
+
+    <div class="toc-group">
+      <div class="toc-group-title">Modos de validação</div>
+      <a class="toc-link" href="#modo-single">Single-env</a>
+      <a class="toc-link" href="#modo-cross">Cross-env</a>
+      <a class="toc-link" href="#modo-snapshot-gerar">Snapshot · Gerar</a>
+      <a class="toc-link" href="#modo-snapshot-comparar">Snapshot · Comparar</a>
+      <a class="toc-link" href="#modo-batch">Batch</a>
+      <a class="toc-link" href="#modo-ipaas">iPaaS</a>
+    </div>
+
+    <div class="toc-group">
+      <div class="toc-group-title">Conceitos</div>
+      <a class="toc-link" href="#categorias">Categorias de divergência</a>
+      <a class="toc-link" href="#ambientes">Ambientes e tokens</a>
+      <a class="toc-link" href="#presets">Presets e configs</a>
+      <a class="toc-link" href="#snapshots">Snapshots como baseline</a>
+    </div>
+
+    <div class="toc-group">
+      <div class="toc-group-title">Uso</div>
+      <a class="toc-link" href="#deploy">Deploy e rebuild</a>
+      <a class="toc-link" href="#troubleshooting">Troubleshooting</a>
+      <a class="toc-link" href="#roadmap">Roadmap A+</a>
+    </div>
+
+    <div class="toc-group">
+      <div class="toc-group-title">Qualidade</div>
+      <a class="toc-link" href="#testes">Suítes de teste</a>
+      <a class="toc-link toc-sub" href="#testes-pytest">pytest (server.py)</a>
+      <a class="toc-link toc-sub" href="#testes-vitest">vitest (frontend)</a>
+      <a class="toc-link toc-sub" href="#testes-smoke">smoke (Robot HTTP)</a>
+      <a class="toc-link toc-sub" href="#testes-runall">Rodar todas</a>
+    </div>
+
+    <div class="toc-group">
+      <div class="toc-group-title">Referência</div>
+      <a class="toc-link" href="#api">Endpoints HTTP</a>
+      <a class="toc-link" href="#glossario">Glossário</a>
+    </div>
+
+    <div class="toc-group">
+      <div class="toc-group-title">Design</div>
+      <a class="toc-link" href="/proposals/" target="_blank">Propostas do designer →</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="docs-main">
+
+    <h1>Pipefy Validator</h1>
+    <p class="lead">
+      Ferramenta de QA pra detectar divergências estruturais entre pipes do Pipefy
+      e flows do Activepieces (iPaaS), antes e depois de deploys. Garante que cópias de
+      pipes ficam idênticas e captura drift antes que vire incidente em produção.
+    </p>
+
+    <!-- ========== VISÃO GERAL ========== -->
+    <h2 id="visao-geral">Visão geral</h2>
+    <p>
+      O Validator extrai a estrutura completa de um ou mais pipes via <strong>GraphQL do Pipefy</strong>,
+      compara contra outro pipe (ou contra um baseline JSON salvo) e gera um relatório com
+      todas as divergências em 7 categorias. A interface roda em Docker na porta <code>8080</code>.
+    </p>
+
+    <h2 id="stack">Stack técnica</h2>
+    <ul>
+      <li><strong>Robot Framework 7+</strong> com RequestsLibrary e JSONLibrary pra extração e comparação</li>
+      <li><strong>Python 3.11</strong> + <strong>Flask</strong> servindo o dashboard (porta 8080)</li>
+      <li><strong>Docker Compose</strong> com volumes pra <code>config/</code>, <code>results/</code> e <code>snapshots/</code></li>
+      <li><strong>Pipefy GraphQL API</strong> (<code>https://api.pipefy.com/graphql</code>)</li>
+      <li><strong>Activepieces REST API</strong> pra módulo iPaaS</li>
+    </ul>
+
+    <h2 id="fluxo-tipico">Fluxo típico de uso</h2>
+    <ol>
+      <li>Você está prestes a fazer um deploy de um pipe entre HMG e PRD.</li>
+      <li><strong>Antes do deploy</strong>: gera um <em>snapshot</em> do pipe HMG (modo Snapshot · Gerar). Salva como baseline.</li>
+      <li><strong>Faz o deploy</strong> manualmente no Pipefy.</li>
+      <li><strong>Depois do deploy</strong>: roda Cross-env HMG vs PRD pra confirmar que tudo bateu.</li>
+      <li>Se sobrar divergência: abre o relatório no V2, filtra por categoria, copia o que precisa ajustar.</li>
+      <li>Periodicamente roda <em>Batch</em> em vários pipes do mesmo ambiente pra detectar drift sem deploy.</li>
+    </ol>
+
+    <!-- ========== MODOS ========== -->
+    <h2 id="modos">Modos de validação</h2>
+    <div class="mode-grid">
+      <div class="mode-card">
+        <div class="ico">🔁</div>
+        <div class="title">Single-env</div>
+        <div class="desc">Compara 2 pipes dentro do mesmo ambiente. Útil pra cópias e templates.</div>
+      </div>
+      <div class="mode-card">
+        <div class="ico">⇆</div>
+        <div class="title">Cross-env</div>
+        <div class="desc">Compara entre ambientes diferentes (HMG vs PRD, ou organizações distintas).</div>
+      </div>
+      <div class="mode-card">
+        <div class="ico">📸</div>
+        <div class="title">Snapshot Gerar</div>
+        <div class="desc">Congela 1 pipe em arquivo JSON pra usar de baseline depois.</div>
+      </div>
+      <div class="mode-card">
+        <div class="ico">🔍</div>
+        <div class="title">Snapshot Comparar</div>
+        <div class="desc">Compara estado live de 1 pipe contra um snapshot salvo.</div>
+      </div>
+      <div class="mode-card">
+        <div class="ico">📦</div>
+        <div class="title">Batch</div>
+        <div class="desc">Roda self-check em múltiplos pipes do mesmo ambiente em sequência.</div>
+      </div>
+      <div class="mode-card">
+        <div class="ico">🔗</div>
+        <div class="title">iPaaS</div>
+        <div class="desc">Valida flows do Activepieces (não Pipefy). Inventário e comparação.</div>
+      </div>
+    </div>
+
+    <h3 id="modo-single">Single-env</h3>
+    <p>
+      Compara 2 pipes <strong>dentro do mesmo ambiente</strong> (mesmo token, mesma organização).
+      Caso de uso clássico: você criou uma cópia de um pipe pra testar mudanças e quer garantir
+      que a cópia está idêntica à origem antes de alterar uma das duas.
+    </p>
+    <p>
+      Em V2, a seleção de pipe origem/destino na UI foi <strong>removida</strong> porque o backend atual usa
+      sempre os UUIDs hardcoded em <code>config/&lt;preset&gt;.robot</code>. Cada preset (ex: <code>fourd_hmg.robot</code>)
+      define um par fixo de pipes. Pra rodar com pipes diferentes, edite o preset ou crie um novo
+      via modal Gerenciar Ambientes.
+    </p>
+
+    <h3 id="modo-cross">Cross-env</h3>
+    <p>
+      Compara <strong>entre 2 ambientes diferentes</strong>. Cada cross-env é um arquivo
+      <code>config/cross_*.robot</code> que tem 2 conjuntos de credenciais e 2 pares de pipes (origem/destino
+      em organizações distintas).
+    </p>
+    <p>Padrão de naming:</p>
+    <ul>
+      <li><code>cross_&lt;env&gt;_selfcheck</code>: mesmo ambiente nos dois lados (sanity, deve dar 0 diffs)</li>
+      <li><code>cross_&lt;src&gt;_x_&lt;dst&gt;</code>: comparação cruzada entre dois ambientes distintos</li>
+    </ul>
+    <p>Crie novas configs cross via modal <strong>Gerenciar Ambientes</strong> ou direto em <code>config/cross_*.robot</code>.</p>
+
+    <h3 id="modo-snapshot-gerar">Snapshot · Gerar</h3>
+    <p>
+      Captura o estado completo de um pipe (estrutura + automações + metadata) em um arquivo
+      JSON em <code>snapshots/</code>. Use <strong>antes de qualquer mudança</strong> que você queira ter um baseline pra comparar depois.
+    </p>
+    <p>
+      O dropdown <strong>Ambiente · Pipe</strong> lista todos os pipes de todos os ambientes
+      configurados. Selecionar uma combinação preenche o nome do arquivo automaticamente
+      (ex: <code>mesa_credito_pf_fourd_hmg_20260428_173856.json</code>). O label pode ser editado manualmente.
+    </p>
+
+    <h3 id="modo-snapshot-comparar">Snapshot · Comparar</h3>
+    <p>
+      Lê um snapshot salvo (baseline) e compara contra o estado live de um pipe escolhido.
+      O dropdown <strong>Pipe atual</strong> lista todos os pipes de todos os ambientes.
+      Quando o nome bate com o do baseline, mostra badge <em>mesmo pipe do baseline</em>;
+      caso contrário, <em>pipe diferente</em>.
+    </p>
+
+    <div class="callout info">
+      <div class="ico">ⓘ</div>
+      <div class="body">
+        <strong>Como o backend respeita a seleção</strong>
+        O frontend envia <code>pipe_uuid</code> e <code>pipe_repo_id</code> no payload do <code>/api/run</code>.
+        O backend repassa via <code>--variable PIPE_DESTINO_UUID:xxx</code> pro Robot, que sobrescreve o valor
+        hardcoded no <code>active.robot</code>. Mesma mecânica do Snapshot Gerar.
+      </div>
+    </div>
+
+    <h3 id="modo-batch">Batch</h3>
+    <p>
+      Validação <strong>em massa</strong>: roda self-check (origem = destino) em vários pipes em sequência.
+      Cada pipe é comparado contra ele mesmo, garantindo que a estrutura está íntegra (detecta drift
+      causado por edições manuais sem deploy).
+    </p>
+    <p>
+      A lista vem de <code>config/batch_pipes.json</code>. Cada pipe tem <code>env_id</code> que indica de
+      qual ambiente é. O frontend filtra os pipes pelo ambiente ativo no Single-env, e o backend
+      passa <code>--variable BATCH_ENV:&lt;env_id&gt;</code> pro Robot pra evitar tentar acessar pipe de outra
+      organização (que daria <code>PERMISSION_DENIED</code>).
+    </p>
+
+    <div class="callout warn">
+      <div class="ico">⚠</div>
+      <div class="body">
+        <strong>Seleção visual no Batch</strong>
+        Marcar/desmarcar checkbox na UI é <strong>visual</strong>. O backend sempre executa todos os pipes
+        do <code>batch_pipes.json</code> filtrados por env. Implementar respeito real à seleção da UI está no
+        <a href="#roadmap">roadmap A+</a>.
+      </div>
+    </div>
+
+    <h3 id="modo-ipaas">iPaaS</h3>
+    <p>
+      Validação de <strong>flows do Activepieces</strong>, plataforma de integração separada do Pipefy.
+      Faz inventário dos flows de um projeto, compara metadados (status, triggers, steps,
+      conditions, conexões) e gera relatório similar ao Pipefy.
+    </p>
+    <p>Sub-modos:</p>
+    <ul>
+      <li><strong>CT-IPAAS-01 Self-Check</strong>: extrai flows do mesmo projeto duas vezes e compara (sanity)</li>
+      <li><strong>CT-IPAAS-02 Cross-Env</strong>: compara flows entre 2 projetos Activepieces</li>
+      <li><strong>CT-IPAAS-03 Snapshot Gerar</strong>: salva baseline JSON</li>
+      <li><strong>CT-IPAAS-04 Snapshot Comparar</strong>: confronta live vs baseline</li>
+    </ul>
+
+    <!-- ========== CATEGORIAS ========== -->
+    <h2 id="categorias">Categorias de divergência</h2>
+    <p>
+      Toda divergência detectada é classificada em 1 das 7 categorias abaixo. Categorias
+      podem ser filtradas na tela de Resultados (sidebar esquerda).
+    </p>
+    <table>
+      <thead>
+        <tr><th>Tag</th><th>Nome</th><th>O que detecta</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="cat-tag cat-SF">SF</span></td><td>Start Form</td><td>Campos do formulário inicial: nome, tipo, obrigatoriedade, opções</td></tr>
+        <tr><td><span class="cat-tag cat-FA">FA</span></td><td>Fases & Campos</td><td>Estrutura por fase: nomes, ordem, tipos de campo, defaults, help text</td></tr>
+        <tr><td><span class="cat-tag cat-LB">LB</span></td><td>Labels</td><td>Etiquetas (existência, nome, cor)</td></tr>
+        <tr><td><span class="cat-tag cat-AS">AS</span></td><td>Auto · Status</td><td>Automações ativas/inativas, tipo de ação, evento (card_moved, card_late, etc)</td></tr>
+        <tr><td><span class="cat-tag cat-AD">AD</span></td><td>Auto · Fase Destino</td><td>Resolução de fase destino/evento por nome via phase map</td></tr>
+        <tr><td><span class="cat-tag cat-AH">AH</span></td><td>Auto · HTTP</td><td>Configuração de HTTP: URL, método, body, headers</td></tr>
+        <tr><td><span class="cat-tag cat-AC">AC</span></td><td>Auto · Condition</td><td>Lógica condicional: operador, valor (ignora IDs numéricos)</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ========== AMBIENTES ========== -->
+    <h2 id="ambientes">Ambientes e tokens</h2>
+    <p>
+      Os ambientes ficam em <code>config/environments.json</code> (volume mount). 9 ambientes
+      pré-configurados:
+    </p>
+
+    <h4>Pipefy (6)</h4>
+    <table>
+      <thead><tr><th>ID</th><th>Nome</th><th>Status</th><th>Auth</th></tr></thead>
+      <tbody>
+        <tr><td><code>fourd_hmg</code></td><td>FourD Sandbox</td><td>✅ Funcional</td><td>bearer</td></tr>
+        <tr><td><code>fourd_stg</code></td><td>FourD Staging</td><td>⏸ Placeholder</td><td>bearer</td></tr>
+        <tr><td><code>fourd_prd</code></td><td>FourD PRD</td><td>⏸ Pendente</td><td>bearer</td></tr>
+      </tbody>
+    </table>
+
+    <h4>iPaaS</h4>
+    <table>
+      <thead><tr><th>ID</th><th>Nome</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><code>ipaas_fourd</code></td><td>FourD Sandbox</td><td>✅ Funcional</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <div class="ico">ⓘ</div>
+      <div class="body">
+        <strong>Limitação conhecida</strong>
+        Tokens podem não ter permissão em todos os pipes da organização. Runs contra pipes
+        sem permissão falham com <code>PERMISSION_DENIED</code>. Liste em <code>batch_pipes.json</code>
+        apenas os pipes onde o token cadastrado tem leitura.
+      </div>
+    </div>
+
+    <h2 id="presets">Presets e configs</h2>
+    <p>
+      Cada ambiente Pipefy tem um arquivo <code>config/&lt;env_id&gt;.robot</code> com credenciais e
+      pipes hardcoded. Quando você executa uma run, o backend copia esse arquivo pra
+      <code>config/active.robot</code> antes de chamar o Robot Framework. Pra cross-env existe
+      <code>config/active_cross.robot</code> que vem do <code>config/cross_*.robot</code> escolhido.
+    </p>
+    <p>
+      Pra criar um novo preset: edite via modal <em>Gerenciar Ambientes</em> ou copie um
+      arquivo <code>.robot</code> existente como template e ajuste manualmente.
+    </p>
+
+    <h2 id="snapshots">Snapshots como baseline</h2>
+    <p>
+      Snapshots são arquivos JSON em <code>snapshots/</code> contendo a estrutura completa de
+      um pipe num momento específico. Convenção de nome: <code>&lt;label&gt;_&lt;YYYYMMDD_HHmmss&gt;.json</code>.
+    </p>
+    <p>O conteúdo inclui:</p>
+    <ul>
+      <li>Metadata (timestamp, label, nome do pipe, versão da ferramenta)</li>
+      <li>Estrutura completa do pipe (fases, campos, start form, labels)</li>
+      <li>Lista de automações com todas as configs (HTTP, conditions, fase destino)</li>
+    </ul>
+
+    <!-- ========== DEPLOY ========== -->
+    <h2 id="deploy">Deploy e rebuild</h2>
+    <p>
+      Mudanças em arquivos <strong>volume-mount</strong> (<code>config/</code>, <code>results/</code>,
+      <code>snapshots/</code>) refletem instantaneamente sem rebuild.
+    </p>
+    <p>
+      Mudanças em <code>server.py</code>, <code>web/</code>, <code>resources/</code> ou <code>tests/</code>
+      exigem rebuild da imagem:
+    </p>
+    <pre><code>cd C:\Users\FourD\Documents\robothz\pipefy
+docker-compose down
+docker-compose up --build -d
+Start-Sleep -Seconds 8
+Start-Process "http://localhost:8080"</code></pre>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <h4>HTTP 401 Unauthorized</h4>
+    <p>Token expirou ou está inválido. Renove via <em>Gerenciar Ambientes</em> ou edite <code>config/environments.json</code>.</p>
+
+    <h4>PERMISSION_DENIED</h4>
+    <p>Token não tem acesso ao pipe ou organização. Geralmente acontece quando você tenta rodar batch com pipes de organizações diferentes ou quando o usuário do token não foi adicionado ao pipe.</p>
+
+    <h4>HTTP 409 Conflict no /api/run</h4>
+    <p>Já existe uma run em execução. Aguarde terminar ou reinicie o container pra limpar o estado.</p>
+
+    <h4>Mock zumbi na tela de Resultados</h4>
+    <p>Run abortou antes de gerar <code>validations.json</code>. O backend agora grava um fallback com <code>status: EXECUTION_FAILED</code> e o frontend mostra empty state explícito com mensagem do erro real (parseado do <code>output.xml</code>) e <em>hint</em> sugerindo correção.</p>
+
+    <h4>Tela de Configuração não atualiza após editar ambiente</h4>
+    <p>Cache do navegador. Faça <span class="kbd">Ctrl + F5</span> pra forçar recarga dos assets.</p>
+
+    <!-- ========== ROADMAP ========== -->
+    <h2 id="roadmap">Roadmap A+</h2>
+    <p>
+      O V2 atual segue a <strong>decisão D (MVP Honesto)</strong>: features cuja UI mentia foram removidas
+      até o backend respeitar de verdade. O <strong>A+</strong> é o caminho pra restaurar essas features
+      com integração completa frontend ↔ backend ↔ Robot Framework.
+    </p>
+    <h4>Concluído</h4>
+    <ul>
+      <li><strong>Snapshot Gerar</strong> com pipe alternativo via <code>--variable PIPE_ORIGEM_*</code></li>
+      <li><strong>Snapshot Comparar</strong> com pipe alternativo via <code>--variable PIPE_DESTINO_*</code></li>
+      <li><strong>Batch</strong> filtrado por env via <code>--variable BATCH_ENV</code></li>
+      <li><strong>Single-env</strong> com dropdowns de pipe origem/destino respeitados (resolve UUID via <code>ENVS_DATA</code> e manda no payload)</li>
+      <li><strong>Cross-env</strong> com 2 dropdowns dinâmicos baseados nos <code>env_ids</code> do cross selecionado</li>
+      <li><strong>Categorias Pipefy filtráveis</strong> via <code>--variable CATEGORIES_FILTER:SF,FA,...</code>. <code>comparator.resource</code> usa keyword <code>Categoria Habilitada</code> pra pular blocos de categorias não selecionadas</li>
+      <li><strong>Categorias iPaaS filtráveis</strong> via mesmo <code>CATEGORIES_FILTER</code> aceitando <code>IF</code> (Inventário/Status), <code>IT</code> (Trigger), <code>IS</code> (Steps). <code>ipaas_comparator.resource</code> com keyword <code>Categoria iPaaS Habilitada</code></li>
+      <li><strong>Cancel real de run</strong>: <code>POST /api/run/cancel</code> chama <code>proc.terminate()</code> + <code>kill()</code> de fallback. Backend usa <code>subprocess.Popen</code> em vez de <code>run</code> pra manter referência ao processo</li>
+      <li><strong>run_id sincronizado</strong>: frontend substitui o ID gerado client-side pelo real do backend antes de navegar pra Execução</li>
+      <li><strong>Batch respeitando seleção da UI</strong>: frontend manda <code>pipes_selected[]</code> com UUIDs, backend filtra via <code>--variable BATCH_SELECTED:uuid1,uuid2</code> e <code>batch.robot</code> aplica filtro adicional ao <code>BATCH_ENV</code></li>
+      <li><strong>Health Check mode V2</strong>: 6º item na sidebar de modos. Roda <code>tests/healthcheck.robot</code> com 9 verificações (Pipefy API, Automações, Comparação estrutural, Comparação automações, Snapshot ciclo, Relatório JSON, iPaaS API, iPaaS self-check, iPaaS snapshot)</li>
+      <li><strong>Endpoint <code>POST /api/configs</code></strong>: cria <code>config/cross_&lt;id&gt;.robot</code> a partir de 2 envs do <code>environments.json</code>. Modal "Criar nova configuração cross-env" virou form real com 2 dropdowns + input</li>
+    </ul>
+    <h4>Pendente</h4>
+    <ul>
+      <li><strong>Validação E2E manual</strong> dos 17 cenários do HANDOFF (acumulou ~15 ondas de mudança)</li>
+      <li><strong>Tokens client-side</strong> (cada usuário cola seu próprio Bearer no navegador)</li>
+      <li><strong>Segurança</strong>: tokens em secrets manager, auth Flask, rotacionar JWTs, sanitizar f-string injection</li>
+    </ul>
+
+    <h4>Segurança</h4>
+    <ul>
+      <li>Tokens em plaintext no <code>environments.json</code> → migrar pra secrets manager</li>
+      <li>Endpoints Flask sem auth → adicionar autenticação básica antes de prod</li>
+      <li><code>_generate_robot()</code> tem f-string injection com token: tratar como sensitive</li>
+    </ul>
+
+    <!-- ========== TESTES ========== -->
+    <h2 id="testes">Suítes de teste</h2>
+    <p>
+      O projeto tem <strong>3 suítes de teste independentes</strong> cobrindo backend, frontend e
+      integração HTTP. Total atual: <strong>90 testes em ~8 segundos</strong>. As suítes não dependem
+      uma da outra: pytest e vitest rodam offline, smoke precisa do container ativo.
+    </p>
+
+    <table>
+      <thead><tr><th>Suíte</th><th>Stack</th><th>Cobre</th><th>Local</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>pytest</strong></td>
+          <td>Python + Flask test client</td>
+          <td>41 testes: funções puras + endpoints HTTP do <code>server.py</code></td>
+          <td><code>tests/python/</code></td>
+        </tr>
+        <tr>
+          <td><strong>vitest</strong></td>
+          <td>Node + jsdom-free</td>
+          <td>35 testes: funções utilitárias do frontend V2</td>
+          <td><code>tests/frontend/</code></td>
+        </tr>
+        <tr>
+          <td><strong>smoke</strong></td>
+          <td>Robot Framework + RequestsLibrary</td>
+          <td>14 testes: HTTP contra container vivo na porta 8080</td>
+          <td><code>tests/smoke_api.robot</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 id="testes-pytest">pytest · server.py</h3>
+    <p>Testa as funções críticas do backend isoladamente. Usa <code>monkeypatch.chdir</code> + reimport do módulo pra isolar cada teste num filesystem temporário.</p>
+
+    <h4>O que cobre</h4>
+    <ul>
+      <li><strong>Funções puras:</strong> <code>_load_envs</code>, <code>_save_envs</code>, <code>_generate_robot</code>, <code>_generate_ipaas_robot</code>, <code>_extract_fail_from_output_xml</code> (com detecção de 401/PERMISSION_DENIED/404/timeout)</li>
+      <li><strong>Endpoints HTTP:</strong> <code>/api/configs</code>, <code>/api/environments</code>, <code>/api/v2/environments</code>, <code>/api/snapshots</code>, <code>/api/batch</code>, <code>/api/results</code>, <code>/api/run</code>, <code>/api/status</code></li>
+      <li><strong>Comportamento do <code>/api/run</code>:</strong> 409 quando run em curso, geração de fallback <code>EXECUTION_FAILED</code> quando Robot aborta sem produzir <code>validations.json</code>, propagação de <code>--variable PIPE_ORIGEM_*</code> e <code>BATCH_ENV</code></li>
+      <li><strong>Segurança:</strong> garante que <code>/api/v2/environments</code> não vaza <code>token</code>, <code>session_cookie</code> nem <code>csrf_token</code></li>
+    </ul>
+
+    <h4>Como rodar</h4>
+    <pre><code>pip install -r requirements-dev.txt
+python -m pytest tests/python/</code></pre>
+
+    <div class="callout info">
+      <div class="ico">ⓘ</div>
+      <div class="body">
+        <strong>Mock do Robot Framework</strong>
+        Os testes que envolvem <code>/api/run</code> usam <code>monkeypatch</code> em <code>subprocess.run</code> pra retornar um <code>MagicMock</code> instantâneo. Nenhum test pytest dispara o Robot de verdade nem chama o Pipefy.
+      </div>
+    </div>
+
+    <h3 id="testes-vitest">vitest · frontend utils</h3>
+    <p>Testes unitários das funções utilitárias puras do V2 frontend. As funções foram extraídas pra <code>web/designs/assets/v2_utils.js</code> (UMD-like: funciona em browser via <code>window.V2Utils</code> e em Node via <code>module.exports</code>).</p>
+
+    <h4>O que cobre</h4>
+    <ul>
+      <li><strong>String utils:</strong> <code>slugify</code>, <code>escapeHtml</code>, <code>truncMid</code></li>
+      <li><strong>Cross-env:</strong> <code>parseCrossConfigMeta</code>, <code>getCrossTokenStatus</code></li>
+      <li><strong>Snapshot:</strong> <code>computeSuggestedSnapLabel</code></li>
+      <li><strong>Categorização de divergência:</strong> <code>categorize</code>, <code>severityOf</code> (mapeamento das 7 categorias SF/FA/LB/AS/AD/AH/AC)</li>
+    </ul>
+
+    <h4>Como rodar</h4>
+    <pre><code>npm install
+npm test</code></pre>
+
+    <h3 id="testes-smoke">smoke · Robot Framework HTTP</h3>
+    <p>Roda contra o container vivo em <code>http://localhost:8080</code>. Útil pra validar deploys e checar contratos da API após mudanças. Não dispara o Robot de verdade (só lê endpoints idempotentes e faz 1 POST defensivo com payload inválido).</p>
+
+    <h4>O que cobre</h4>
+    <ul>
+      <li><strong>Páginas:</strong> redirect da raiz, V1 legacy, V2 configuração, V2 docs, V2 help</li>
+      <li><strong>API:</strong> 9 endpoints validando shape de resposta + sanitização de tokens</li>
+      <li><strong>Cache:</strong> assets V2 servem com header <code>no-store</code></li>
+      <li><strong>Defensive:</strong> POST <code>/api/run</code> com body inválido não retorna 500</li>
+    </ul>
+
+    <h4>Como rodar</h4>
+    <pre><code>docker-compose up -d
+python -m robot --outputdir results/smoke -t "HC-*" tests/smoke_api.robot</code></pre>
+
+    <div class="callout success">
+      <div class="ico">✓</div>
+      <div class="body">
+        <strong>Bug detectado pelos próprios testes</strong>
+        O smoke <code>HC-13</code> achou que <code>POST /api/run</code> com body <code>"not_a_dict"</code> retornava HTTP 500 (<code>AttributeError: 'str' object has no attribute 'get'</code>). Fix aplicado em <code>server.py</code>: usa <code>request.get_json(silent=True)</code> + valida <code>isinstance(raw, dict)</code>.
+      </div>
+    </div>
+
+    <h3 id="testes-runall">Rodar todas as suítes</h3>
+    <p>Um script PowerShell na raiz dispara as 3 em sequência e reporta o resumo:</p>
+    <pre><code>.\run-all-tests.ps1</code></pre>
+    <p>Saída esperada:</p>
+    <pre><code>===============================================
+  RESUMO
+===============================================
+  [OK] pytest    2.62s   41 testes
+  [OK] vitest    3.12s   35 testes
+  [OK] smoke     2.43s   14/14 testes
+
+Total: 8.22s
+Todas as suites passaram.</code></pre>
+    <p>Flags úteis:</p>
+    <ul>
+      <li><code>-SkipSmoke</code>: pula o Robot HTTP (use quando o container não está no ar)</li>
+    </ul>
+
+    <h4>Quando rodar cada suíte</h4>
+    <table>
+      <thead><tr><th>Mudou em</th><th>Rode no mínimo</th></tr></thead>
+      <tbody>
+        <tr><td><code>server.py</code></td><td>pytest + smoke (após rebuild)</td></tr>
+        <tr><td><code>web/designs/assets/*.js</code></td><td>vitest se mexeu em <code>v2_utils.js</code></td></tr>
+        <tr><td><code>tests/*.robot</code> ou <code>resources/keywords/*</code></td><td>tudo (CI completo) + uma run real do modo afetado</td></tr>
+        <tr><td><code>config/environments.json</code> ou <code>config/batch_pipes.json</code></td><td>smoke (verifica contrato dos endpoints que leem esses arquivos)</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ========== API ========== -->
+    <h2 id="api">Endpoints HTTP</h2>
+    <table>
+      <thead><tr><th>Rota</th><th>Método</th><th>Função</th></tr></thead>
+      <tbody>
+        <tr><td><code>/v2/configuracao</code></td><td>GET</td><td>Tela de configuração (entrada)</td></tr>
+        <tr><td><code>/v2/execucao</code></td><td>GET</td><td>Tela de execução com polling</td></tr>
+        <tr><td><code>/v2/resultados</code></td><td>GET</td><td>Tela de resultados</td></tr>
+        <tr><td><code>/v2/docs</code></td><td>GET</td><td>Esta página</td></tr>
+        <tr><td><code>/legacy</code></td><td>GET</td><td>V1 preservada</td></tr>
+        <tr><td><code>/api/run</code></td><td>POST</td><td>Dispara nova run. Body: <code>{mode, config, test, pipe_uuid?, pipe_repo_id?, ...}</code></td></tr>
+        <tr><td><code>/api/status</code></td><td>GET</td><td>Status da run em curso (polling)</td></tr>
+        <tr><td><code>/api/results</code></td><td>GET</td><td>Conteúdo do <code>validations.json</code> ou <code>ipaas_validations.json</code></td></tr>
+        <tr><td><code>/api/environments</code></td><td>GET</td><td>Lista ambientes com tokens (para edição)</td></tr>
+        <tr><td><code>/api/v2/environments</code></td><td>GET</td><td>Lista ambientes sanitizados (sem tokens)</td></tr>
+        <tr><td><code>/api/environments</code></td><td>POST</td><td>Salva ou atualiza ambiente</td></tr>
+        <tr><td><code>/api/environments/&lt;type&gt;/&lt;id&gt;</code></td><td>DELETE</td><td>Remove ambiente</td></tr>
+        <tr><td><code>/api/configs</code></td><td>GET</td><td>Lista presets single e cross</td></tr>
+        <tr><td><code>/api/snapshots</code></td><td>GET</td><td>Lista snapshots disponíveis</td></tr>
+        <tr><td><code>/api/batch</code></td><td>GET</td><td>Conteúdo de <code>batch_pipes.json</code></td></tr>
+        <tr><td><code>/reports/&lt;file&gt;</code></td><td>GET</td><td>Serve <code>log.html</code>, <code>report.html</code>, <code>validations.json</code></td></tr>
+      </tbody>
+    </table>
+
+    <!-- ========== GLOSSÁRIO ========== -->
+    <h2 id="glossario">Glossário</h2>
+    <dl style="margin:0">
+      <dt><strong>Pipe</strong></dt>
+      <dd>Estrutura de processo no Pipefy. Tem fases, campos, automações.</dd>
+      <dt><strong>Fase</strong></dt>
+      <dd>Etapa dentro de um pipe. Cards transitam entre fases.</dd>
+      <dt><strong>Card</strong></dt>
+      <dd>Item de trabalho no pipe (uma instância do processo).</dd>
+      <dt><strong>Automação</strong></dt>
+      <dd>Regra disparada por evento (card_moved, card_late, etc) que executa ação.</dd>
+      <dt><strong>Self-check</strong></dt>
+      <dd>Comparação de um pipe contra ele mesmo, deve dar 0 divergências por definição. Detecta corrupção de leitura ou drift inesperado.</dd>
+      <dt><strong>Drift</strong></dt>
+      <dd>Diferença entre o estado esperado (baseline) e o estado atual de um pipe.</dd>
+      <dt><strong>Cross-env</strong></dt>
+      <dd>Comparação entre 2 ambientes diferentes (ex: HMG vs PRD).</dd>
+      <dt><strong>Preset</strong></dt>
+      <dd>Arquivo <code>.robot</code> em <code>config/</code> com credenciais + pipes hardcoded de um ambiente.</dd>
+      <dt><strong>iPaaS</strong></dt>
+      <dd>Activepieces, plataforma de integração separada do Pipefy.</dd>
+      <dt><strong>Decisão D</strong></dt>
+      <dd>MVP Honesto: features cuja UI não viajava no payload foram removidas até backend suportar (ver <a href="#roadmap">Roadmap A+</a>).</dd>
+    </dl>
+
+    <div style="margin-top:60px;padding-top:24px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)">
+      Documentação · projeto Pipefy Validator (demo público).
+      Atualizada em abril 2026.
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Highlight da TOC ativa baseada no scroll
+  const tocLinks = document.querySelectorAll('.toc-link');
+  const sections = Array.from(document.querySelectorAll('h2[id], h3[id]'));
+
+  function setActive(id){
+    tocLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+  }
+
+  let ticking = false;
+  function updateActiveOnScroll(){
+    if(ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const offset = 100;
+      let current = sections[0] && sections[0].id;
+      for(const s of sections){
+        if(s.getBoundingClientRect().top - offset <= 0) current = s.id;
+        else break;
+      }
+      if(current) setActive(current);
+      ticking = false;
+    });
+  }
+  window.addEventListener('scroll', updateActiveOnScroll, { passive: true });
+  updateActiveOnScroll();
+
+  // Smooth scroll com offset
+  tocLinks.forEach(link => {
+    link.addEventListener('click', e => {
+      const href = link.getAttribute('href');
+      if(!href || !href.startsWith('#')) return;
+      const target = document.querySelector(href);
+      if(!target) return;
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.scrollY - 70;
+      window.scrollTo({ top, behavior: 'smooth' });
+      history.replaceState(null, '', href);
+      setActive(href.slice(1));
+    });
+  });
+</script>
+
+</body>
+</html>

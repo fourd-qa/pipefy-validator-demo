@@ -1,0 +1,27 @@
+query GetPipeStructure($pipeId: ID!) {
+  pipe(id: $pipeId) {
+    name
+    start_form_fields {
+      id
+      label
+      type
+      required
+      options
+    }
+    phases {
+      id
+      name
+      fields {
+        id
+        label
+        type
+        required
+        options
+      }
+    }
+    labels {
+      name
+      color
+    }
+  }
+}

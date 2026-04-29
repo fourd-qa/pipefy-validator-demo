@@ -1,0 +1,50 @@
+# =============================================================
+# INTROSPECTION — Rode no Playground do Pipefy para descobrir
+# os sub-campos de action_params, event_params e condition.
+# URL: https://app.pipefy.com/graphiql
+# =============================================================
+
+# 1) Sub-campos de AutomationActionParams
+{
+  __type(name: "AutomationActionParams") {
+    name
+    fields {
+      name
+      type {
+        name
+        kind
+        ofType { name kind }
+      }
+    }
+  }
+}
+
+# 2) Sub-campos de AutomationEventParams
+# {
+#   __type(name: "AutomationEventParams") {
+#     name
+#     fields {
+#       name
+#       type {
+#         name
+#         kind
+#         ofType { name kind }
+#       }
+#     }
+#   }
+# }
+
+# 3) Sub-campos de Condition
+# {
+#   __type(name: "Condition") {
+#     name
+#     fields {
+#       name
+#       type {
+#         name
+#         kind
+#         ofType { name kind }
+#       }
+#     }
+#   }
+# }

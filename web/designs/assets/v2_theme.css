@@ -1,0 +1,167 @@
+/* v2_theme.css — Override de variáveis pro modo light.
+   Aplica quando <html data-theme="light"> está setado pelo v2_theme.js.
+   Sobrepõe as vars CSS de cada tela (configuracao, execucao, resultados, docs, help). */
+
+:root[data-theme="light"] {
+  --bg: #f6f7fa;
+  --bg-1: #ffffff;
+  --bg-2: #eef1f6;
+  --bg-term: #eef1f6;       /* terminal/log usa fundo claro coerente com o tema */
+  --ink: #0b0f1a;
+  --ink-2: #2a2f3d;
+  --muted: #5b6480;
+  --dim: #8089a0;
+  --line: rgba(11, 15, 26, 0.08);
+  --line-2: rgba(11, 15, 26, 0.12);
+  --accent: #a8852f;        /* ocre escurecido pra contraste em fundo claro */
+  --accent-2: #b8902f;
+  --green: #2f8f3d;
+  --red: #c0413d;
+  --yellow: #c89018;
+  --blue: #3478b8;
+}
+
+/* Categorias: cores ajustadas pra ter contraste em fundo claro */
+:root[data-theme="light"] {
+  --cat-sf: #b8932f;
+  --cat-fa: #b8413d;
+  --cat-lb: #3478b8;
+  --cat-as: #b86c3d;
+  --cat-ad: #7a5fb8;
+  --cat-ah: #2f8f3d;
+  --cat-ac: #a8467a;
+}
+
+/* Backgrounds com transparência ficam diferentes em light. Patches específicos. */
+:root[data-theme="light"] .v2-empty-list,
+:root[data-theme="light"] .v2-diff-empty,
+:root[data-theme="light"] .v2-batch-hero,
+:root[data-theme="light"] .v2-pipefy-ok-hero,
+:root[data-theme="light"] .v2-ipaas-hero {
+  background-color: rgba(11, 15, 26, 0.02);
+}
+
+/* Card hover/selected com tons claros */
+:root[data-theme="light"] .row.selected,
+:root[data-theme="light"] .nav-item.active,
+:root[data-theme="light"] .cross-card.sel {
+  background-color: rgba(168, 133, 47, 0.08);
+}
+
+/* Scrollbars */
+:root[data-theme="light"] .pane-right::-webkit-scrollbar-thumb {
+  background: rgba(11, 15, 26, 0.18);
+}
+:root[data-theme="light"] .pane-right::-webkit-scrollbar-thumb:hover {
+  background: rgba(11, 15, 26, 0.32);
+}
+
+/* Sombras do dark theme não funcionam em fundo claro */
+:root[data-theme="light"] .v2-loader-mark,
+:root[data-theme="light"] .modal,
+:root[data-theme="light"] [class*="modal"] {
+  box-shadow: 0 8px 28px rgba(11, 15, 26, 0.12);
+}
+
+/* Brand virou link clicável (volta pra home). Reset de estilo de <a> e hover sutil. */
+a.brand {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+a.brand:hover { opacity: .82; }
+a.brand:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Botão de toggle do tema */
+.v2-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-right: 8px;
+  padding: 0;
+}
+.v2-theme-toggle:hover {
+  background: rgba(168, 133, 47, 0.08);
+  color: var(--accent);
+  border-color: rgba(168, 133, 47, 0.3);
+}
+.v2-theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Em modo light, o botão tem hover mais sutil */
+:root[data-theme="light"] .v2-theme-toggle {
+  background: rgba(11, 15, 26, 0.02);
+}
+
+/* Tooltips e popovers com background hardcoded #141a2c (escuro) ficam ilegíveis
+   em fundo claro porque o texto usa var(--ink) que também é escuro em light.
+   Override pinta o fundo de claro e adiciona contraste via borda + sombra. */
+:root[data-theme="light"] [data-tip]:hover::after {
+  background: #ffffff !important;
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 6px 18px rgba(11, 15, 26, 0.12);
+}
+
+:root[data-theme="light"] .cancel-pop,
+:root[data-theme="light"] .cancel-pop::after {
+  background: #ffffff !important;
+  border: 1px solid var(--line-2);
+}
+:root[data-theme="light"] .cancel-pop {
+  box-shadow: 0 8px 28px rgba(11, 15, 26, 0.14);
+}
+
+/* Popover do stacked bar (Resultados) e qualquer modal com gradient escuro hardcoded */
+:root[data-theme="light"] #stacked-pop,
+:root[data-theme="light"] [class*="-pop"]:not(.cancel-pop) {
+  background: #ffffff;
+  border-color: var(--line-2);
+  box-shadow: 0 8px 28px rgba(11, 15, 26, 0.12);
+}
+/* Setinha do stacked-pop herda o fundo escuro hardcoded */
+:root[data-theme="light"] .stacked-pop::before {
+  background: #ffffff;
+}
+
+/* Dropdown menu (.dd-menu) e modal usam linear-gradient escuro hardcoded.
+   Override pinta de branco e ajusta sombra pra fundo claro. */
+:root[data-theme="light"] .dd-menu,
+:root[data-theme="light"] .modal {
+  background: #ffffff !important;
+  box-shadow: 0 16px 40px -10px rgba(11, 15, 26, 0.15),
+              0 0 0 1px rgba(11, 15, 26, 0.04);
+}
+
+/* Hover/select dos itens do dropdown usam rgba(255,255,255,.04) que não aparece
+   em fundo branco. Inverter pra escuro semi-transparente. */
+:root[data-theme="light"] .dd-opt:hover {
+  background: rgba(11, 15, 26, 0.05);
+}
+
+/* Tags com fundo branco semi-transparente (env-tag, dd-env) ficam invisíveis
+   sobre branco. Inverter polaridade. */
+:root[data-theme="light"] .dd-opt .env-tag,
+:root[data-theme="light"] .dd-btn .dd-env {
+  background: rgba(11, 15, 26, 0.04);
+}

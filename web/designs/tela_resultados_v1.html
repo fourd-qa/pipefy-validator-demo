@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resultados · Pipefy Validator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/v2/assets/tela_resultados_v1.css">
+<link rel="stylesheet" href="/v2/assets/v2_theme.css">
+<script src="/v2/assets/v2_theme.js" defer></script>
+</head>
+<body>
+
+<!-- ==================================================
+     SVG ICON SPRITE (Lucide — stroke 1.75)
+     ================================================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+    <symbol id="i-alert-octagon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- ================== TOP BAR ================== -->
+  <header class="topbar">
+    <a href="/v2/configuracao" class="brand" aria-label="Voltar pra home">
+      <div class="brand-mark">P</div>
+      <div class="brand-name">Pipefy Validator <span>/ demo</span></div>
+    </a>
+    <nav class="crumbs" aria-label="breadcrumb">
+      <a href="#">Validações</a>
+      <span class="sep">/</span>
+      <a href="#">Cross Env</a>
+      <span class="sep">/</span>
+      <span class="current">run_4f82a1cb</span>
+    </nav>
+    <div class="top-right">
+      <div class="run-status">
+        <span class="dot"></span>
+        <span class="txt">FAILED · 93 diffs</span>
+      </div>
+      <button class="icon-btn" data-tip="Re-executar"><svg><use href="#i-refresh"/></svg></button>
+      <button class="icon-btn" data-tip="Configurações"><svg><use href="#i-settings"/></svg></button>
+    </div>
+  </header>
+
+  <!-- ================== META BLOCK ================== -->
+  <section class="meta">
+    <!-- col 1: Run ID -->
+    <div class="meta-block runid" data-tip="run_4f82a1cb_20260424T093812Z · 2026-04-24 09:38:12 BRT">
+      <span class="meta-label">Run</span>
+      <span class="meta-value runid-value">
+        <span class="runid-hash">4f82a1cb</span><span class="runid-suffix">09:38 BRT</span>
+      </span>
+    </div>
+
+    <!-- col 2: Pipe -->
+    <div class="meta-block">
+      <span class="meta-label">Pipe</span>
+      <span class="meta-value muted">Mesa Crédito PF (Origem) <span class="meta-value dim">· bc704c08</span></span>
+    </div>
+
+    <!-- col 3: Flow hero (centralizado, 1fr) -->
+    <div class="meta-flow-hero" aria-label="Fluxo de validação">
+      <div class="env-pill">
+        <span class="env-tag">Origem</span>
+        <span class="env-name">fourd-sandbox</span>
+      </div>
+      <div class="flow-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+      </div>
+      <div class="env-pill dest">
+        <span class="env-tag">Destino</span>
+        <span class="env-name">fourd-staging</span>
+      </div>
+    </div>
+
+    <!-- col 4: Duração -->
+    <div class="meta-block">
+      <span class="meta-label">Duração</span>
+      <span class="meta-value muted" id="meta-elapsed">—</span>
+    </div>
+
+    <!-- col 5: Actions -->
+    <div class="meta-actions">
+      <a href="#" class="meta-action primary" data-tip="Abre relatório Robot Framework em nova aba">
+        <svg><use href="#i-external"/></svg>Report
+      </a>
+      <a href="#" class="meta-action primary">
+        <svg><use href="#i-terminal"/></svg>Log
+      </a>
+      <a href="#" class="meta-action primary">
+        <svg><use href="#i-download"/></svg>JSON
+      </a>
+    </div>
+  </section>
+
+  <!-- ================== KPI STRIP ================== -->
+  <section class="kpis">
+    <div class="kpi">
+      <div class="kpi-num bad">93</div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Divergências detectadas</span>
+        <span class="kpi-sub">vs baseline <span class="delta">+93</span></span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-num">48</div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Automações comparadas</span>
+        <span class="kpi-sub">42 origem · 47 destino</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-num">8.412<span style="font-size:14px;color:var(--muted);margin-left:2px">s</span></div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Tempo de execução</span>
+        <span class="kpi-sub">9 validações · média 934ms</span>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-num">7<span style="font-size:14px;color:var(--muted);margin-left:4px">/ 7</span></div>
+      <div class="kpi-meta">
+        <span class="kpi-label">Categorias afetadas</span>
+        <span class="kpi-sub">todas com divergências</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================== STACKED BAR ================== -->
+  <section class="stacked" id="stacked-section">
+    <div class="stacked-bar" id="stacked-bar" role="img" aria-label="Distribuição de divergências por categoria">
+      <div class="stacked-seg" style="flex:4;background:var(--cat-sf)"  data-cat="SF" data-name="Start Form"           data-count="4"  data-err="1"  data-warn="1" data-info="2" data-trend="0,1,0,2,1,3,2,1,4" data-color="var(--cat-sf)" data-pct="4.3"></div>
+      <div class="stacked-seg" style="flex:38;background:var(--cat-fa)" data-cat="FA" data-name="Fases &amp; Campos"    data-count="38" data-err="28" data-warn="8" data-info="2" data-trend="12,18,21,25,30,34,36,37,38" data-color="var(--cat-fa)" data-pct="40.9"></div>
+      <div class="stacked-seg" style="flex:9;background:var(--cat-lb)"  data-cat="LB" data-name="Labels"               data-count="9"  data-err="0"  data-warn="5" data-info="4" data-trend="2,3,4,5,6,7,8,8,9" data-color="var(--cat-lb)" data-pct="9.7"></div>
+      <div class="stacked-seg" style="flex:14;background:var(--cat-as)" data-cat="AS" data-name="Automação · Status"   data-count="14" data-err="9"  data-warn="5" data-info="0" data-trend="3,5,7,8,10,11,12,13,14" data-color="var(--cat-as)" data-pct="15.1"></div>
+      <div class="stacked-seg" style="flex:11;background:var(--cat-ad)" data-cat="AD" data-name="Automação · Fase Destino" data-count="11" data-err="7"  data-warn="4" data-info="0" data-trend="2,4,5,7,8,9,10,10,11" data-color="var(--cat-ad)" data-pct="11.8"></div>
+      <div class="stacked-seg" style="flex:10;background:var(--cat-ah)" data-cat="AH" data-name="Automação · HTTP"     data-count="10" data-err="7"  data-warn="2" data-info="1" data-trend="1,3,4,6,7,8,9,10,10" data-color="var(--cat-ah)" data-pct="10.8"></div>
+      <div class="stacked-seg" style="flex:7;background:var(--cat-ac)"  data-cat="AC" data-name="Automação · Condition" data-count="7"  data-err="6"  data-warn="1" data-info="0" data-trend="1,2,3,3,4,5,6,7,7" data-color="var(--cat-ac)" data-pct="7.5"></div>
+    </div>
+    <div class="stacked-pop" id="stacked-pop" role="tooltip" aria-hidden="true">
+      <div class="pop-head">
+        <div class="pop-swatch" id="pop-swatch">FA</div>
+        <div class="pop-title">
+          <div class="pop-cat" id="pop-cat">Fases &amp; Campos</div>
+          <div class="pop-sub" id="pop-sub">tag · FA · 12 fases afetadas</div>
+        </div>
+        <div class="pop-metric">
+          <div class="pop-num" id="pop-num">38</div>
+          <div class="pop-pct" id="pop-pct">40.9% do total</div>
+        </div>
+      </div>
+      <div class="pop-chart">
+        <div class="pop-chart-label">
+          <span>Acúmulo durante a run</span>
+          <span class="pop-axis" id="pop-axis">0 → 38</span>
+        </div>
+        <div class="pop-bars" id="pop-bars"></div>
+        <div class="pop-bar-axis">
+          <span>00:00</span>
+          <span>02:50</span>
+          <span>05:40</span>
+          <span>08:41</span>
+        </div>
+      </div>
+      <div class="pop-break">
+        <div class="pop-brow err">
+          <span class="bl">error</span>
+          <span class="bt" id="pop-bar-err" style="--w:74%"></span>
+          <span class="bv" id="pop-v-err">28</span>
+        </div>
+        <div class="pop-brow warn">
+          <span class="bl">warn</span>
+          <span class="bt" id="pop-bar-warn" style="--w:21%"></span>
+          <span class="bv" id="pop-v-warn">8</span>
+        </div>
+        <div class="pop-brow info">
+          <span class="bl">info</span>
+          <span class="bt" id="pop-bar-info" style="--w:5%"></span>
+          <span class="bv" id="pop-v-info">2</span>
+        </div>
+      </div>
+      <div class="pop-foot">
+        <span class="pop-hint"><span class="k">click</span> filtra lista</span>
+        <span class="pop-action" id="pop-action">Abrir categoria →</span>
+      </div>
+    </div>
+  </section>
+
+<script src="/v2/assets/tela_resultados_v1.js"></script>
+
+  <!-- ================== LEFT: FILTERS ================== -->
+  <aside class="pane-left">
+    <div class="filter-section">
+      <div class="filter-head">
+        <span class="filter-title">Categoria</span>
+        <button class="filter-clear">limpar</button>
+      </div>
+      <div class="src-list">
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="swatch" style="background:var(--cat-sf)"></span>
+          <span class="name">Start Form</span>
+          <span class="count">4</span>
+        </div>
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="swatch" style="background:var(--cat-fa)"></span>
+          <span class="name">Fases &amp; Campos</span>
+          <span class="count">38</span>
+        </div>
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="swatch" style="background:var(--cat-lb)"></span>
+          <span class="name">Labels</span>
+          <span class="count">9</span>
+        </div>
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="swatch" style="background:var(--cat-as)"></span>
+          <span class="name">Automação · Status</span>
+          <span class="count">14</span>
+        </div>
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="swatch" style="background:var(--cat-ad)"></span>
+          <span class="name">Automação · Fase Destino</span>
+          <span class="count">11</span>
+        </div>
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="swatch" style="background:var(--cat-ah)"></span>
+          <span class="name">Automação · HTTP</span>
+          <span class="count">10</span>
+        </div>
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="swatch" style="background:var(--cat-ac)"></span>
+          <span class="name">Automação · Condition</span>
+          <span class="count">7</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-head">
+        <span class="filter-title">Severidade</span>
+      </div>
+      <div class="severity-row">
+        <div class="sev-pill err active">
+          <span class="sev-count">71</span>
+          <span class="sev-lbl">error</span>
+        </div>
+        <div class="sev-pill warn active">
+          <span class="sev-count">18</span>
+          <span class="sev-lbl">warn</span>
+        </div>
+        <div class="sev-pill info active">
+          <span class="sev-count">4</span>
+          <span class="sev-lbl">info</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-head">
+        <span class="filter-title">Ambiente origem</span>
+      </div>
+      <div class="src-list">
+        <div class="facet active">
+          <span class="check"></span>
+          <span class="name">fourd-sandbox</span>
+          <span class="count">93</span>
+        </div>
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">fourd-staging</span>
+          <span class="count">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-head">
+        <span class="filter-title">Fase</span>
+      </div>
+      <div class="src-list">
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">Start Form</span>
+          <span class="count">4</span>
+        </div>
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">Análise</span>
+          <span class="count">19</span>
+        </div>
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">Aprovação</span>
+          <span class="count">14</span>
+        </div>
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">Em Andamento</span>
+          <span class="count">21</span>
+        </div>
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">Liquidação</span>
+          <span class="count">17</span>
+        </div>
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">Pós-Análise</span>
+          <span class="count">11</span>
+        </div>
+        <div class="facet">
+          <span class="check"></span>
+          <span class="name">Arquivadas</span>
+          <span class="count">7</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================== CENTER: LIST ================== -->
+  <section class="pane-center">
+    <div class="center-toolbar">
+      <div class="search">
+        <svg><use href="#i-search"/></svg>
+        <input type="text" placeholder="Buscar por campo, fase, URL ou ID de automação…" />
+        <span class="kbd">⌘K</span>
+      </div>
+      <span class="showing"><b>93</b> de <b>93</b></span>
+      <div class="toolbar-right">
+        <button class="tb-btn" data-tip="Filtrar"><svg><use href="#i-filter"/></svg></button>
+        <button class="tb-btn" data-tip="Agrupar por categoria"><svg><use href="#i-layers"/></svg></button>
+        <span class="tb-divider"></span>
+        <button class="tb-btn" data-tip="Copiar resumo"><svg><use href="#i-copy"/></svg></button>
+        <button class="tb-btn" data-tip="Mais"><svg><use href="#i-more"/></svg></button>
+      </div>
+    </div>
+
+    <div class="list-head">
+      <span class="col num">#</span>
+      <span class="col"></span>
+      <span class="col">Tipo</span>
+      <span class="col">Caminho · campo afetado</span>
+      <span class="col">Origem → destino</span>
+      <span class="col num">Severidade</span>
+    </div>
+
+    <div class="list" id="list">
+      <!-- rows injected below (static) -->
+      <!-- === SELECTED ROW (shown up top for visual hero) === -->
+      <div class="row selected">
+        <span class="col-num">001</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP body</span>
+        <span class="col-path">auto_liq_notif_1923 · body.amount</span>
+        <span class="col-field">"{{valor_credito}}" → "{{valor_final}}"</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">002</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo obrigatório alterado</span>
+        <span class="col-path">Análise · cnpj_tomador</span>
+        <span class="col-field">required: true → false</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">003</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_mov_card_7821 · targetPhase</span>
+        <span class="col-field">Aprovação → Compliance</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">004</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação removida</span>
+        <span class="col-path">auto_webhook_pos_liq_3411</span>
+        <span class="col-field">present → missing</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">005</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Tipo de campo</span>
+        <span class="col-path">Em Andamento ·valor_total</span>
+        <span class="col-field">currency → number</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">006</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · condition</span>
+        <span class="col-path">auto_cond_risco_alto_4401</span>
+        <span class="col-field">rating &lt; 'BBB' → rating &lt;= 'BBB'</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">007</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label renomeada</span>
+        <span class="col-path">label_lbl_compliance_91</span>
+        <span class="col-field">"Compliance OK" → "Compliance Aprovado"</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">008</span>
+        <span class="col-cat"><span class="cat-chip cat-SF">SF</span></span>
+        <span class="col-type">Start Form · novo campo</span>
+        <span class="col-path">start_form · canal_origem</span>
+        <span class="col-field">missing → select(5 opts)</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">009</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Opções select</span>
+        <span class="col-path">Análise · produto_credito</span>
+        <span class="col-field">5 opts → 7 opts (+2)</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">010</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · URL</span>
+        <span class="col-path">auto_notif_slack_5501 · url</span>
+        <span class="col-field">hooks.slack.com/T0A… → hooks.slack.com/T0B…</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">011</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · event</span>
+        <span class="col-path">auto_card_moved_1188 · event</span>
+        <span class="col-field">card_moved → card_late</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">012</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase origem</span>
+        <span class="col-path">auto_mov_reprov_8812 · fromPhase</span>
+        <span class="col-field">Análise → Aprovação</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">013</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo adicionado</span>
+        <span class="col-path">Liquidação · hash_confirmacao</span>
+        <span class="col-field">missing → short_text (required)</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">014</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP method</span>
+        <span class="col-path">auto_liq_notif_1923 · method</span>
+        <span class="col-field">POST → PUT</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">015</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label · cor</span>
+        <span class="col-path">label_risco_alto_22 · color</span>
+        <span class="col-field">#d9534f → #c9524f</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">016</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Fase renomeada</span>
+        <span class="col-path">phase_3301 · name</span>
+        <span class="col-field">"Pós-Aprovação" → "Pós-Análise"</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">017</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · trigger</span>
+        <span class="col-path">auto_trig_fx_0901 · triggerField</span>
+        <span class="col-field">status_cliente → status_proposta</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">018</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP headers</span>
+        <span class="col-path">auto_webhook_ext_7719 · headers</span>
+        <span class="col-field">3 headers → 4 headers (+X-Env)</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">019</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo removido</span>
+        <span class="col-path">Em Andamento ·notas_legacy</span>
+        <span class="col-field">long_text → missing</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">020</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação adicionada</span>
+        <span class="col-path">auto_notif_gerente_9910</span>
+        <span class="col-field">missing → present (card_moved)</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">021</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_mov_aprov_3422 · targetPhase</span>
+        <span class="col-field">Em Andamento → Liquidação</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">022</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo obrigatório</span>
+        <span class="col-path">Aprovação Compliance · parecer_juridico</span>
+        <span class="col-field">false → true</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">023</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label removida</span>
+        <span class="col-path">label_urgente_44</span>
+        <span class="col-field">present → missing</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">024</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP body</span>
+        <span class="col-path">auto_notif_slack_5501 · body.text</span>
+        <span class="col-field">"Deal closed" → "Deal liquidated"</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">025</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Fase adicionada</span>
+        <span class="col-path">phase_new_compliance_bko</span>
+        <span class="col-field">missing → present (3 campos)</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">026</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · condition</span>
+        <span class="col-path">auto_cond_moeda_1103</span>
+        <span class="col-field">currency IN ('USD','EUR') → currency IN ('USD','EUR','GBP')</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">027</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · action</span>
+        <span class="col-path">auto_move_card_2231 · actionType</span>
+        <span class="col-field">move_card → set_field</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">028</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo · help_text</span>
+        <span class="col-path">Análise · rating_externo</span>
+        <span class="col-field">"Rating S&amp;P" → "Rating externo (S&amp;P ou Moody's)"</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">029</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase evento</span>
+        <span class="col-path">auto_card_late_4590 · eventPhase</span>
+        <span class="col-field">Em Andamento → Análise</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">030</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo adicionado</span>
+        <span class="col-path">Liquidação · id_externo_nucleo</span>
+        <span class="col-field">missing → short_text</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">031</span>
+        <span class="col-cat"><span class="cat-chip cat-SF">SF</span></span>
+        <span class="col-type">Start Form · required</span>
+        <span class="col-path">start_form · doc_identificacao</span>
+        <span class="col-field">false → true</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">032</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · URL</span>
+        <span class="col-path">auto_push_core_1102 · url</span>
+        <span class="col-field">/api/v1/fx → /api/v2/fx</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">033</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação removida</span>
+        <span class="col-path">auto_sla_reminder_0055</span>
+        <span class="col-field">present → missing</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">034</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo obrigatório</span>
+        <span class="col-path">Em Andamento ·conta_aprovacao</span>
+        <span class="col-field">true → false</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">035</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label adicionada</span>
+        <span class="col-path">label_revisao_bko_88</span>
+        <span class="col-field">missing → present (#c9a84c)</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">036</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_auto_mov_compl_6610 · targetPhase</span>
+        <span class="col-field">Compliance → Compliance BKO</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">037</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Opções select</span>
+        <span class="col-path">Em Andamento ·forma_aprovacao</span>
+        <span class="col-field">3 opts → 4 opts (+PIX)</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">038</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · condition</span>
+        <span class="col-path">auto_cond_valor_max_2244</span>
+        <span class="col-field">valor &gt; 100000 → valor &gt; 250000</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">039</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP body</span>
+        <span class="col-path">auto_push_core_1102 · body.payload</span>
+        <span class="col-field">{contract_id} → {contract_uuid}</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">040</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · status</span>
+        <span class="col-path">auto_notif_bko_5501 · active</span>
+        <span class="col-field">true → false</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">041</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo · valor default</span>
+        <span class="col-path">Análise · moeda_credito</span>
+        <span class="col-field">"BRL" → "USD"</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">042</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label renomeada</span>
+        <span class="col-path">label_pendente_51</span>
+        <span class="col-field">"Pendente" → "Aguardando Cliente"</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">043</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_mov_reprov_expir_3340</span>
+        <span class="col-field">Arquivadas → Reprovadas</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">044</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo adicionado</span>
+        <span class="col-path">Compliance · flag_cvm_867</span>
+        <span class="col-field">missing → checkbox</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">045</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · condition</span>
+        <span class="col-path">auto_cond_pais_origem_1144</span>
+        <span class="col-field">NOT in blacklist → in whitelist</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">046</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · event</span>
+        <span class="col-path">auto_field_upd_0012 · event</span>
+        <span class="col-field">field_updated → card_created</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">047</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Tipo de campo</span>
+        <span class="col-path">Liquidação · valor_final</span>
+        <span class="col-field">number → currency</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">048</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP body</span>
+        <span class="col-path">auto_webhook_ext_7719 · body.callback</span>
+        <span class="col-field">"{{card.id}}" → "{{card.uuid}}"</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">049</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label · cor</span>
+        <span class="col-path">label_vip_12 · color</span>
+        <span class="col-field">#c9a84c → #a07c2e</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">050</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Fase · SLA</span>
+        <span class="col-path">phase_analise · sla_hours</span>
+        <span class="col-field">48 → 72</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">051</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_mov_approved_8861 · targetPhase</span>
+        <span class="col-field">Aprovação → Aprovação Compliance</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">052</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo obrigatório</span>
+        <span class="col-path">Pós-Análise · comprovante_aprovacao</span>
+        <span class="col-field">false → true</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">053</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação adicionada</span>
+        <span class="col-path">auto_retry_fail_4417</span>
+        <span class="col-field">missing → present (card_late)</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">054</span>
+        <span class="col-cat"><span class="cat-chip cat-SF">SF</span></span>
+        <span class="col-type">Start Form · field order</span>
+        <span class="col-path">start_form · ordem</span>
+        <span class="col-field">[cnpj, valor, moeda, ...] → [cnpj, moeda, valor, ...]</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">055</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · trigger</span>
+        <span class="col-path">auto_trig_bko_rev_0099 · triggerOn</span>
+        <span class="col-field">on_enter_phase → on_field_change</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">056</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo · help_text</span>
+        <span class="col-path">Em Andamento ·conta_destino</span>
+        <span class="col-field">"" → "IBAN ou CC+DV+AG"</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">057</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP headers</span>
+        <span class="col-path">auto_push_core_1102 · headers</span>
+        <span class="col-field">Authorization: Bearer … → Authorization: ApiKey …</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">058</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo removido</span>
+        <span class="col-path">Análise · comentario_analista_v1</span>
+        <span class="col-field">long_text → missing</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">059</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_mov_liq_done_5522 · targetPhase</span>
+        <span class="col-field">Liquidação → Pós-Análise</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">060</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · action</span>
+        <span class="col-path">auto_assign_manager_4401 · actionType</span>
+        <span class="col-field">set_assignee → set_field</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">061</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Opções select</span>
+        <span class="col-path">Compliance · parecer_tipo</span>
+        <span class="col-field">[OK, Ressalva] → [OK, Ressalva, Reprov]</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">062</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label renomeada</span>
+        <span class="col-path">label_high_risk_07</span>
+        <span class="col-field">"High risk" → "Risco Elevado"</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">063</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · condition</span>
+        <span class="col-path">auto_cond_novo_cliente_2211</span>
+        <span class="col-field">IS NULL → IS NOT NULL</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">064</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · URL</span>
+        <span class="col-path">auto_notif_email_7701 · url</span>
+        <span class="col-field">v1/send → v2/send</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">065</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo adicionado</span>
+        <span class="col-path">Pós-Análise · data_conciliacao</span>
+        <span class="col-field">missing → date</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">066</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · status</span>
+        <span class="col-path">auto_sync_core_9912 · active</span>
+        <span class="col-field">false → true</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">067</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Tipo de campo</span>
+        <span class="col-path">Aprovação · data_aprovacao</span>
+        <span class="col-field">datetime → date</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">068</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase origem</span>
+        <span class="col-path">auto_back_to_analise_3301 · fromPhase</span>
+        <span class="col-field">Aprovação → Compliance</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">069</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP method</span>
+        <span class="col-path">auto_webhook_ext_7719 · method</span>
+        <span class="col-field">PUT → PATCH</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">070</span>
+        <span class="col-cat"><span class="cat-chip cat-SF">SF</span></span>
+        <span class="col-type">Start Form · help_text</span>
+        <span class="col-path">start_form · cnpj_tomador</span>
+        <span class="col-field">"" → "Apenas números, com DV"</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">071</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo obrigatório</span>
+        <span class="col-path">Análise · rating_externo</span>
+        <span class="col-field">true → false</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">072</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label adicionada</span>
+        <span class="col-path">label_revisao_juridica_90</span>
+        <span class="col-field">missing → present (#6ca9d9)</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">073</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo · valor default</span>
+        <span class="col-path">Em Andamento ·tipo_credito</span>
+        <span class="col-field">"IMP" → "EXP"</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">074</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · trigger</span>
+        <span class="col-path">auto_trig_liq_done_5501 · triggerOn</span>
+        <span class="col-field">on_field_change → on_phase_entry</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">075</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação removida</span>
+        <span class="col-path">auto_legacy_notif_0001</span>
+        <span class="col-field">present → missing</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">076</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_escalate_bko_7781 · targetPhase</span>
+        <span class="col-field">Análise → Análise BKO</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">077</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo adicionado</span>
+        <span class="col-path">Aprovação · link_proposta_v2</span>
+        <span class="col-field">missing → url</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">078</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · HTTP body</span>
+        <span class="col-path">auto_notif_email_7701 · body.subject</span>
+        <span class="col-field">"Fluxo" → "Fluxo · Detalhado"</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">079</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Fase · status</span>
+        <span class="col-path">phase_arquivadas · archived</span>
+        <span class="col-field">false → true</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">080</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · event</span>
+        <span class="col-path">auto_on_late_2341 · event</span>
+        <span class="col-field">card_late → card_sla_violated</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">081</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo obrigatório</span>
+        <span class="col-path">Liquidação · codigo_swift_contraparte</span>
+        <span class="col-field">false → true</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">082</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase destino</span>
+        <span class="col-path">auto_mov_rej_final_0917 · targetPhase</span>
+        <span class="col-field">Rejeitadas → Arquivadas</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">083</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · condition</span>
+        <span class="col-path">auto_cond_compliance_4488</span>
+        <span class="col-field">parecer = 'OK' → parecer IN ('OK','Ressalva')</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">084</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo · help_text</span>
+        <span class="col-path">Compliance · doc_kyc</span>
+        <span class="col-field">"Anexar KYC" → "Anexar KYC + FATCA se aplicável"</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">085</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação adicionada</span>
+        <span class="col-path">auto_notif_sla_bko_5599</span>
+        <span class="col-field">missing → present (card_late)</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">086</span>
+        <span class="col-cat"><span class="cat-chip cat-AH">AH</span></span>
+        <span class="col-type">Automação · URL</span>
+        <span class="col-path">auto_notif_teams_8810 · url</span>
+        <span class="col-field">webhook.office.com/… → webhook.office.com/… (novo canal)</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">087</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Campo removido</span>
+        <span class="col-path">Análise · planilha_simulacao_old</span>
+        <span class="col-field">attachment → missing</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">088</span>
+        <span class="col-cat"><span class="cat-chip cat-AD">AD</span></span>
+        <span class="col-type">Automação · fase evento</span>
+        <span class="col-path">auto_phase_enter_bko_3398 · eventPhase</span>
+        <span class="col-field">Compliance → Compliance BKO</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">089</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Opções select</span>
+        <span class="col-path">Em Andamento ·canal_confirmacao</span>
+        <span class="col-field">[Email, Portal] → [Email, Portal, WhatsApp]</span>
+        <span class="col-sev"><span class="sev-dot warn"></span><span class="sev-label">warn</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">090</span>
+        <span class="col-cat"><span class="cat-chip cat-AC">AC</span></span>
+        <span class="col-type">Automação · condition</span>
+        <span class="col-path">auto_cond_arq_auto_5501</span>
+        <span class="col-field">dias_sem_mov &gt; 90 → dias_sem_mov &gt; 60</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">091</span>
+        <span class="col-cat"><span class="cat-chip cat-LB">LB</span></span>
+        <span class="col-type">Label · cor</span>
+        <span class="col-path">label_aprovado_03 · color</span>
+        <span class="col-field">#5cb85c → #6cc26c</span>
+        <span class="col-sev"><span class="sev-dot info"></span><span class="sev-label">info</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">092</span>
+        <span class="col-cat"><span class="cat-chip cat-AS">AS</span></span>
+        <span class="col-type">Automação · action</span>
+        <span class="col-path">auto_email_cliente_7722 · actionType</span>
+        <span class="col-field">send_email → send_email_template</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+
+      <div class="row">
+        <span class="col-num">093</span>
+        <span class="col-cat"><span class="cat-chip cat-FA">FA</span></span>
+        <span class="col-type">Fase adicionada</span>
+        <span class="col-path">phase_compliance_bko_novo</span>
+        <span class="col-field">missing → present (5 campos, 2 autos)</span>
+        <span class="col-sev"><span class="sev-dot err"></span><span class="sev-label">error</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================== RIGHT: DIFF PANEL ================== -->
+  <aside class="pane-right">
+    <div class="right-head">
+      <div class="right-title">
+        <span class="badge cat-AH">AH</span>Automação · HTTP body
+      </div>
+      <div class="right-actions">
+        <button class="icon-btn" data-tip="Copiar diff"><svg><use href="#i-copy"/></svg></button>
+        <button class="icon-btn" data-tip="Abrir no Pipefy"><svg><use href="#i-external"/></svg></button>
+        <button class="icon-btn" data-tip="Próxima divergência"><svg><use href="#i-chevron-right"/></svg></button>
+      </div>
+    </div>
+
+    <div class="right-meta">
+      <span class="k">ID</span><span class="v">auto_liq_notif_1923</span>
+      <span class="k">Fase</span><span class="v">Liquidação</span>
+      <span class="k">Trigger</span><span class="v">on_phase_entry</span>
+      <span class="k">Campo afetado</span><span class="v">body.amount</span>
+      <span class="k">Severidade</span><span class="v" style="color:var(--red)">error</span>
+      <span class="k">Detectado em</span><span class="v">09:38:16.221</span>
+    </div>
+
+    <div class="right-tabs">
+      <div class="right-tab active">Side-by-side</div>
+      <div class="right-tab">Unified <span class="c">14</span></div>
+      <div class="right-tab">Raw JSON</div>
+      <div class="right-tab">Context</div>
+    </div>
+
+    <div class="diff-body">
+      <div class="diff-cols">
+        <!-- ORIGIN COLUMN -->
+        <div class="diff-col">
+          <div class="diff-colhead left">
+            fourd-sandbox <span class="tag">baseline</span>
+          </div>
+
+          <div class="dline"><span class="dnum">01</span><span class="dmark"> </span><span class="dtxt">{</span></div>
+          <div class="dline"><span class="dnum">02</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"method"</span>: <span class="str">"POST"</span>,</span></div>
+          <div class="dline"><span class="dnum">03</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"url"</span>: <span class="str">"https://core.demo.internal/liq/v1/notify"</span>,</span></div>
+          <div class="dline"><span class="dnum">04</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"headers"</span>: {</span></div>
+          <div class="dline"><span class="dnum">05</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"Content-Type"</span>: <span class="str">"application/json"</span>,</span></div>
+          <div class="dline"><span class="dnum">06</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"Authorization"</span>: <span class="str">"Bearer {{token}}"</span></span></div>
+          <div class="dline"><span class="dnum">07</span><span class="dmark"> </span><span class="dtxt">  },</span></div>
+          <div class="dline"><span class="dnum">08</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"body"</span>: {</span></div>
+          <div class="dline"><span class="dnum">09</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"contract_id"</span>: <span class="str">"{{card.uuid}}"</span>,</span></div>
+          <div class="dline mod"><span class="dnum">10</span><span class="dmark">~</span><span class="dtxt">    <span class="key">"amount"</span>: <span class="str">"<span class="hi">{{valor_credito}}</span>"</span>,</span></div>
+          <div class="dline"><span class="dnum">11</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"currency"</span>: <span class="str">"{{moeda_credito}}"</span>,</span></div>
+          <div class="dline rem"><span class="dnum">12</span><span class="dmark">−</span><span class="dtxt">    <span class="key">"settlement_date"</span>: <span class="str">"{{data_liq_prevista}}"</span>,</span></div>
+          <div class="dline"><span class="dnum">13</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"channel"</span>: <span class="str">"pipefy"</span>,</span></div>
+          <div class="dline"><span class="dnum">14</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"env"</span>: <span class="str">"hmg"</span></span></div>
+          <div class="dline spacer"><span class="dnum"></span><span class="dmark"></span><span class="dtxt"></span></div>
+          <div class="dline"><span class="dnum">15</span><span class="dmark"> </span><span class="dtxt">  },</span></div>
+          <div class="dline"><span class="dnum">16</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"timeout_ms"</span>: <span class="num2">30000</span>,</span></div>
+          <div class="dline"><span class="dnum">17</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"retry"</span>: <span class="bool">true</span></span></div>
+          <div class="dline"><span class="dnum">18</span><span class="dmark"> </span><span class="dtxt">}</span></div>
+        </div>
+
+        <!-- DESTINATION COLUMN -->
+        <div class="diff-col">
+          <div class="diff-colhead right">
+            fourd-staging <span class="tag">current</span>
+          </div>
+
+          <div class="dline"><span class="dnum">01</span><span class="dmark"> </span><span class="dtxt">{</span></div>
+          <div class="dline"><span class="dnum">02</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"method"</span>: <span class="str">"POST"</span>,</span></div>
+          <div class="dline"><span class="dnum">03</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"url"</span>: <span class="str">"https://core.demo.internal/liq/v1/notify"</span>,</span></div>
+          <div class="dline"><span class="dnum">04</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"headers"</span>: {</span></div>
+          <div class="dline"><span class="dnum">05</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"Content-Type"</span>: <span class="str">"application/json"</span>,</span></div>
+          <div class="dline"><span class="dnum">06</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"Authorization"</span>: <span class="str">"Bearer {{token}}"</span></span></div>
+          <div class="dline"><span class="dnum">07</span><span class="dmark"> </span><span class="dtxt">  },</span></div>
+          <div class="dline"><span class="dnum">08</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"body"</span>: {</span></div>
+          <div class="dline"><span class="dnum">09</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"contract_id"</span>: <span class="str">"{{card.uuid}}"</span>,</span></div>
+          <div class="dline mod"><span class="dnum">10</span><span class="dmark">~</span><span class="dtxt">    <span class="key">"amount"</span>: <span class="str">"<span class="hi">{{valor_final}}</span>"</span>,</span></div>
+          <div class="dline"><span class="dnum">11</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"currency"</span>: <span class="str">"{{moeda_credito}}"</span>,</span></div>
+          <div class="dline spacer"><span class="dnum"></span><span class="dmark"></span><span class="dtxt"></span></div>
+          <div class="dline"><span class="dnum">12</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"channel"</span>: <span class="str">"pipefy"</span>,</span></div>
+          <div class="dline"><span class="dnum">13</span><span class="dmark"> </span><span class="dtxt">    <span class="key">"env"</span>: <span class="str">"prd"</span>,</span></div>
+          <div class="dline add"><span class="dnum">14</span><span class="dmark">+</span><span class="dtxt">    <span class="key">"correlation_id"</span>: <span class="str">"{{run.id}}"</span></span></div>
+          <div class="dline"><span class="dnum">15</span><span class="dmark"> </span><span class="dtxt">  },</span></div>
+          <div class="dline"><span class="dnum">16</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"timeout_ms"</span>: <span class="num2">30000</span>,</span></div>
+          <div class="dline"><span class="dnum">17</span><span class="dmark"> </span><span class="dtxt">  <span class="key">"retry"</span>: <span class="bool">true</span></span></div>
+          <div class="dline"><span class="dnum">18</span><span class="dmark"> </span><span class="dtxt">}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-foot">
+      <span class="stat"><span class="mod-c">~</span><b>1</b> modified</span>
+      <span class="stat"><span class="add-c">+</span><b>1</b> added</span>
+      <span class="stat"><span class="rem-c">−</span><b>1</b> removed</span>
+      <span class="spacer"></span>
+      <span class="stat">linhas · <b>17 / 17</b></span>
+    </div>
+  </aside>
+
+</div>
+
+</body>
+</html>

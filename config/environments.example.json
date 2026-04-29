@@ -1,0 +1,32 @@
+{
+  "_comment": "Template de environments.json. Copie para environments.json e preencha os tokens reais. environments.json esta no .gitignore por seguranca. Adicione quantos ambientes Pipefy/iPaaS precisar seguindo o mesmo schema.",
+  "pipefy": [
+    {
+      "id": "fourd_hmg",
+      "name": "FourD Sandbox",
+      "desc": "Ambiente de testes",
+      "base_url": "https://api.pipefy.com/graphql",
+      "auth_mode": "bearer",
+      "token": "Bearer SEU_TOKEN_AQUI",
+      "session_cookie": "NONE",
+      "csrf_token": "NONE",
+      "org_id": "302237018",
+      "verify_ssl": false,
+      "pipes": [
+        { "name": "Mesa Credito PF (Origem)", "uuid": "bc704c08-a6f3-4ce9-904d-b2fef4f79397", "repo_id": "307109232" },
+        { "name": "Mesa Credito PF (Copia)", "uuid": "0c8bf841-f480-4e76-aa83-5985ad644c57", "repo_id": "307109225" }
+      ]
+    }
+  ],
+  "ipaas": [
+    {
+      "id": "ipaas_fourd",
+      "name": "FourD Sandbox",
+      "desc": "Onboarding",
+      "base_url": "https://ipaas.pipefy.com/api/v1",
+      "token": "Bearer SEU_TOKEN_AQUI",
+      "project_id": "7srefoBsQofRt4PSdjrs6",
+      "verify_ssl": false
+    }
+  ]
+}

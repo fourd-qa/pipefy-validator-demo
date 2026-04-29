@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: pipefy-validator-demo
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_USERNAME
+        value: demo
+      - key: APP_PASSWORD
+        sync: false  # Render pede o valor no primeiro deploy, não vai pro git
+      - key: VERIFY_SSL
+        value: "false"

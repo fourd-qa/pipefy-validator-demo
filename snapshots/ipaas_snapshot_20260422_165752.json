@@ -1,0 +1,1264 @@
+{
+  "label": "ipaas_snapshot",
+  "timestamp": "20260422_165752",
+  "total_flows": 9,
+  "flows": [
+    {
+      "id": "CAFUiLBNiqh6re4T9IwQE",
+      "displayName": "PDF Contrato de comodato",
+      "status": "ENABLED",
+      "trigger_name": "cardMoved",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "['342495814']",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_15",
+          "displayName": "Template HTML",
+          "type": "CODE",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "647dc7a0b3edc254af620c5435467806",
+          "code_preview": "export const code = async (inputs) => {\n  const {\n    nome,\n    Nacionalidade,\n    Estadocivil,\n    Profissão,\n    RG,\n    órgão,\n    CPF,\n    cidade,\n    estado,\n    CEP,\n    FRD,\n    Data,\n  } = inp",
+          "input_keys": [
+            "Bairro",
+            "CEP",
+            "CPF",
+            "Complemento",
+            "Data",
+            "Estadocivil",
+            "FRD",
+            "Nacionalidade",
+            "Numero",
+            "Profissão",
+            "RG",
+            "cidade",
+            "email",
+            "estado",
+            "nome",
+            "orgao",
+            "rua",
+            "telefone"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_16",
+          "displayName": "Send HTTP request - OAuth",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app.pipefy.com/oauth/token",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_17",
+          "displayName": "Send HTTP request",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app-templates.pipefy.com/pdf",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_21",
+          "displayName": "Atualizar anexo",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "uploadAttachment",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "attachment",
+            "auth",
+            "cardId",
+            "fieldId",
+            "fileName",
+            "operation"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt"
+      ],
+      "state": "DRAFT"
+    },
+    {
+      "id": "JrT6eXwsLEYHmLAyHf9oi",
+      "displayName": "PDF Termo de entrega de equipamento",
+      "status": "ENABLED",
+      "trigger_name": "cardMoved",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "['342484079']",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_15",
+          "displayName": "Template HTML",
+          "type": "CODE",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "5e9de247e967f2225ebe34609417f1eb",
+          "code_preview": "export const code = async (inputs) => {\n  const {\n    nome,\n    Nacionalidade,\n    Estadocivil,\n    Profissão,\n    RG,\n    órgão,\n    CPF,\n    cidade,\n    estado,\n    CEP,\n    Data,\n  } = inputs;\n\n  c",
+          "input_keys": [
+            "Bairro",
+            "CEP",
+            "CPF",
+            "Complemento",
+            "Data",
+            "Estadocivil",
+            "Nacionalidade",
+            "Numero",
+            "Profissão",
+            "RG",
+            "cidade",
+            "email",
+            "estado",
+            "nome",
+            "orgao",
+            "rua",
+            "telefone"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_16",
+          "displayName": "Send HTTP request - OAuth",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app.pipefy.com/oauth/token",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_17",
+          "displayName": "Send HTTP request",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app-templates.pipefy.com/pdf",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_21",
+          "displayName": "Atualizar anexo",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "uploadAttachment",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "attachment",
+            "auth",
+            "cardId",
+            "fieldId",
+            "fileName",
+            "operation"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt"
+      ],
+      "state": "LOCKED"
+    },
+    {
+      "id": "i4CLnC6hL3jAxwXVYYOKS",
+      "displayName": "Fase  - Fase Envio comodato - Check anexo mudar para fase Treinamento",
+      "status": "ENABLED",
+      "trigger_name": "cardFieldUpdated",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "['426893006']",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_3",
+          "displayName": "Router",
+          "type": "ROUTER",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [],
+          "branches": [
+            {
+              "branchName": "Branch 1",
+              "branchType": "CONDITION",
+              "conditions": [
+                [
+                  {
+                    "operator": "EXISTS",
+                    "firstValue": "{{step_1['data']['card']['fields_by_phase']['342495871']['fields']['contrato_comodato_assinado']['report_value']}}"
+                  }
+                ]
+              ]
+            },
+            {
+              "branchName": "Otherwise",
+              "branchType": "FALLBACK"
+            }
+          ]
+        },
+        {
+          "name": "step_2",
+          "displayName": "Update card",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "updateCard",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId",
+            "organizationId",
+            "phaseFields",
+            "phaseId",
+            "pipeId"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt",
+        "1iElcxR0TtnXWsZRzrPaD"
+      ],
+      "state": "DRAFT"
+    },
+    {
+      "id": "PazDfvBd9KInrm61bvUxE",
+      "displayName": "PDF NDA",
+      "status": "ENABLED",
+      "trigger_name": "cardMoved",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "['342484079']",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_15",
+          "displayName": "Template Procuração",
+          "type": "CODE",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "38a925256504a1c03f2abd4ee9f0361a",
+          "code_preview": "export const code = async (inputs) => {\n  const {\n    nome,\n    Nacionalidade,\n    Estadocivil,\n    Profissão,\n    RG,\n    órgão,\n    CPF,\n    cidade,\n    estado,\n    rua,\n    Numero,\n    Complemento,",
+          "input_keys": [
+            "Bairro",
+            "CEP",
+            "CPF",
+            "Complemento",
+            "Data",
+            "Estadocivil",
+            "Nacionalidade",
+            "Numero",
+            "Profissão",
+            "RG",
+            "cidade",
+            "email",
+            "estado",
+            "nome",
+            "orgao",
+            "rua",
+            "telefone"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_16",
+          "displayName": "Send HTTP request - OAuth",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app.pipefy.com/oauth/token",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_17",
+          "displayName": "Send HTTP request",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app-templates.pipefy.com/pdf",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_21",
+          "displayName": "Atualizar anexo",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "uploadAttachment",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "attachment",
+            "auth",
+            "cardId",
+            "fieldId",
+            "fileName",
+            "operation"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt"
+      ],
+      "state": "LOCKED"
+    },
+    {
+      "id": "SEonu7V2omi1Th4X30tu7",
+      "displayName": "PDF Procuração",
+      "status": "ENABLED",
+      "trigger_name": "cardMoved",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "['342484079']",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_15",
+          "displayName": "Template Procuração",
+          "type": "CODE",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "d6019c66bf949be9a4a541d5f62611f8",
+          "code_preview": "export const code = async (inputs) => {\n  const {\n    nome,\n    Nacionalidade,\n    Profissão,\n    Estadocivil,\n    RG,\n    CPF,\n    cidade,\n    estado,\n    rua,\n    Numero,\n    Complemento,\n    Bairro",
+          "input_keys": [
+            "Bairro",
+            "CEP",
+            "CPF",
+            "Complemento",
+            "Data",
+            "Estadocivil",
+            "Nacionalidade",
+            "Numero",
+            "Profissão",
+            "RG",
+            "cidade",
+            "estado",
+            "nome",
+            "rua"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_16",
+          "displayName": "Send HTTP request - OAuth",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app.pipefy.com/oauth/token",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_17",
+          "displayName": "Send HTTP request procuração",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://app-templates.pipefy.com/pdf",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_21",
+          "displayName": "Atualizar procuração",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "uploadAttachment",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "attachment",
+            "auth",
+            "cardId",
+            "fieldId",
+            "fileName",
+            "operation"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt"
+      ],
+      "state": "LOCKED"
+    },
+    {
+      "id": "RgOqbZU4q5QG2LlPVpjFN",
+      "displayName": "Procuração e NDA assinados = ✅",
+      "status": "ENABLED",
+      "trigger_name": "cardFieldUpdated",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "['426127801', '426096094']",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_3",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_2",
+          "displayName": "Router",
+          "type": "ROUTER",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [],
+          "branches": [
+            {
+              "branchName": "Branch 1",
+              "branchType": "CONDITION",
+              "conditions": [
+                [
+                  {
+                    "operator": "EXISTS",
+                    "firstValue": "{{step_3['data']['card']['fields_by_phase']['342256328']['fields']['nda_assinado_pdf']['report_value']}}"
+                  },
+                  {
+                    "operator": "EXISTS",
+                    "firstValue": "{{step_3['data']['card']['fields_by_phase']['342256328']['fields']['procura_o_assinada_com_reconhecimento_em_firma']['report_value']}}"
+                  }
+                ]
+              ]
+            },
+            {
+              "branchName": "Branch 1 Copy",
+              "branchType": "CONDITION",
+              "conditions": [
+                [
+                  {
+                    "operator": "EXISTS",
+                    "firstValue": "{{step_3['data']['card']['fields_by_phase']['342256328']['fields']['nda_assinado_pdf']['report_value']}}"
+                  },
+                  {
+                    "operator": "DOES_NOT_EXIST",
+                    "firstValue": "{{step_3['data']['card']['fields_by_phase']['342256328']['fields']['procura_o_assinada_com_reconhecimento_em_firma']['report_value']}}"
+                  }
+                ]
+              ]
+            },
+            {
+              "branchName": "Branch 1 Copy Copy",
+              "branchType": "CONDITION",
+              "conditions": [
+                [
+                  {
+                    "operator": "DOES_NOT_EXIST",
+                    "firstValue": "{{step_3['data']['card']['fields_by_phase']['342256328']['fields']['nda_assinado_pdf']['report_value']}}"
+                  },
+                  {
+                    "operator": "EXISTS",
+                    "firstValue": "{{step_3['data']['card']['fields_by_phase']['342256328']['fields']['procura_o_assinada_com_reconhecimento_em_firma']['report_value']}}"
+                  }
+                ]
+              ]
+            },
+            {
+              "branchName": "Otherwise",
+              "branchType": "FALLBACK"
+            }
+          ]
+        },
+        {
+          "name": "step_1",
+          "displayName": "Update card",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "updateCard",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId",
+            "organizationId",
+            "phaseFields",
+            "phaseId",
+            "pipeId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_4",
+          "displayName": "Update card Copy",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "updateCard",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId",
+            "organizationId",
+            "phaseFields",
+            "phaseId",
+            "pipeId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_5",
+          "displayName": "Update card Copy Copy",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "updateCard",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId",
+            "organizationId",
+            "phaseFields",
+            "phaseId",
+            "pipeId"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt",
+        "1iElcxR0TtnXWsZRzrPaD"
+      ],
+      "state": "DRAFT"
+    },
+    {
+      "id": "SHar1JWgQJZYHg5PMNh0a",
+      "displayName": "Enviar NDA para assinatura",
+      "status": "ENABLED",
+      "trigger_name": "cardMoved",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "['342256328']",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_8",
+          "displayName": "Token Pipesing",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-store",
+          "actionName": "put",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "key",
+            "store_scope",
+            "value"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_5",
+          "displayName": "Buscar todos os Folders da Organização",
+          "type": "PIECE",
+          "skip": true,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://api.autentique.com.br/v2/graphql",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "body",
+            "body_type",
+            "failsafe",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_7",
+          "displayName": "Encontrar Folder ID pelo nome do Pipe",
+          "type": "CODE",
+          "skip": true,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "935048d53b6ce32fc8d6c9830a4fcf7b",
+          "code_preview": "export const code = async (inputs) => {\n  const { data, pipe } = inputs;\n  \n  if (!Array.isArray(data) || data.length === 0) {\n    console.error('Dados inválidos ou vazios');\n    return null;\n  }\n\n  c",
+          "input_keys": [
+            "data",
+            "pipe"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_3",
+          "displayName": "Ler arquivo",
+          "type": "PIECE",
+          "skip": true,
+          "pieceName": "@activepieces/piece-file-helper",
+          "actionName": "read_file",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "file",
+            "readOptions"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_13",
+          "displayName": "Criar Documento Copy",
+          "type": "CODE",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "7fd4565118800301a773975089c5c1f5",
+          "code_preview": "export const code = async (inputs) => {\n\n    const formData = new FormData();\n\n    const operations = {\n        query: `mutation CreateDocumentMutation(\n            $folder_id: UUID,\n            $docu",
+          "input_keys": [
+            "country",
+            "file",
+            "ignore_cpf",
+            "language",
+            "message",
+            "name",
+            "qualified",
+            "refusable",
+            "reminder",
+            "reply_to",
+            "scrolling_required",
+            "show_audit_page",
+            "signers",
+            "sortable",
+            "token"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_4",
+          "displayName": "Enviar solicitação HTTP",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://api.autentique.com.br/v2/graphql",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "failureMode",
+            "followRedirects",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "timeout",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_6",
+          "displayName": "Enviar solicitação HTTP Copy",
+          "type": "PIECE",
+          "skip": true,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "{{step_4['body']['data']['document']['files']['original']}}",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "failureMode",
+            "followRedirects",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "timeout",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_10",
+          "displayName": "Anexar documento no card",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "uploadAttachment",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "attachment",
+            "auth",
+            "cardId",
+            "fieldId",
+            "fileName",
+            "operation"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt"
+      ],
+      "state": "LOCKED"
+    },
+    {
+      "id": "DnDorzomHpRMc5BiKfjqi",
+      "displayName": "Limpar anexos",
+      "status": "ENABLED",
+      "trigger_name": "cardMoved",
+      "trigger_piece": "@activepieces/piece-pipefy",
+      "trigger_pipeId": "307009047",
+      "trigger_toPhaseId": "['342256329']",
+      "trigger_fromPhaseId": "['342256435']",
+      "trigger_fieldIds": "",
+      "trigger_orgId": "302237018",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_3",
+          "displayName": "Code",
+          "type": "CODE",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "858bdbc34e13a8fab54a7d987949bb70",
+          "code_preview": "export const code = async (inputs) => {\n  const docs = inputs.docs || [];\n\n  const mapaCampos = {\n    \"Copia digitalizada do RG\": \"copia_digitalizada_do_rg\",\n    \"Copia digitalizada do CPF\": \"copia_di",
+          "input_keys": [
+            "docs"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_2",
+          "displayName": "Custom API Call",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "custom_api_call",
+          "url": "{'url': 'https://api.pipefy.com/graphql'}",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "body",
+            "body_type",
+            "failsafe",
+            "headers",
+            "method",
+            "queryParams",
+            "response_is_binary",
+            "timeout",
+            "url"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt"
+      ],
+      "state": "LOCKED"
+    },
+    {
+      "id": "BQG61UJcSBVmUv3LqLcDU",
+      "displayName": "NDA Assinado",
+      "status": "ENABLED",
+      "trigger_name": "catch_webhook",
+      "trigger_piece": "@activepieces/piece-webhook",
+      "trigger_pipeId": "",
+      "trigger_toPhaseId": "",
+      "trigger_fromPhaseId": "",
+      "trigger_fieldIds": "",
+      "trigger_orgId": "",
+      "steps": [
+        {
+          "name": "step_1",
+          "displayName": "Read File",
+          "type": "PIECE",
+          "skip": true,
+          "pieceName": "@activepieces/piece-file-helper",
+          "actionName": "read_file",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "file",
+            "readOptions"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_4",
+          "displayName": "Enviar solicitação HTTP",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://api.autentique.com.br/v2/graphql",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "failureMode",
+            "followRedirects",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "timeout",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_5",
+          "displayName": "Baixar documento assinado",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "{{step_4['body']['data']['document']['files']['signed']}}",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "failureMode",
+            "followRedirects",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "timeout",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_7",
+          "displayName": "Extrair nome do documento",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-http",
+          "actionName": "send_request",
+          "url": "https://api.autentique.com.br/v2/graphql",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "authFields",
+            "authType",
+            "body",
+            "body_type",
+            "failureMode",
+            "followRedirects",
+            "headers",
+            "method",
+            "proxy_settings",
+            "queryParams",
+            "response_is_binary",
+            "timeout",
+            "url",
+            "use_proxy"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_8",
+          "displayName": "Code",
+          "type": "CODE",
+          "skip": false,
+          "pieceName": "",
+          "actionName": "",
+          "url": "",
+          "code_hash": "bf25ce3fdf89031d8e18791557cd7d8a",
+          "code_preview": "export const code = async (inputs) => {\n\n  if (!inputs.body) {\n    throw new Error(\"body não recebido do step anterior\");\n  }\n\n  const decoded = JSON.parse(\n    Buffer.from(inputs.body, \"base64\").toSt",
+          "input_keys": [
+            "body"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_6",
+          "displayName": "Get card by id",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "getCardById",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_2",
+          "displayName": "Upload attachment",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "uploadAttachment",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "attachment",
+            "auth",
+            "cardId",
+            "fieldId",
+            "fileName",
+            "operation"
+          ],
+          "branches": []
+        },
+        {
+          "name": "step_3",
+          "displayName": "Update card",
+          "type": "PIECE",
+          "skip": false,
+          "pieceName": "@activepieces/piece-pipefy",
+          "actionName": "updateCard",
+          "url": "",
+          "code_hash": "",
+          "code_preview": "",
+          "input_keys": [
+            "auth",
+            "cardId",
+            "organizationId",
+            "phaseFields",
+            "phaseId",
+            "pipeId"
+          ],
+          "branches": []
+        }
+      ],
+      "connectionIds": [
+        "rqzRiefcGH8DQc3t6LEdt"
+      ],
+      "state": "DRAFT"
+    }
+  ]
+}

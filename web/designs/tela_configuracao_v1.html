@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuração · Pipefy Validator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/v2/assets/tela_configuracao_v1.css">
+<link rel="stylesheet" href="/v2/assets/v2_theme.css">
+<script src="/v2/assets/v2_theme.js" defer></script>
+</head>
+<body>
+
+<!-- ICON SPRITE -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></symbol>
+<symbol id="i-git-compare" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="3"/><path d="M12 6h5a2 2 0 0 1 2 2v7"/><polyline points="15 9 12 6 15 3"/><circle cx="19" cy="18" r="3"/><path d="M12 18H7a2 2 0 0 1-2-2V9"/><polyline points="9 15 12 18 9 21"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+<symbol id="i-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4L7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 7V2"/><path d="M15 7V2"/><path d="M6 13V8h12v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4Z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-chev-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+<symbol id="i-chev-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+</defs>
+</svg>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <a href="/v2/configuracao" class="brand" aria-label="Voltar pra home">
+      <div class="brand-mark">P</div>
+      <div class="brand-name">Pipefy Validator <span>/ demo</span></div>
+    </a>
+    <nav class="crumbs" aria-label="breadcrumb">
+      <a href="#">Validações</a>
+      <span class="sep">/</span>
+      <span class="current">Nova execução</span>
+    </nav>
+    <div class="top-right">
+      <button class="icon-btn" data-tip="Documentação"><svg><use href="#i-book"/></svg></button>
+      <button class="icon-btn" id="btn-settings" data-tip="Gerenciar ambientes"><svg><use href="#i-settings"/></svg></button>
+      <button class="icon-btn" data-tip="Ajuda"><svg><use href="#i-help"/></svg></button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR: MODES NAV -->
+  <aside class="sidebar">
+    <div class="nav-head">
+      <div class="kicker">Modo de validação</div>
+      <div class="title">Escolha o que validar</div>
+      <div class="sub">5 modos disponíveis</div>
+    </div>
+    <nav class="nav-list">
+
+      <button class="nav-item active" data-mode="single">
+        <span class="ico"><svg><use href="#i-git-compare"/></svg></span>
+        <span class="name">Single-env</span>
+        <span class="desc">Dois pipes no mesmo ambiente</span>
+      </button>
+
+      <button class="nav-item" data-mode="cross">
+        <span class="ico"><svg><use href="#i-layers"/></svg></span>
+        <span class="name">Cross-env</span>
+        <span class="desc">HMG vs PRD entre ambientes</span>
+      </button>
+
+      <button class="nav-item" data-mode="snapshot">
+        <span class="ico"><svg><use href="#i-camera"/></svg></span>
+        <span class="name">Snapshot</span>
+        <span class="desc">Baseline e comparação</span>
+      </button>
+
+      <button class="nav-item" data-mode="batch">
+        <span class="ico"><svg><use href="#i-package"/></svg></span>
+        <span class="name">Batch</span>
+        <span class="desc">Validação em lote</span>
+      </button>
+
+      <button class="nav-item" data-mode="ipaas">
+        <span class="ico"><svg><use href="#i-plug"/></svg></span>
+        <span class="name">iPaaS <span class="beta">BETA</span></span>
+        <span class="desc">Activepieces flows</span>
+      </button>
+
+      <button class="nav-item" data-mode="healthcheck">
+        <span class="ico"><svg><use href="#i-check"/></svg></span>
+        <span class="name">Health Check</span>
+        <span class="desc">Diagnóstico rápido</span>
+      </button>
+
+    </nav>
+    <div class="nav-foot">
+      <a href="#" id="link-manage"><svg><use href="#i-settings"/></svg> Gerenciar ambientes</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- SUBHEADER -->
+    <div class="subhead">
+      <div class="sh-ico" id="sh-ico"><svg><use href="#i-git-compare"/></svg></div>
+      <div class="sh-txt">
+        <div class="sh-title" id="sh-title">Validação em ambiente único</div>
+        <div class="sh-desc" id="sh-desc">Compare dois pipes dentro do mesmo ambiente</div>
+      </div>
+      <div class="sh-right">
+        <span class="k">⏎</span> <span>para executar</span>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content" data-mode="single" id="content">
+      <div class="content-inner" id="content-inner">
+
+        <!-- ============ MODE: SINGLE-ENV ============ -->
+        <section class="mode-pane active" data-pane="single">
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Ambiente</div>
+              <div class="block-hint">selecione um ambiente disponível</div>
+            </div>
+            <div class="dropdown" data-dd="env-single">
+              <button class="dd-btn" data-dd-trigger>
+                <div class="dd-main">
+                  <div class="dd-lbl">AMBIENTE</div>
+                  <div class="dd-value"><span class="muted">pipefy / </span>fourd-sandbox</div>
+                </div>
+                <span class="dd-env">Bearer</span>
+                <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+              </button>
+              <div class="dd-menu">
+                <div class="dd-menu-inner">
+                  <button class="dd-opt sel" data-val="fourd-sandbox"><span class="env-tag">Bearer</span><span class="opt-name">fourd-sandbox</span><span class="opt-sub">2 pipes</span></button>
+                  <button class="dd-opt" data-val="fourd-staging"><span class="env-tag">Bearer</span><span class="opt-name">fourd-staging</span><span class="opt-sub">placeholder</span></button>
+                  <button class="dd-opt" data-val="fourd-prd"><span class="env-tag pending">Pendente</span><span class="opt-name">fourd-prd</span><span class="opt-sub">sem token</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Pipes</div>
+              <div class="block-hint">origem <b>→</b> destino</div>
+            </div>
+            <div class="pipe-flow">
+              <div class="pipe-card">
+                <div class="pc-head">Origem</div>
+                <div class="dropdown" data-dd="pipe-src">
+                  <button class="dd-btn" data-dd-trigger>
+                    <div class="dd-main">
+                      <div class="dd-value">Mesa Credito PF (Origem)</div>
+                    </div>
+                    <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+                  </button>
+                  <div class="dd-menu">
+                    <div class="dd-menu-inner">
+                      <button class="dd-opt sel" data-val="mesa_credito_pf_origem"><span class="opt-name">Mesa Credito PF (Origem)</span><span class="opt-sub">14f · 87c</span></button>
+                      <button class="dd-opt" data-val="mesa_credito_pf_copia"><span class="opt-name">Mesa Credito PF (Copia)</span><span class="opt-sub">12f · 64c</span></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="pc-stats">
+                  <span><b>14</b> fases</span>
+                  <span><b>87</b> campos</span>
+                  <span><b>35</b> automações</span>
+                </div>
+              </div>
+
+              <div class="flow-arrow"><svg><use href="#i-arrow-right"/></svg></div>
+
+              <div class="pipe-card dest">
+                <div class="pc-head">Destino</div>
+                <div class="dropdown" data-dd="pipe-dst">
+                  <button class="dd-btn" data-dd-trigger>
+                    <div class="dd-main">
+                      <div class="dd-value">Mesa Credito PF (Copia)</div>
+                    </div>
+                    <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+                  </button>
+                  <div class="dd-menu">
+                    <div class="dd-menu-inner">
+                      <button class="dd-opt" data-val="mesa_credito_pf_origem"><span class="opt-name">Mesa Credito PF (Origem)</span><span class="opt-sub">14f · 87c</span></button>
+                      <button class="dd-opt sel" data-val="mesa_credito_pf_copia"><span class="opt-name">Mesa Credito PF (Copia)</span><span class="opt-sub">12f · 64c</span></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="pc-stats">
+                  <span><b>12</b> fases</span>
+                  <span><b>64</b> campos</span>
+                  <span><b>0</b> <span data-tip="Sem permissão de leitura de automações">automações ⚠</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Categorias a validar</div>
+              <div class="block-hint"><b id="cat-count-s">7</b> de 7 selecionadas</div>
+            </div>
+            <div class="cat-grid" data-cat-grid="single">
+              <button class="facet active" data-cat="SF"><span class="check"></span><span class="swatch cat-SF"></span><span class="name">Start Form</span><span class="count">1 bloco</span></button>
+              <button class="facet active" data-cat="FA"><span class="check"></span><span class="swatch cat-FA"></span><span class="name">Fases e Campos</span><span class="count">12 fases</span></button>
+              <button class="facet active" data-cat="LB"><span class="check"></span><span class="swatch cat-LB"></span><span class="name">Labels</span><span class="count">0 grupos</span></button>
+              <button class="facet active" data-cat="AS"><span class="check"></span><span class="swatch cat-AS"></span><span class="name">Auto Status</span><span class="count">14 regras</span></button>
+              <button class="facet active" data-cat="AD"><span class="check"></span><span class="swatch cat-AD"></span><span class="name">Auto Fase Destino</span><span class="count">8 regras</span></button>
+              <button class="facet active" data-cat="AH"><span class="check"></span><span class="swatch cat-AH"></span><span class="name">Auto HTTP</span><span class="count">11 regras</span></button>
+              <button class="facet active" data-cat="AC"><span class="check"></span><span class="swatch cat-AC"></span><span class="name">Auto Condition</span><span class="count">2 regras</span></button>
+            </div>
+            <div class="cat-toolbar">
+              <button data-cat-action="all" data-grid="single">marcar todas</button>
+              <span class="sep">·</span>
+              <button data-cat-action="none" data-grid="single">limpar</button>
+              <span class="sep">·</span>
+              <button data-cat-action="invert" data-grid="single">inverter</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MODE: CROSS-ENV ============ -->
+        <section class="mode-pane" data-pane="cross">
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Configurações salvas</div>
+              <div class="block-hint">3 configs disponíveis</div>
+            </div>
+            <div class="cross-list">
+              <button class="cross-card" data-cross="cross_fourd_hmg_selfcheck">
+                <div class="cc-name"><span>cross_fourd_hmg_selfcheck</span></div>
+                <div class="cc-status ok"><span class="d"></span>0 diffs esperados</div>
+                <div class="cc-flow">
+                  <span class="env-pill">fourd-sandbox · Mesa Crédito</span>
+                  <span class="arrow"><svg><use href="#i-arrow-right"/></svg></span>
+                  <span class="env-pill dest">fourd-sandbox · Mesa Crédito</span>
+                </div>
+              </button>
+              <button class="cross-card" data-cross="cross_fourd_hmg_x_fourd_stg">
+                <div class="cc-name"><span>cross_fourd_hmg_x_fourd_stg</span></div>
+                <div class="cc-status typical"><span class="d"></span>validação cruzada</div>
+                <div class="cc-flow">
+                  <span class="env-pill">fourd-sandbox · Mesa Crédito</span>
+                  <span class="arrow"><svg><use href="#i-arrow-right"/></svg></span>
+                  <span class="env-pill dest">fourd-staging · Mesa Crédito</span>
+                </div>
+              </button>
+              <button class="cross-card" data-cross="cross_fourd_hmg_x_fourd_prd">
+                <div class="cc-name"><span>cross_fourd_hmg_x_fourd_prd</span></div>
+                <div class="cc-status pending"><span class="d"></span>credenciais PRD pendentes</div>
+                <div class="cc-flow">
+                  <span class="env-pill">fourd-sandbox · Mesa Crédito</span>
+                  <span class="arrow"><svg><use href="#i-arrow-right"/></svg></span>
+                  <span class="env-pill dest">fourd-prd · Mesa Crédito</span>
+                </div>
+              </button>
+            </div>
+            <button class="cross-add"><svg><use href="#i-plus"/></svg> Criar nova configuração cross-env</button>
+          </div>
+
+          <!-- Cross-pipes: dropdowns dinâmicos populados quando um cross é selecionado (A+) -->
+          <div class="block" id="cross-pipes-block" style="display:none">
+            <div class="block-head">
+              <div class="block-title">Pipes a comparar</div>
+              <div class="block-hint">override dos pipes hardcoded no <code style="font-family:var(--mono);font-size:11px;color:var(--ink-2)">cross_*.robot</code></div>
+            </div>
+            <div class="dropdown" data-dd="cross-pipe-src">
+              <button class="dd-btn" data-dd-trigger>
+                <div class="dd-main">
+                  <div class="dd-lbl">PIPE ORIGEM</div>
+                  <div class="dd-value"><span class="muted">— / </span>—</div>
+                </div>
+                <span class="dd-env">—</span>
+                <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+              </button>
+              <div class="dd-menu">
+                <div class="dd-menu-inner"></div>
+              </div>
+            </div>
+            <div style="height:8px"></div>
+            <div class="dropdown" data-dd="cross-pipe-dst">
+              <button class="dd-btn" data-dd-trigger>
+                <div class="dd-main">
+                  <div class="dd-lbl">PIPE DESTINO</div>
+                  <div class="dd-value"><span class="muted">— / </span>—</div>
+                </div>
+                <span class="dd-env">—</span>
+                <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+              </button>
+              <div class="dd-menu">
+                <div class="dd-menu-inner"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview visual read-only espelhando a seleção dos dropdowns acima -->
+          <div class="block" id="cross-pipe-preview-block" style="display:none">
+            <div class="block-head">
+              <div class="block-title">Pipes</div>
+              <div class="block-hint">origem <b>→</b> destino</div>
+            </div>
+            <div class="pipe-flow">
+              <div class="pipe-card">
+                <div class="pc-head">Origem</div>
+                <div class="pc-pipe-name" id="cross-preview-src-name">—</div>
+                <div class="pc-pipe-env" id="cross-preview-src-env">—</div>
+                <div class="pc-stats" id="cross-preview-src-stats">
+                  <span><b>—</b> repo</span>
+                  <span><b>—</b> uuid</span>
+                  <span style="color:var(--muted)" title="Requer chamada prévia ao Pipefy pra calcular"><b>—</b> stats</span>
+                </div>
+              </div>
+              <div class="flow-arrow"><svg><use href="#i-arrow-right"/></svg></div>
+              <div class="pipe-card dest">
+                <div class="pc-head">Destino</div>
+                <div class="pc-pipe-name" id="cross-preview-dst-name">—</div>
+                <div class="pc-pipe-env" id="cross-preview-dst-env">—</div>
+                <div class="pc-stats" id="cross-preview-dst-stats">
+                  <span><b>—</b> repo</span>
+                  <span><b>—</b> uuid</span>
+                  <span style="color:var(--muted)" title="Requer chamada prévia ao Pipefy pra calcular"><b>—</b> stats</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Categorias a validar</div>
+              <div class="block-hint"><b id="cat-count-c">7</b> de 7 selecionadas</div>
+            </div>
+            <div class="cat-grid" data-cat-grid="cross">
+              <button class="facet active" data-cat="SF"><span class="check"></span><span class="swatch cat-SF"></span><span class="name">Start Form</span><span class="count">1 bloco</span></button>
+              <button class="facet active" data-cat="FA"><span class="check"></span><span class="swatch cat-FA"></span><span class="name">Fases e Campos</span><span class="count">12 fases</span></button>
+              <button class="facet active" data-cat="LB"><span class="check"></span><span class="swatch cat-LB"></span><span class="name">Labels</span><span class="count">0 grupos</span></button>
+              <button class="facet active" data-cat="AS"><span class="check"></span><span class="swatch cat-AS"></span><span class="name">Auto Status</span><span class="count">14 regras</span></button>
+              <button class="facet active" data-cat="AD"><span class="check"></span><span class="swatch cat-AD"></span><span class="name">Auto Fase Destino</span><span class="count">8 regras</span></button>
+              <button class="facet active" data-cat="AH"><span class="check"></span><span class="swatch cat-AH"></span><span class="name">Auto HTTP</span><span class="count">11 regras</span></button>
+              <button class="facet active" data-cat="AC"><span class="check"></span><span class="swatch cat-AC"></span><span class="name">Auto Condition</span><span class="count">2 regras</span></button>
+            </div>
+            <div class="cat-toolbar">
+              <button data-cat-action="all" data-grid="cross">marcar todas</button>
+              <span class="sep">·</span>
+              <button data-cat-action="none" data-grid="cross">limpar</button>
+              <span class="sep">·</span>
+              <button data-cat-action="invert" data-grid="cross">inverter</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MODE: SNAPSHOT ============ -->
+        <section class="mode-pane" data-pane="snapshot">
+          <div class="subtabs">
+            <button class="subtab active" data-subtab="gerar">Gerar baseline <span class="c">novo</span></button>
+            <button class="subtab" data-subtab="comparar">Comparar vs baseline <span class="c">3</span></button>
+          </div>
+
+          <!-- SNAP: GERAR -->
+          <div class="snap-pane active" data-snap="gerar">
+            <div class="block">
+              <div class="block-head">
+                <div class="block-title">Fonte</div>
+                <div class="block-hint">ambiente e pipe a congelar</div>
+              </div>
+              <div class="dropdown" data-dd="snap-env">
+                <button class="dd-btn" data-dd-trigger>
+                  <div class="dd-main">
+                    <div class="dd-lbl">AMBIENTE · PIPE</div>
+                    <div class="dd-value"><span class="muted">fourd-sandbox / </span>Mesa Crédito PF (Origem)</div>
+                  </div>
+                  <span class="dd-env">14f · 87c · 35auto</span>
+                  <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+                </button>
+                <div class="dd-menu">
+                  <div class="dd-menu-inner">
+                    <button class="dd-opt sel"><span class="env-tag">sandbox</span><span class="opt-name">fourd-sandbox / Mesa Crédito PF (Origem)</span><span class="opt-sub">35 auto</span></button>
+                    <button class="dd-opt"><span class="env-tag">sandbox</span><span class="opt-name">fourd-sandbox / Mesa Crédito PF (Cópia)</span><span class="opt-sub">11 auto</span></button>
+                    <button class="dd-opt"><span class="env-tag">staging</span><span class="opt-name">fourd-staging / Mesa Crédito PF (Origem)</span><span class="opt-sub">placeholder</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="block">
+              <div class="block-head">
+                <div class="block-title">Label do snapshot</div>
+                <div class="block-hint">usado como nome do arquivo</div>
+              </div>
+              <div class="field">
+                <input class="input" id="snap-label" placeholder="auto-preenchido a partir da fonte">
+              </div>
+            </div>
+
+            <div class="block">
+              <div class="block-head">
+                <div class="block-title">Preview do snapshot</div>
+                <div class="block-hint">o que será congelado</div>
+              </div>
+              <div class="snap-preview">
+                <div class="sp-head">
+                  <div class="sp-name">Mesa Crédito PF (Origem)</div>
+                  <div class="sp-date">será salvo agora · 24/04/2026 14:32</div>
+                </div>
+                <div class="sp-grid">
+                  <span><b>14</b> fases</span>
+                  <span><b>87</b> campos</span>
+                  <span><b>35</b> automações</span>
+                  <span><b>1</b> start form</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SNAP: COMPARAR -->
+          <div class="snap-pane" data-snap="comparar">
+            <div class="block">
+              <div class="block-head">
+                <div class="block-title">Baseline</div>
+                <div class="block-hint"><span id="snap-count-hint">—</span> snapshots disponíveis em <code style="color:var(--ink-2);font-family:var(--mono);font-size:11px">snapshots/</code></div>
+              </div>
+              <div class="dropdown" data-dd="snap-baseline">
+                <button class="dd-btn" data-dd-trigger>
+                  <div class="dd-main">
+                    <div class="dd-lbl">BASELINE</div>
+                    <div class="dd-value">mesa_credito_pf_fourd_hmg_20260428</div>
+                  </div>
+                  <span class="dd-env">13m atrás</span>
+                  <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+                </button>
+                <div class="dd-menu">
+                  <div class="dd-menu-inner">
+                    <button class="dd-opt sel"><span class="env-tag">sandbox</span><span class="opt-name">mesa_credito_pf_fourd_hmg_20260428_173856</span><span class="opt-sub">13m · 35 auto</span></button>
+                    <button class="dd-opt"><span class="env-tag">sandbox</span><span class="opt-name">selfcheck_weekly_20260420_090000</span><span class="opt-sub">4d · 35 auto</span></button>
+                    <button class="dd-opt"><span class="env-tag">sandbox</span><span class="opt-name">onboarding_fourd_20260422_154618</span><span class="opt-sub">9d · 11 auto</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="block">
+              <div class="block-head">
+                <div class="block-title">Preview do baseline</div>
+                <div class="block-hint">origem · counts</div>
+              </div>
+              <div class="snap-preview">
+                <div class="sp-head">
+                  <div class="sp-name">mesa_credito_pf_fourd_hmg_20260428_173856.json</div>
+                  <div class="sp-date">gerado há 13min · fourd-sandbox</div>
+                </div>
+                <div class="sp-grid">
+                  <span><b>14</b> fases</span>
+                  <span><b>87</b> campos</span>
+                  <span><b>35</b> automações</span>
+                  <span><b>Mesa Crédito PF (Origem)</b></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="block">
+              <div class="block-head">
+                <div class="block-title">Pipe atual</div>
+                <div class="block-hint">estado <b>live</b> a comparar</div>
+              </div>
+              <div class="dropdown" data-dd="snap-current">
+                <button class="dd-btn" data-dd-trigger>
+                  <div class="dd-main">
+                    <div class="dd-lbl">PIPE ATUAL</div>
+                    <div class="dd-value"><span class="muted">fourd-sandbox / </span>Mesa Crédito PF (Origem)</div>
+                  </div>
+                  <span class="dd-env">igual ao snapshot</span>
+                  <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+                </button>
+                <div class="dd-menu">
+                  <div class="dd-menu-inner">
+                    <button class="dd-opt sel"><span class="env-tag">sandbox</span><span class="opt-name">fourd-sandbox / Mesa Crédito PF (Origem)</span><span class="opt-sub">mesmo</span></button>
+                    <button class="dd-opt"><span class="env-tag">sandbox</span><span class="opt-name">fourd-sandbox / Mesa Crédito PF (Cópia)</span><span class="opt-sub">cross-pipe</span></button>
+                    <button class="dd-opt"><span class="env-tag">staging</span><span class="opt-name">fourd-staging / Mesa Crédito PF (Origem)</span><span class="opt-sub">cross-env</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MODE: BATCH ============ -->
+        <section class="mode-pane" data-pane="batch">
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Pares configurados</div>
+              <div class="block-hint"><code style="color:var(--ink-2);font-family:var(--mono);font-size:11px">batch_pipes.json</code></div>
+            </div>
+            <div class="batch-bar">
+              <div class="bar-count"><b id="batch-count-sel">2</b> de <b>3</b> selecionados · <span id="batch-count-cats">14 categorias total</span></div>
+              <div class="bar-actions">
+                <button data-batch-action="all">selecionar todos</button>
+                <span style="color:var(--dim)">·</span>
+                <button data-batch-action="none">limpar</button>
+              </div>
+            </div>
+
+            <div class="batch-list">
+              <button class="batch-row sel" data-batch="b1">
+                <span class="check"></span>
+                <span class="br-flow">
+                  <span class="env-pill">fourd-sandbox</span>
+                  <span class="arrow"><svg><use href="#i-arrow-right"/></svg></span>
+                  <span class="env-pill dest">fourd-sandbox</span>
+                  <span class="pipe-name">Mesa Crédito PF (Origem)</span>
+                </span>
+                <span class="br-count"><b>35</b> auto</span>
+                <span class="br-status ok"><span class="d"></span>ok</span>
+              </button>
+              <button class="batch-row sel" data-batch="b2">
+                <span class="check"></span>
+                <span class="br-flow">
+                  <span class="env-pill">fourd-sandbox</span>
+                  <span class="arrow"><svg><use href="#i-arrow-right"/></svg></span>
+                  <span class="env-pill dest">fourd-sandbox</span>
+                  <span class="pipe-name">Mesa Crédito PF (Cópia)</span>
+                </span>
+                <span class="br-count"><b>11</b> auto</span>
+                <span class="br-status ok"><span class="d"></span>ok</span>
+              </button>
+              <button class="batch-row" data-batch="b3">
+                <span class="check"></span>
+                <span class="br-flow">
+                  <span class="env-pill">fourd-staging</span>
+                  <span class="arrow"><svg><use href="#i-arrow-right"/></svg></span>
+                  <span class="env-pill dest">fourd-prd</span>
+                  <span class="pipe-name">Mesa Crédito PF Origem → Cópia</span>
+                </span>
+                <span class="br-count"><b>0</b> auto</span>
+                <span class="br-status pending"><span class="d"></span>pendente</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Categorias a validar</div>
+              <div class="block-hint">aplicado a todos os pipes do lote</div>
+            </div>
+            <div class="cat-grid" data-cat-grid="batch">
+              <button class="facet active" data-cat="SF"><span class="check"></span><span class="swatch cat-SF"></span><span class="name">Start Form</span><span class="count">1</span></button>
+              <button class="facet active" data-cat="FA"><span class="check"></span><span class="swatch cat-FA"></span><span class="name">Fases e Campos</span><span class="count">12</span></button>
+              <button class="facet active" data-cat="LB"><span class="check"></span><span class="swatch cat-LB"></span><span class="name">Labels</span><span class="count">0</span></button>
+              <button class="facet active" data-cat="AS"><span class="check"></span><span class="swatch cat-AS"></span><span class="name">Auto Status</span><span class="count">14</span></button>
+              <button class="facet active" data-cat="AD"><span class="check"></span><span class="swatch cat-AD"></span><span class="name">Auto Fase Destino</span><span class="count">8</span></button>
+              <button class="facet active" data-cat="AH"><span class="check"></span><span class="swatch cat-AH"></span><span class="name">Auto HTTP</span><span class="count">11</span></button>
+              <button class="facet active" data-cat="AC"><span class="check"></span><span class="swatch cat-AC"></span><span class="name">Auto Condition</span><span class="count">2</span></button>
+            </div>
+            <div class="cat-toolbar">
+              <button data-cat-action="all" data-grid="batch">marcar todas</button>
+              <span class="sep">·</span>
+              <button data-cat-action="none" data-grid="batch">limpar</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MODE: IPAAS ============ -->
+        <section class="mode-pane" data-pane="ipaas">
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Ambiente iPaaS</div>
+              <div class="block-hint">activepieces</div>
+            </div>
+            <div class="dropdown" data-dd="ipaas-env">
+              <button class="dd-btn" data-dd-trigger>
+                <div class="dd-main">
+                  <div class="dd-lbl">AMBIENTE</div>
+                  <div class="dd-value">ipaas-fourd</div>
+                </div>
+                <span class="dd-env" style="background:rgba(108,194,108,.08);border-color:rgba(108,194,108,.22);color:var(--green)">conectado</span>
+                <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+              </button>
+              <div class="dd-menu">
+                <div class="dd-menu-inner">
+                  <button class="dd-opt sel"><span class="env-tag" style="background:rgba(108,194,108,.08);border-color:rgba(108,194,108,.22);color:var(--green)">ok</span><span class="opt-name">ipaas-fourd</span><span class="opt-sub">JWT</span></button>
+                  <button class="dd-opt"><span class="env-tag pending">Pendente</span><span class="opt-name">ipaas-fourd-prd</span><span class="opt-sub">não configurado</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Tipo de validação</div>
+              <div class="block-hint">escolha um</div>
+            </div>
+            <div class="radio-cards" data-radio="ipaas-type">
+              <button class="radio-card sel" data-val="descoberta">
+                <span class="rc-head"><span class="rc-dot"></span>Descoberta</span>
+                <span class="rc-sub">Lista flows disponíveis no ambiente</span>
+              </button>
+              <button class="radio-card" data-val="gerar">
+                <span class="rc-head"><span class="rc-dot"></span>Gerar snapshot</span>
+                <span class="rc-sub">Congela flows atuais como baseline</span>
+              </button>
+              <button class="radio-card" data-val="comparar">
+                <span class="rc-head"><span class="rc-dot"></span>Comparar vs snapshot</span>
+                <span class="rc-sub">Diff contra baseline existente</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="callout">
+            <svg><use href="#i-alert"/></svg>
+            <div>
+              Validação iPaaS requer credenciais Activepieces. <b>ipaas-fourd-prd</b> ainda não configurado — abra <a href="#" id="link-manage-2" style="color:var(--accent);text-decoration:none">Gerenciar ambientes</a> para adicionar.
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ MODE: HEALTH CHECK ============ -->
+        <section class="mode-pane" data-pane="healthcheck">
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Diagnóstico rápido</div>
+              <div class="block-hint">9 verificações em ~10 segundos</div>
+            </div>
+            <div style="padding:16px 18px;border:1px solid rgba(111,209,122,.22);border-radius:10px;background:rgba(111,209,122,.04);font-size:13px;color:var(--ink-2);line-height:1.6">
+              Roda <b>self-checks</b> em todas as camadas pra confirmar que a ferramenta está operacional:
+              API GraphQL do Pipefy, automações com paginação, motor de comparação estrutural,
+              comparador de automações, snapshot (gerar/carregar), formato de relatório JSON,
+              e (se configurado) Activepieces (API + comparador + snapshot).
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Ambiente alvo</div>
+              <div class="block-hint">usa o env selecionado em Single-env como base</div>
+            </div>
+            <div style="padding:14px 16px;border:1px solid var(--line-2);border-radius:8px;background:rgba(255,255,255,.02);font-size:12.5px;color:var(--ink-2)">
+              <span style="color:var(--muted)">Configurado em:</span>
+              <span style="margin-left:6px"><b id="hc-env-display">—</b></span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-head">
+              <div class="block-title">Verificações</div>
+              <div class="block-hint">9 testes (HC-01..HC-09)</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px">
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-01</b> · Pipefy API disponível</div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-02</b> · Automações acessíveis</div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-03</b> · Comparação estrutural</div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-04</b> · Comparação automações</div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-05</b> · Snapshot gerar/carregar</div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-06</b> · Relatório JSON</div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-07</b> · iPaaS API <span style="color:var(--muted);font-size:11px">(skip se sem token)</span></div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-08</b> · iPaaS self-check</div>
+              <div style="padding:10px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)"><b>HC-09</b> · iPaaS snapshot</div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- STICKY FOOTER -->
+    <footer class="sticky-foot">
+      <div class="summary" id="summary">
+        <span class="sum-type">SINGLE_ENV</span>
+        <span class="sum-sep">·</span>
+        <span class="sum-part">fourd-sandbox</span>
+        <span class="sum-sep">·</span>
+        <span class="sum-part">Mesa Crédito PF (Origem) → (Cópia)</span>
+        <span class="sum-sep">·</span>
+        <span class="sum-part muted">7 categorias</span>
+      </div>
+      <a href="#" class="run-btn-aux" id="aux-link" style="display:none">Gerenciar</a>
+      <button class="run-btn" id="btn-run">
+        <svg><use href="#i-play"/></svg>
+        <span id="run-label">Executar validação</span>
+        <span class="kbd">⏎</span>
+      </button>
+    </footer>
+
+  </main>
+</div>
+
+<!-- ========================================================== MODAL: MANAGE ENVIRONMENTS -->
+<div class="modal-backdrop" id="modal-envs" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">Gerenciar ambientes</div>
+      <button class="icon-btn" id="modal-close" data-tip="Fechar (Esc)"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-mtab="pipefy">Pipefy <span class="c">3</span></button>
+      <button class="modal-tab" data-mtab="ipaas">iPaaS <span class="c">2</span></button>
+    </div>
+    <div class="modal-body">
+      <!-- PIPEFY pane -->
+      <div class="mpane active" data-mpane="pipefy">
+        <div class="env-row">
+          <div class="env-mark">FS</div>
+          <div class="env-info">
+            <div class="env-name">fourd-sandbox</div>
+            <div class="env-url">https://api.pipefy.com · Bearer</div>
+          </div>
+          <div class="env-auth">2 pipes</div>
+          <div class="env-actions">
+            <button class="icon-btn" data-tip="Editar"><svg><use href="#i-edit"/></svg></button>
+            <button class="icon-btn danger" data-tip="Remover"><svg><use href="#i-trash"/></svg></button>
+          </div>
+        </div>
+        <div class="env-row">
+          <div class="env-mark">FT</div>
+          <div class="env-info">
+            <div class="env-name">fourd-staging</div>
+            <div class="env-url">https://api.pipefy.com · Bearer</div>
+          </div>
+          <div class="env-auth">placeholder</div>
+          <div class="env-actions">
+            <button class="icon-btn" data-tip="Editar"><svg><use href="#i-edit"/></svg></button>
+            <button class="icon-btn danger" data-tip="Remover"><svg><use href="#i-trash"/></svg></button>
+          </div>
+        </div>
+
+        <!-- row with inline edit form open -->
+        <div class="env-row" style="display:grid;grid-template-columns:28px 1fr auto auto;align-items:start">
+          <div class="env-mark" style="background:rgba(224,101,101,.08);color:var(--red);border-color:rgba(224,101,101,.22)">FP</div>
+          <div class="env-info">
+            <div class="env-name">fourd-prd</div>
+            <div class="env-url">https://api.pipefy.com · Bearer</div>
+
+            <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px 10px">
+              <div class="field" style="margin:0">
+                <div class="field-lbl">NOME</div>
+                <input class="input" value="fourd-prd">
+              </div>
+              <div class="field" style="margin:0">
+                <div class="field-lbl">TIPO DE AUTH</div>
+                <div class="dropdown">
+                  <button class="dd-btn" style="padding:8px 12px">
+                    <div class="dd-main"><div class="dd-value" style="font-size:11.5px">Pipefy Bearer</div></div>
+                    <span class="dd-chev"><svg><use href="#i-chev-down"/></svg></span>
+                  </button>
+                </div>
+              </div>
+              <div class="field" style="margin:0;grid-column:1 / -1">
+                <div class="field-lbl">URL</div>
+                <input class="input" value="https://api.pipefy.com">
+              </div>
+              <div class="field" style="margin:0;grid-column:1 / -1">
+                <div class="field-lbl">TOKEN / COOKIE</div>
+                <div class="password-wrap">
+                  <input class="input masked" id="pw-input" type="password" value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9">
+                  <button class="pw-toggle" id="pw-toggle" data-tip="Mostrar/ocultar">
+                    <svg><use href="#i-eye"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="field" style="margin:0">
+                <div class="field-lbl">ORG ID</div>
+                <input class="input" value="300408">
+              </div>
+              <div class="field" style="margin:0">
+                <div class="field-lbl">CSRF TOKEN</div>
+                <input class="input" value="—" style="color:var(--muted)">
+              </div>
+            </div>
+          </div>
+          <div class="env-auth pending">pendente</div>
+          <div class="env-actions">
+            <button class="icon-btn" data-tip="Descartar edição"><svg><use href="#i-x"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="add-btn"><svg><use href="#i-plus"/></svg> Adicionar ambiente</button>
+      <div class="foot-right">
+        <button class="ghost" id="modal-cancel">Cancelar</button>
+        <button class="primary">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/v2/assets/tela_configuracao_v1.js"></script>
+</body>
+</html>
