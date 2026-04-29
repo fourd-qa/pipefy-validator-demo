@@ -1111,11 +1111,23 @@ function getCrossTokenStatus(crossId){
   return { ok: missing.length === 0, missing: missing, labels: labels };
 }
 
+function _wireCrossAddBtn(){
+  const addBtn = document.querySelector('.cross-add');
+  if(addBtn && addBtn.dataset.wired !== '1'){
+    addBtn.dataset.wired = '1';
+    addBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      showCrossAddDialog();
+    });
+  }
+}
+
 function populateCrossCards(crossList){
   const list = document.querySelector('.cross-list');
-  if(!list) return;
+  if(!list){ _wireCrossAddBtn(); return; }
   if(crossList.length === 0){
-    list.innerHTML = `<div style="padding:16px;color:var(--muted);font-size:12px">Nenhuma configuração cross-env encontrada. Adicione um arquivo <code style="font-family:var(--mono);color:var(--ink-2)">config/cross_*.robot</code>.</div>`;
+    list.innerHTML = `<div style="padding:16px;color:var(--muted);font-size:12px">Nenhuma configuração cross-env encontrada. Clique em <b style="color:var(--ink-2)">Criar nova configuração cross-env</b> abaixo.</div>`;
+    _wireCrossAddBtn();
     return;
   }
   list.innerHTML = crossList.map(cfg => {
@@ -1148,15 +1160,8 @@ function populateCrossCards(crossList){
     });
   });
 
-  // Wire do botão "Criar nova configuração cross-env" (estava dead)
-  const addBtn = document.querySelector('.cross-add');
-  if(addBtn && addBtn.dataset.wired !== '1'){
-    addBtn.dataset.wired = '1';
-    addBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      showCrossAddDialog();
-    });
-  }
+  // Wire do botão "Criar nova configuração cross-env"
+  _wireCrossAddBtn();
 }
 
 function hideCrossPipesBlock(){
