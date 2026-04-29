@@ -2635,7 +2635,7 @@ function renderConnectedBadge(){
   }
 }
 
-let _onboardingShown = false;
+var _onboardingShown = false;
 
 function maybeShowOnboardingModal(){
   if(_onboardingShown) return;
