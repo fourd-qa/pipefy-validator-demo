@@ -2779,8 +2779,9 @@ function showOnboardingModal(){
         </span>
       </label>
       <div id="pv-on-err" style="display:none;font-size:11.5px;color:#d9534f;background:rgba(217,83,79,.08);border:1px solid rgba(217,83,79,.25);border-radius:6px;padding:8px 10px;margin-top:12px"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;align-items:center">
         <button id="pv-on-skip" class="ghost" style="padding:8px 16px;border-radius:6px;border:1px solid var(--line-2);background:none;color:var(--muted);font-size:12px;cursor:pointer">Pular por agora</button>
+        <button id="pv-on-test" type="button" style="padding:8px 14px;border-radius:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:12px;font-weight:500;cursor:pointer">Testar conexão</button>
         <button id="pv-on-save" class="primary" style="padding:8px 18px;border-radius:6px;background:var(--accent);color:#0b0f1a;border:none;font-weight:600;font-size:12px;cursor:pointer">Conectar</button>
       </div>
     </div>`;
@@ -2814,6 +2815,52 @@ function showOnboardingModal(){
   });
 
   document.getElementById('pv-on-skip').addEventListener('click', close);
+
+  // Testar conexão (chama /api/discover-pipes que valida token+url+org_id)
+  document.getElementById('pv-on-test').addEventListener('click', async () => {
+    const baseUrl = document.getElementById('pv-on-baseurl').value.trim();
+    const token = document.getElementById('pv-on-token').value.trim();
+    const orgId = document.getElementById('pv-on-org').value.trim();
+    const verify = document.getElementById('pv-on-verify').checked;
+    const errEl = document.getElementById('pv-on-err');
+    const setStatus = (msg, color, bg, border) => {
+      if(!errEl) return;
+      errEl.style.display = '';
+      errEl.style.color = color || '#d9534f';
+      errEl.style.background = bg || 'rgba(217,83,79,.08)';
+      errEl.style.borderColor = border || 'rgba(217,83,79,.25)';
+      errEl.innerHTML = msg;
+    };
+    if(!baseUrl || !token){ setStatus('Preencha URL base e token antes de testar.'); return; }
+    if(!orgId){ setStatus('Org ID é obrigatório pro teste de conexão (lista pipes da org).'); return; }
+
+    const btn = document.getElementById('pv-on-test');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Testando...';
+    setStatus('Consultando Pipefy...', 'var(--muted)', 'rgba(255,255,255,.02)', 'rgba(255,255,255,.06)');
+    try {
+      const res = await apiFetch('/api/discover-pipes', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ token, base_url: baseUrl, org_id: orgId, verify_ssl: verify }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if(!res.ok){
+        setStatus('<b>Falha:</b> ' + (body.error || ('HTTP ' + res.status)));
+        return;
+      }
+      setStatus(
+        `<b>Conectado.</b> Org <b>${(body.org_name||'?')}</b> · ${body.count} pipe(s) acessíveis. Clique <b>Conectar</b> pra salvar.`,
+        '#6fd17a', 'rgba(108,194,108,.08)', 'rgba(108,194,108,.22)'
+      );
+    } catch(err){
+      setStatus('<b>Falha de rede:</b> ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  });
   document.getElementById('pv-on-save').addEventListener('click', () => {
     const name = document.getElementById('pv-on-name').value.trim();
     const baseUrl = document.getElementById('pv-on-baseurl').value.trim();
