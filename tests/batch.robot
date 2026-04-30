@@ -42,10 +42,11 @@ CT-BATCH-01: Validação Batch De Múltiplos Pipes
         Log    Filtro BATCH_ENV=${BATCH_ENV}: ${{len($pipes)}} de ${{len($all_pipes)}} pipes    console=True
     END
 
-    # Filtro adicional por seleção da UI (lista de UUIDs origem em CSV)
+    # Filtro adicional por seleção da UI (lista de UUIDs origem em CSV).
+    # Combina set construction + filter numa única Evaluate pra evitar bug de
+    # escopo do Robot 7+ ('$selected_uuids is used in a scope where it cannot be seen').
     IF    '${BATCH_SELECTED}' != ''
-        ${selected_uuids}=    Evaluate    set('${BATCH_SELECTED}'.split(','))
-        ${pipes}=    Evaluate    [p for p in $pipes if p.get('uuid_origem') in $selected_uuids]
+        ${pipes}=    Evaluate    [p for p in $pipes if p.get('uuid_origem') in set('${BATCH_SELECTED}'.split(','))]
         Log    Filtro BATCH_SELECTED: ${{len($pipes)}} pipes selecionados na UI    console=True
     END
 
