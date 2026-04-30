@@ -211,6 +211,27 @@ Lista de bugs reais que aconteceram online. Aplicar fixes correspondentes na pas
 - **Sintoma**: dialog dizia "Gera config/cross_<id>.robot" mas isso não acontece mais (cross é client-side).
 - **Fix**: trocar texto pra explicar que combina dois envs do vault, credenciais vão no body do `/api/run` na execução.
 
+### 5.9 batch.robot: escopo de variável `$selected_uuids` no Robot 7+
+
+- **Sintoma**: `Evaluating expression "[p for p in $pipes if p.get('uuid_origem') in $selected_uuids]" failed: Robot Framework variable '$selected_uuids' is used in a scope where it cannot be seen.`
+- **Local**: `tests/batch.robot`, filtro `BATCH_SELECTED`.
+- **Causa**: Robot 7 restringiu acesso a vars locais via `$varname` dentro de Evaluate. Variável intermediária `${selected_uuids}` setada via `${selected_uuids}= Evaluate set(...)` não fica visível na próxima Evaluate.
+- **Fix**: combinar set() + filter em uma única Evaluate expression:
+  ```robot
+  ${pipes}=    Evaluate    [p for p in $pipes if p.get('uuid_origem') in set('${BATCH_SELECTED}'.split(','))]
+  ```
+- **Risco no port**: BAIXO. Se você ainda usa Robot 6, ambas as versões funcionam. Se atualizar pra Robot 7, a versão antiga quebra.
+
+### 5.10 Filtro estrito do Batch escondia pipes quando env_id do vault não bate
+
+- **Sintoma**: tela Batch mostrava lista vazia mesmo com pipes em `batch_pipes.json`, porque o user salvou env com slug diferente (`demo_sandbox` em vez de `fourd_hmg`).
+- **Fix frontend** em `tela_configuracao_v1.js` `renderBatchList`:
+  1. Prefere pipes do vault (env ativo) — após "Buscar pipes da org", mostra TODOS da organização Pipefy
+  2. Fallback pra batch_pipes.json filtrado por env_id
+  3. Último fallback: todos do JSON com warning
+  - Banner indica origem da lista.
+- **Fix payload**: removido `batch_env` do POST `/api/run` (filtro fino é via `pipes_selected` UUIDs).
+
 ### 5.8 Robot Framework IF com `'${var}'` quebra com payloads contendo `{}`
 
 - **Sintoma**: `Invalid IF condition: Evaluating expression 'True and \\'{...}\\' != \\'{...}\\''`. Acontecia em **Snapshot Comparar** quando o pipe tinha automação com mutation GraphQL (body contém `%{428313830}` ou JSON `{...}`).
