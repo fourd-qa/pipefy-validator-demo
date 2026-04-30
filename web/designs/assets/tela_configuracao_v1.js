@@ -1750,27 +1750,53 @@ function renderBatchList(){
   const list = document.querySelector('.batch-list');
   if(!list) return;
   const activeEnv = state.single.env || '';
-  // Filtro permissivo: prefere pipes do env ativo, mas mostra TODOS se nada bater
-  // (evita esconder lista quando user salva env com slug diferente do batch_pipes.json).
-  const exact = BATCH_CACHE.filter(p => activeEnv && p.env_id === activeEnv);
-  const pipes = exact.length > 0 ? exact : BATCH_CACHE;
-  const fallbackMode = exact.length === 0 && BATCH_CACHE.length > 0;
-
-  // Atualiza hint informativo no topo (qual env está filtrando)
-  const bar = document.querySelector('.batch-bar .bar-count');
   const envData = (ENVS_DATA && ENVS_DATA.pipefy || []).find(e => e.id === activeEnv);
   const envLabel = envData ? envData.name : activeEnv;
+
+  // Estratégia de origem dos pipes do batch (em ordem de preferência):
+  //   1. pipes do vault do env ativo (após "Buscar pipes da org" — UX moderna)
+  //   2. pipes do batch_pipes.json filtrados por env_id (config estática)
+  //   3. fallback pra todos do batch_pipes.json
+  let pipes = [];
+  let source = '';
+  if(envData && Array.isArray(envData.pipes) && envData.pipes.length > 0){
+    pipes = envData.pipes.map(p => ({
+      nome: p.name,
+      env_id: activeEnv,
+      env_origem: envLabel || activeEnv,
+      env_destino: envLabel || activeEnv,
+      uuid_origem: p.uuid,
+      uuid_destino: p.uuid,  // self-check (mesmo pipe, mesmo env)
+      repo_origem: p.repo_id,
+      repo_destino: p.repo_id,
+    }));
+    source = 'vault';
+  } else {
+    const exact = BATCH_CACHE.filter(p => activeEnv && p.env_id === activeEnv);
+    if(exact.length > 0){ pipes = exact; source = 'json_match'; }
+    else if(BATCH_CACHE.length > 0){ pipes = BATCH_CACHE; source = 'json_fallback'; }
+  }
+
+  // Atualiza hint informativo no topo
   const countCats = document.getElementById('batch-count-cats');
   if(countCats){
-    if(fallbackMode){
-      countCats.innerHTML = 'ambiente: <b>' + (envLabel || '—') + '</b> · usando UUIDs do batch_pipes.json (env_id não bate)';
+    let label;
+    if(source === 'vault'){
+      label = 'ambiente: <b>' + (envLabel || '—') + '</b> · ' + pipes.length + ' pipes do vault';
+    } else if(source === 'json_match'){
+      label = 'ambiente: <b>' + (envLabel || '—') + '</b>';
+    } else if(source === 'json_fallback'){
+      label = 'ambiente: <b>' + (envLabel || '—') + '</b> · usando batch_pipes.json (env_id não bate)';
     } else {
-      countCats.textContent = 'ambiente: ' + (envLabel || '—');
+      label = 'ambiente: <b>' + (envLabel || '—') + '</b>';
     }
+    countCats.innerHTML = label;
   }
 
   if(pipes.length === 0){
-    const msg = 'Nenhum pipe configurado em <code style="font-family:var(--mono);color:var(--ink-2)">config/batch_pipes.json</code>.';
+    const msg = (envData)
+      ? 'Nenhum pipe no env <b>' + (envLabel || '—') + '</b>. Vá em <b>Gerenciar Ambientes</b> > Editar > <b>Buscar pipes da org</b>.'
+      : 'Nenhum ambiente selecionado.';
     list.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px">' + msg + '</div>';
     document.getElementById('batch-count-sel').textContent = '0';
     const countSelEl = document.getElementById('batch-count-sel');
