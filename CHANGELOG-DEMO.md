@@ -211,6 +211,19 @@ Lista de bugs reais que aconteceram online. Aplicar fixes correspondentes na pas
 - **Sintoma**: dialog dizia "Gera config/cross_<id>.robot" mas isso não acontece mais (cross é client-side).
 - **Fix**: trocar texto pra explicar que combina dois envs do vault, credenciais vão no body do `/api/run` na execução.
 
+### 5.8 Robot Framework IF com `'${var}'` quebra com payloads contendo `{}`
+
+- **Sintoma**: `Invalid IF condition: Evaluating expression 'True and \\'{...}\\' != \\'{...}\\''`. Acontecia em **Snapshot Comparar** quando o pipe tinha automação com mutation GraphQL (body contém `%{428313830}` ou JSON `{...}`).
+- **Local**: `resources/keywords/comparator.resource`, 6 linhas (URL, method, body, headers, phase destino, phase do evento).
+- **Causa**: `IF '${body_orig}' != '${body_dest}'` interpola o valor dentro de string. Robot tenta resolver `%{...}` e `${...}` como variável, falhando.
+- **Fix**: trocar pra sintaxe Python direta:
+  ```robot
+  IF    ${run_ah} and $body_orig != $body_dest and ($body_orig != '' or $body_dest != '')
+  ```
+  `$var` (sem chaves) em IF expression dá acesso direto à variável Python sem stringificação.
+- **Risco no port**: BAIXO. Comportamento idêntico, só mais robusto. Aplicar nos arquivos `comparator.resource` e talvez `ipaas_comparator.resource` se tiver pattern similar.
+- **Bug provavelmente preexistente** no projeto original, só dispara quando o pipe tem automação HTTP cuja body é literal com chaves.
+
 ---
 
 ## 6. Sanitização do código (preexistente, mas pode portar princípios)
