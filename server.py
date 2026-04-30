@@ -31,6 +31,15 @@ OUTPUT_XML = os.path.join(RESULTS_DIR, "output.xml")
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "").strip()
 APP_USERNAME = os.environ.get("APP_USERNAME", "demo").strip() or "demo"
 
+# Token default (opcional, pra UX do demo público).
+# Se setado, frontend pré-popula o modal de onboarding com essas credenciais.
+# IMPORTANTE: usar PAT de uma org dedicada ao demo, com user view-only.
+DEFAULT_PIPEFY_TOKEN = os.environ.get("DEFAULT_PIPEFY_TOKEN", "").strip()
+DEFAULT_PIPEFY_BASE_URL = os.environ.get("DEFAULT_PIPEFY_BASE_URL", "https://api.pipefy.com/graphql").strip()
+DEFAULT_PIPEFY_ORG_ID = os.environ.get("DEFAULT_PIPEFY_ORG_ID", "").strip()
+DEFAULT_PIPEFY_NAME = os.environ.get("DEFAULT_PIPEFY_NAME", "Demo Sandbox").strip() or "Demo Sandbox"
+DEFAULT_PIPEFY_VERIFY_SSL = os.environ.get("DEFAULT_PIPEFY_VERIFY_SSL", "true").strip().lower() in ("true", "1", "yes")
+
 
 def _check_basic_auth():
     """Se APP_PASSWORD estiver setada, exige Basic Auth em todas as rotas exceto
@@ -73,6 +82,26 @@ def _global_auth():
 def healthz():
     """Liveness probe pra Render/K8s. Não exige Basic Auth."""
     return jsonify({"ok": True})
+
+
+@app.route("/api/default-env")
+def get_default_env():
+    """Retorna credenciais default (se setadas via env vars do servidor) pra
+    pré-popular o modal de onboarding. Token vai no payload, mas só consumido
+    pelo frontend que escolhe se grava no vault. Se DEFAULT_PIPEFY_TOKEN não
+    estiver setada, retorna { available: false } e frontend mantém fluxo manual.
+    """
+    if not DEFAULT_PIPEFY_TOKEN:
+        return jsonify({"available": False})
+    return jsonify({
+        "available": True,
+        "name": DEFAULT_PIPEFY_NAME,
+        "token": DEFAULT_PIPEFY_TOKEN,
+        "base_url": DEFAULT_PIPEFY_BASE_URL,
+        "org_id": DEFAULT_PIPEFY_ORG_ID,
+        "verify_ssl": DEFAULT_PIPEFY_VERIFY_SSL,
+        "auth_mode": "bearer",
+    })
 
 
 def _extract_fail_from_output_xml():

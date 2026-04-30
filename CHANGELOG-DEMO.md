@@ -117,6 +117,29 @@ Lista canônica do que mudou. Cada item indica:
 
 ---
 
+## 3.1 Default env opcional (UX demo público)
+
+**Por quê:** evitar fricção pro visitante do demo ter que gerar PAT antes de testar.
+
+**Risco no port:** ZERO. Sem env var setada, comportamento original mantido (modal de onboarding pede dados manualmente).
+
+### Backend (`server.py`)
+
+- Constantes lidas no startup: `DEFAULT_PIPEFY_TOKEN`, `DEFAULT_PIPEFY_BASE_URL`, `DEFAULT_PIPEFY_ORG_ID`, `DEFAULT_PIPEFY_NAME`, `DEFAULT_PIPEFY_VERIFY_SSL`.
+- Novo `GET /api/default-env`: retorna `{available: false}` se token vazio, ou `{available: true, name, token, base_url, org_id, verify_ssl, auth_mode}` se setado.
+- Token volta no response em **claro** (esse é o ponto: cliente recebe pra preencher modal). Por isso só usar PAT de org sandbox dedicada.
+
+### Frontend
+
+- `tryLoadDefaultEnv(callback)` em `tela_configuracao_v1.js`.
+- `showOnboardingModal` chama `tryLoadDefaultEnv` e pré-popula campos quando disponível, com banner indicando "Default carregado do servidor".
+
+### `render.yaml`
+
+- Novas env vars com `sync: false` pro PAT (Render pede no setup, não vai pro git).
+
+---
+
 ## 4. Adaptação pra Render (deploy público)
 
 **Por quê:** Render free tier exige `$PORT` env var, prefere gunicorn em vez de Flask dev server.

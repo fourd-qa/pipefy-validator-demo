@@ -2721,6 +2721,17 @@ function maybeShowOnboardingModal(){
   showOnboardingModal();
 }
 
+/* Tenta carregar credenciais default do servidor (env vars). Se disponível,
+   chama callback com {name, token, base_url, org_id, verify_ssl}; senão null. */
+async function tryLoadDefaultEnv(callback){
+  try {
+    const res = await apiFetch('/api/default-env');
+    if(!res.ok){ callback(null); return; }
+    const body = await res.json();
+    callback(body && body.available ? body : null);
+  } catch(_){ callback(null); }
+}
+
 function showOnboardingModal(){
   if(document.getElementById('pv-onboarding')) return;
   const back = document.createElement('div');
@@ -2780,6 +2791,27 @@ function showOnboardingModal(){
     if(e){ e.textContent = m; e.style.display = ''; }
   }
   function close(){ back.remove(); }
+
+  // Se servidor tiver default setado, pré-popula campos
+  tryLoadDefaultEnv(function(def){
+    if(!def) return;
+    const setVal = (id, v) => { const el = document.getElementById(id); if(el && v !== undefined && v !== null && v !== '') el.value = v; };
+    const setChk = (id, v) => { const el = document.getElementById(id); if(el && typeof v === 'boolean') el.checked = v; };
+    setVal('pv-on-name', def.name);
+    setVal('pv-on-baseurl', def.base_url);
+    setVal('pv-on-org', def.org_id);
+    setVal('pv-on-token', def.token);
+    setChk('pv-on-verify', def.verify_ssl !== false);
+    // Mostra dica visível pro user saber que veio do servidor
+    const errEl = document.getElementById('pv-on-err');
+    if(errEl){
+      errEl.style.display = '';
+      errEl.style.color = 'var(--accent)';
+      errEl.style.background = 'rgba(201,168,76,.06)';
+      errEl.style.borderColor = 'rgba(201,168,76,.22)';
+      errEl.innerHTML = '<b>Default carregado do servidor.</b> Você pode usar como está e clicar Conectar, ou substituir pelo seu PAT pessoal.';
+    }
+  });
 
   document.getElementById('pv-on-skip').addEventListener('click', close);
   document.getElementById('pv-on-save').addEventListener('click', () => {

@@ -750,6 +750,62 @@ def test_basic_auth_custom_username(monkeypatch, tmp_path):
     assert r2.status_code == 200
 
 
+def test_default_env_indisponivel_quando_env_var_nao_setada(client):
+    """Sem DEFAULT_PIPEFY_TOKEN, endpoint retorna available=false."""
+    res = client.get("/api/default-env")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body == {"available": False}
+
+
+def test_default_env_retorna_credenciais_quando_setadas(monkeypatch, tmp_path):
+    """Com DEFAULT_PIPEFY_TOKEN setada, endpoint retorna as credenciais."""
+    monkeypatch.setenv("DEFAULT_PIPEFY_TOKEN", "Bearer demo_token_xyz")
+    monkeypatch.setenv("DEFAULT_PIPEFY_BASE_URL", "https://api.pipefy.com/graphql")
+    monkeypatch.setenv("DEFAULT_PIPEFY_ORG_ID", "12345")
+    monkeypatch.setenv("DEFAULT_PIPEFY_NAME", "Demo Org")
+    monkeypatch.setenv("DEFAULT_PIPEFY_VERIFY_SSL", "true")
+
+    (tmp_path / "config").mkdir()
+    (tmp_path / "results").mkdir()
+    (tmp_path / "snapshots").mkdir()
+    (tmp_path / "tmp").mkdir()
+    monkeypatch.chdir(tmp_path)
+    import sys, importlib
+    if "server" in sys.modules:
+        del sys.modules["server"]
+    server = importlib.import_module("server")
+    cli = server.app.test_client()
+
+    res = cli.get("/api/default-env")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["available"] is True
+    assert body["token"] == "Bearer demo_token_xyz"
+    assert body["base_url"] == "https://api.pipefy.com/graphql"
+    assert body["org_id"] == "12345"
+    assert body["name"] == "Demo Org"
+    assert body["verify_ssl"] is True
+    assert body["auth_mode"] == "bearer"
+
+
+def test_default_env_verify_ssl_false_quando_env_diz_false(monkeypatch, tmp_path):
+    monkeypatch.setenv("DEFAULT_PIPEFY_TOKEN", "Bearer xyz")
+    monkeypatch.setenv("DEFAULT_PIPEFY_VERIFY_SSL", "false")
+    (tmp_path / "config").mkdir()
+    (tmp_path / "results").mkdir()
+    (tmp_path / "snapshots").mkdir()
+    (tmp_path / "tmp").mkdir()
+    monkeypatch.chdir(tmp_path)
+    import sys, importlib
+    if "server" in sys.modules:
+        del sys.modules["server"]
+    server = importlib.import_module("server")
+    cli = server.app.test_client()
+    res = cli.get("/api/default-env")
+    assert res.get_json()["verify_ssl"] is False
+
+
 def test_basic_auth_password_apenas_espacos_eh_tratado_como_vazio(monkeypatch, tmp_path):
     """APP_PASSWORD com whitespace só não ativa auth (strip())."""
     monkeypatch.setenv("APP_PASSWORD", "   ")

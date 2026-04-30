@@ -12,3 +12,16 @@ services:
         sync: false  # Render pede o valor no primeiro deploy, não vai pro git
       - key: VERIFY_SSL
         value: "false"
+      # === Default env opcional (pré-popula onboarding modal pra UX do demo) ===
+      # Use PAT de uma org Pipefy DEDICADA ao demo, com user view-only.
+      # Não usar PAT da org real (ex: FourD) pra evitar abuso público.
+      - key: DEFAULT_PIPEFY_TOKEN
+        sync: false  # Render pede no setup
+      - key: DEFAULT_PIPEFY_BASE_URL
+        value: https://api.pipefy.com/graphql
+      - key: DEFAULT_PIPEFY_ORG_ID
+        sync: false
+      - key: DEFAULT_PIPEFY_NAME
+        value: Demo Sandbox
+      - key: DEFAULT_PIPEFY_VERIFY_SSL
+        value: "true"
