@@ -1750,19 +1750,27 @@ function renderBatchList(){
   const list = document.querySelector('.batch-list');
   if(!list) return;
   const activeEnv = state.single.env || '';
-  const pipes = BATCH_CACHE.filter(p => !activeEnv || !p.env_id || p.env_id === activeEnv);
+  // Filtro permissivo: prefere pipes do env ativo, mas mostra TODOS se nada bater
+  // (evita esconder lista quando user salva env com slug diferente do batch_pipes.json).
+  const exact = BATCH_CACHE.filter(p => activeEnv && p.env_id === activeEnv);
+  const pipes = exact.length > 0 ? exact : BATCH_CACHE;
+  const fallbackMode = exact.length === 0 && BATCH_CACHE.length > 0;
 
   // Atualiza hint informativo no topo (qual env está filtrando)
   const bar = document.querySelector('.batch-bar .bar-count');
   const envData = (ENVS_DATA && ENVS_DATA.pipefy || []).find(e => e.id === activeEnv);
   const envLabel = envData ? envData.name : activeEnv;
   const countCats = document.getElementById('batch-count-cats');
-  if(countCats) countCats.textContent = 'ambiente: ' + (envLabel || '—');
+  if(countCats){
+    if(fallbackMode){
+      countCats.innerHTML = 'ambiente: <b>' + (envLabel || '—') + '</b> · usando UUIDs do batch_pipes.json (env_id não bate)';
+    } else {
+      countCats.textContent = 'ambiente: ' + (envLabel || '—');
+    }
+  }
 
   if(pipes.length === 0){
-    const msg = BATCH_CACHE.length === 0
-      ? 'Nenhum pipe configurado. Edite <code style="font-family:var(--mono);color:var(--ink-2)">config/batch_pipes.json</code>.'
-      : 'Nenhum pipe do ambiente <b>' + (envLabel || activeEnv) + '</b> em <code style="font-family:var(--mono);color:var(--ink-2)">batch_pipes.json</code>. Troque o ambiente em Single-env ou adicione pipes.';
+    const msg = 'Nenhum pipe configurado em <code style="font-family:var(--mono);color:var(--ink-2)">config/batch_pipes.json</code>.';
     list.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px">' + msg + '</div>';
     document.getElementById('batch-count-sel').textContent = '0';
     const countSelEl = document.getElementById('batch-count-sel');
@@ -2148,7 +2156,9 @@ function buildRunPayload(){
     const base = {
       config: envId,
       test: 'CT-BATCH*',
-      batch_env: envId,
+      // batch_env removido: filtro fino é feito por pipes_selected (UUIDs).
+      // Robot roda todos os pipes do batch_pipes.json e o backend usa o token
+      // do env atual (vault) pra todos. Se UUID não pertence à org, dá 401 claro.
       pipes_selected: selectedUuids,
       categories: Array.isArray(state.batch.cats) ? state.batch.cats : [],
     };
