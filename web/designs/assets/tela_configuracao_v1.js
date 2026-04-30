@@ -2817,6 +2817,46 @@ function showOnboardingModal(){
   document.getElementById('pv-on-skip').addEventListener('click', close);
 
   // Testar conexão (chama /api/discover-pipes que valida token+url+org_id)
+  // Pipes encontrados no último teste (usado pelo Salvar pra importar de uma vez)
+  let lastDiscoveredPipes = null;
+
+  function persistEnv(includePipes){
+    const name = document.getElementById('pv-on-name').value.trim();
+    const baseUrl = document.getElementById('pv-on-baseurl').value.trim();
+    const token = document.getElementById('pv-on-token').value.trim();
+    const orgId = document.getElementById('pv-on-org').value.trim();
+    const verify = document.getElementById('pv-on-verify').checked;
+    const remember = document.getElementById('pv-on-remember').checked;
+    if(!name || !baseUrl || !token){
+      err('Nome, URL base e token são obrigatórios.');
+      return false;
+    }
+    if(!window.V2Utils){ err('V2Utils não disponível'); return false; }
+    const slug = window.V2Utils.slugify(name);
+    if(!slug){ err('Nome inválido'); return false; }
+    window.V2Utils.vaultSave({
+      id: slug,
+      name: name,
+      type: 'pipefy',
+      base_url: baseUrl,
+      org_id: orgId,
+      auth_mode: 'bearer',
+      verify_ssl: verify,
+      token: token,
+      session_cookie: 'NONE',
+      csrf_token: 'NONE',
+      pipes: includePipes && lastDiscoveredPipes ? lastDiscoveredPipes : [],
+      remember: remember,
+    });
+    close();
+    state.single.env = slug;
+    loadEnvironments().then(() => {
+      if(typeof populateEnvModal === 'function') populateEnvModal();
+      if(typeof updatePresetInfoCard === 'function') updatePresetInfoCard();
+    });
+    return true;
+  }
+
   document.getElementById('pv-on-test').addEventListener('click', async () => {
     const baseUrl = document.getElementById('pv-on-baseurl').value.trim();
     const token = document.getElementById('pv-on-token').value.trim();
@@ -2834,10 +2874,11 @@ function showOnboardingModal(){
     if(!baseUrl || !token){ setStatus('Preencha URL base e token antes de testar.'); return; }
     if(!orgId){ setStatus('Org ID é obrigatório pro teste de conexão (lista pipes da org).'); return; }
 
-    const btn = document.getElementById('pv-on-test');
-    const orig = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Testando...';
+    const testBtn = document.getElementById('pv-on-test');
+    const saveBtn = document.getElementById('pv-on-save');
+    const orig = testBtn.textContent;
+    testBtn.disabled = true;
+    testBtn.textContent = 'Testando...';
     setStatus('Consultando Pipefy...', 'var(--muted)', 'rgba(255,255,255,.02)', 'rgba(255,255,255,.06)');
     try {
       const res = await apiFetch('/api/discover-pipes', {
@@ -2848,52 +2889,47 @@ function showOnboardingModal(){
       const body = await res.json().catch(() => ({}));
       if(!res.ok){
         setStatus('<b>Falha:</b> ' + (body.error || ('HTTP ' + res.status)));
+        testBtn.disabled = false;
+        testBtn.textContent = orig;
         return;
       }
+      // Sucesso: armazena pipes pra import e transforma fluxo dos botões
+      lastDiscoveredPipes = body.pipes || [];
+      const orgName = body.org_name || '?';
+      const count = body.count || 0;
       setStatus(
-        `<b>Conectado.</b> Org <b>${(body.org_name||'?')}</b> · ${body.count} pipe(s) acessíveis. Clique <b>Conectar</b> pra salvar.`,
+        `<b>Conectado.</b> Org <b>${orgName}</b> · <b>${count}</b> pipe(s) prontos pra importar.`,
         '#6fd17a', 'rgba(108,194,108,.08)', 'rgba(108,194,108,.22)'
       );
-    } catch(err){
-      setStatus('<b>Falha de rede:</b> ' + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = orig;
+      // Esconde Test, transforma Conectar em "Salvar e importar N pipes"
+      testBtn.style.display = 'none';
+      saveBtn.textContent = `Salvar e importar ${count} pipe${count === 1 ? '' : 's'}`;
+      saveBtn.dataset.importPipes = '1';
+    } catch(err2){
+      setStatus('<b>Falha de rede:</b> ' + err2.message);
+      testBtn.disabled = false;
+      testBtn.textContent = orig;
     }
   });
+
   document.getElementById('pv-on-save').addEventListener('click', () => {
-    const name = document.getElementById('pv-on-name').value.trim();
-    const baseUrl = document.getElementById('pv-on-baseurl').value.trim();
-    const token = document.getElementById('pv-on-token').value.trim();
-    const orgId = document.getElementById('pv-on-org').value.trim();
-    const verify = document.getElementById('pv-on-verify').checked;
-    const remember = document.getElementById('pv-on-remember').checked;
-    if(!name || !baseUrl || !token){
-      err('Nome, URL base e token são obrigatórios.');
-      return;
-    }
-    if(!window.V2Utils){ err('V2Utils não disponível'); return; }
-    const slug = window.V2Utils.slugify(name);
-    if(!slug){ err('Nome inválido'); return; }
-    window.V2Utils.vaultSave({
-      id: slug,
-      name: name,
-      type: 'pipefy',
-      base_url: baseUrl,
-      org_id: orgId,
-      auth_mode: 'bearer',
-      verify_ssl: verify,
-      token: token,
-      session_cookie: 'NONE',
-      csrf_token: 'NONE',
-      pipes: [],
-      remember: remember,
-    });
-    close();
-    state.single.env = slug;
-    loadEnvironments().then(() => {
-      if(typeof populateEnvModal === 'function') populateEnvModal();
-      if(typeof updatePresetInfoCard === 'function') updatePresetInfoCard();
+    const importPipes = document.getElementById('pv-on-save').dataset.importPipes === '1';
+    persistEnv(importPipes);
+  });
+
+  // Se qualquer campo crítico mudar após teste OK, descarta cache de pipes
+  // (evita salvar pipes de outra org/token).
+  ['pv-on-token', 'pv-on-baseurl', 'pv-on-org'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', () => {
+      if(lastDiscoveredPipes !== null){
+        lastDiscoveredPipes = null;
+        const testBtn = document.getElementById('pv-on-test');
+        const saveBtn = document.getElementById('pv-on-save');
+        if(testBtn){ testBtn.style.display = ''; testBtn.disabled = false; testBtn.textContent = 'Testar conexão'; }
+        if(saveBtn){ saveBtn.textContent = 'Conectar'; delete saveBtn.dataset.importPipes; }
+      }
     });
   });
 }
