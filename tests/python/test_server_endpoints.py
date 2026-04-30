@@ -601,3 +601,167 @@ def test_healthz_acessivel_sem_auth(authed_client):
     _, server, _ = authed_client
     res = server.app.test_client().get("/healthz")
     assert res.status_code == 200
+
+
+# ---------- Regressão: edge cases de /api/run ----------
+
+def test_api_run_token_sem_prefixo_bearer_e_normalizado(workdir, client, monkeypatch):
+    """Token cru (sem 'Bearer ') deve ser normalizado pra 'Bearer xxx' no .robot."""
+    tmp_path, server = workdir
+    captured = _capture_active_at_popen(monkeypatch, server, tmp_path)
+
+    payload = {
+        "mode": "single",
+        "token": "tok_cru_sem_prefixo",
+        "base_url": "https://api.pipefy.com/graphql",
+        "org_id": "999",
+    }
+    res = client.post("/api/run", json=payload)
+    assert res.status_code == 200
+    _wait_finished(server)
+    assert "Bearer tok_cru_sem_prefixo" in captured["content"]
+
+
+def test_api_run_payload_com_quebra_de_linha_no_token_e_sanitizado(workdir, client, monkeypatch):
+    """Token com \\n no meio não pode quebrar a linha do .robot."""
+    tmp_path, server = workdir
+    captured = _capture_active_at_popen(monkeypatch, server, tmp_path)
+
+    payload = {
+        "mode": "single",
+        "token": "tok\nmalicioso",
+        "base_url": "https://api.pipefy.com/graphql",
+    }
+    res = client.post("/api/run", json=payload)
+    assert res.status_code == 200
+    _wait_finished(server)
+    # Não pode ter quebra de linha real no token (só vira espaço)
+    lines = [l for l in captured["content"].splitlines() if "PIPEFY_TOKEN" in l]
+    assert len(lines) == 1, f"esperava 1 linha PIPEFY_TOKEN, achou {len(lines)}"
+
+
+def test_api_run_body_invalido_string_nao_500(client):
+    """POST /api/run com body string (não dict) não pode crashar com 500."""
+    res = client.post("/api/run", data='"not_a_dict"', content_type="application/json")
+    # Espera 400 (sem token) ou 409, nunca 500
+    assert res.status_code in (400, 409)
+
+
+def test_api_run_payload_vazio_400(client):
+    res = client.post("/api/run", json={})
+    assert res.status_code == 400
+
+
+def test_api_run_mode_desconhecido_cai_em_single(workdir, client, pipefy_payload, monkeypatch):
+    """mode='inventado' deve cair no else (single) e ser aceito."""
+    _, server = workdir
+    _mock_popen(monkeypatch, server)
+    payload = dict(pipefy_payload, mode="modo_que_nao_existe")
+    res = client.post("/api/run", json=payload)
+    assert res.status_code == 200
+
+
+def test_api_run_cancel_sem_process_attr(workdir, client):
+    """cancel quando running=True mas process foi limpo (race condition)."""
+    _, server = workdir
+    server._state["running"] = True
+    server._state["process"] = None
+    res = client.post("/api/run/cancel")
+    assert res.status_code == 404
+    server._state["running"] = False
+
+
+# ---------- Regressão: tokens client-side não persistem em arquivo ----------
+
+def test_api_run_active_robot_esterilizado_apos_run(workdir, client, pipefy_payload, monkeypatch):
+    """Após run, config/active.robot não pode conter o token original."""
+    tmp_path, server = workdir
+    _mock_popen(monkeypatch, server)
+
+    payload = dict(pipefy_payload, mode="single")
+    payload["token"] = "Bearer SEGREDO_ABC123"
+    res = client.post("/api/run", json=payload)
+    assert res.status_code == 200
+    _wait_finished(server)
+
+    active = (tmp_path / "config" / "active.robot").read_text(encoding="utf-8")
+    assert "SEGREDO_ABC123" not in active
+    assert "sterilized" in active.lower()
+
+
+def test_api_run_cross_active_cross_esterilizado_apos_run(workdir, client, cross_payload, monkeypatch):
+    tmp_path, server = workdir
+    _mock_popen(monkeypatch, server)
+    cross_payload["src_token"] = "Bearer SEGREDO_SRC"
+    cross_payload["dst_token"] = "Bearer SEGREDO_DST"
+    res = client.post("/api/run", json=dict(cross_payload, mode="cross"))
+    assert res.status_code == 200
+    _wait_finished(server)
+
+    content = (tmp_path / "config" / "active_cross.robot").read_text(encoding="utf-8")
+    assert "SEGREDO_SRC" not in content
+    assert "SEGREDO_DST" not in content
+
+
+# ---------- Regressão: discover-pipes não vaza erro completo ao usuário ----------
+
+def test_discover_pipes_payload_truncado_em_erro(workdir, client, pipefy_payload, monkeypatch):
+    """upstream_body truncado em 300 chars pra não vazar payload inteiro."""
+    huge_body = "X" * 5000
+    fake_resp = MagicMock()
+    fake_resp.status_code = 500
+    fake_resp.text = huge_body
+    fake_resp.json.return_value = {}
+
+    import requests as _req
+    monkeypatch.setattr(_req, "post", lambda *a, **kw: fake_resp)
+
+    res = client.post("/api/discover-pipes", json=pipefy_payload)
+    body = res.get_json()
+    assert res.status_code == 502
+    assert len(body.get("upstream_body", "")) <= 300
+
+
+# ---------- Auth com APP_USERNAME custom ----------
+
+def test_basic_auth_custom_username(monkeypatch, tmp_path):
+    """APP_USERNAME custom é respeitado, default 'demo'."""
+    monkeypatch.setenv("APP_PASSWORD", "secret")
+    monkeypatch.setenv("APP_USERNAME", "andre")
+    (tmp_path / "config").mkdir()
+    (tmp_path / "results").mkdir()
+    (tmp_path / "snapshots").mkdir()
+    (tmp_path / "tmp").mkdir()
+    monkeypatch.chdir(tmp_path)
+    import sys, importlib
+    if "server" in sys.modules:
+        del sys.modules["server"]
+    server = importlib.import_module("server")
+    cli = server.app.test_client()
+
+    # Username errado falha
+    bad = base64.b64encode(b"demo:secret").decode()
+    r1 = cli.get("/api/status", headers={"Authorization": "Basic " + bad})
+    assert r1.status_code == 401
+
+    # Username certo passa
+    good = base64.b64encode(b"andre:secret").decode()
+    r2 = cli.get("/api/status", headers={"Authorization": "Basic " + good})
+    assert r2.status_code == 200
+
+
+def test_basic_auth_password_apenas_espacos_eh_tratado_como_vazio(monkeypatch, tmp_path):
+    """APP_PASSWORD com whitespace só não ativa auth (strip())."""
+    monkeypatch.setenv("APP_PASSWORD", "   ")
+    (tmp_path / "config").mkdir()
+    (tmp_path / "results").mkdir()
+    (tmp_path / "snapshots").mkdir()
+    (tmp_path / "tmp").mkdir()
+    monkeypatch.chdir(tmp_path)
+    import sys, importlib
+    if "server" in sys.modules:
+        del sys.modules["server"]
+    server = importlib.import_module("server")
+    cli = server.app.test_client()
+    res = cli.get("/api/status")
+    assert res.status_code == 200

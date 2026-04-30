@@ -950,9 +950,9 @@ function populateSingleEnvDropdown(){
     const hasToken = env.has_token !== undefined ? env.has_token : (env.token && !env.token.startsWith('<') && env.token.length > 10);
     const authTag = env.auth_mode === 'cookie' ? 'Cookie' : 'Bearer';
     const pending = !hasToken;
-    return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${env.id}">`
+    return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${escapeHtmlInline(env.id)}">`
          + `<span class="env-tag${pending ? ' pending' : ''}">${pending ? 'Pendente' : authTag}</span>`
-         + `<span class="opt-name">${env.name}</span>`
+         + `<span class="opt-name">${escapeHtmlInline(env.name)}</span>`
          + `<span class="opt-sub">${(env.pipes || []).length} pipes</span>`
          + `</button>`;
   }).join('');
@@ -1014,9 +1014,9 @@ function populatePipeDropdowns(){
     menuInner.innerHTML = pipes.map(p => {
       const pk = slugify(p.name);
       const isSel = pk === newKey;
-      return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${pk}" data-uuid="${p.uuid}" data-repo="${p.repo_id}" title="${escapeHtmlInline(p.name)}">`
-           + `<span class="opt-name">${p.name}</span>`
-           + `<span class="opt-sub">repo ${p.repo_id}</span>`
+      return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${escapeHtmlInline(pk)}" data-uuid="${escapeHtmlInline(p.uuid || '')}" data-repo="${escapeHtmlInline(p.repo_id || '')}" title="${escapeHtmlInline(p.name)}">`
+           + `<span class="opt-name">${escapeHtmlInline(p.name)}</span>`
+           + `<span class="opt-sub">repo ${escapeHtmlInline(p.repo_id || '')}</span>`
            + `</button>`;
     }).join('');
 
@@ -1133,8 +1133,8 @@ function populateCrossCards(crossList){
   list.innerHTML = crossList.map(cfg => {
     const meta = parseCrossConfigMeta(cfg.id);
     const displayName = cfg.label || cfg.id;
-    return `<button class="cross-card" data-cross="${cfg.id}" title="${cfg.id}">`
-         + `<div class="cc-name"><span>${displayName}</span><span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:6px;font-weight:400">${cfg.id}</span></div>`
+    return `<button class="cross-card" data-cross="${escapeHtmlInline(cfg.id)}" title="${escapeHtmlInline(cfg.id)}">`
+         + `<div class="cc-name"><span>${escapeHtmlInline(displayName)}</span><span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:6px;font-weight:400">${escapeHtmlInline(cfg.id)}</span></div>`
          + `<div class="cc-status ${meta.status}"><span class="d"></span>${meta.hint}</div>`
          + `<div class="cc-flow">`
          + `  <span class="env-pill">${meta.src}</span>`
@@ -1328,7 +1328,7 @@ function showCrossAddDialog(){
         <svg style="width:16px;height:16px;stroke-width:1.75" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
     </div>
-    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Gera <code style="font-family:var(--mono);color:var(--accent);font-size:11px">config/cross_&lt;id&gt;.robot</code> usando tokens e pipes dos ambientes selecionados.</div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.55;margin-bottom:14px">Cross config combina dois ambientes do seu vault. As credenciais de cada um vão no body do <code style="font-family:var(--mono);color:var(--accent);font-size:11px">/api/run</code> só na hora de executar.</div>
 
     <label style="display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">ID</label>
     <input type="text" id="cross-add-id" placeholder="ex: hmg_x_stg" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.02);border:1px solid var(--line-2);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:12.5px;margin-bottom:12px">
