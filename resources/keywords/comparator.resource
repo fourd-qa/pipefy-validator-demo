@@ -385,7 +385,7 @@ Comparar Atributos Da Automacao
     ${pname_orig}=    Evaluate    ($phase_map_orig.get($pid_orig, '') if isinstance($phase_map_orig, dict) else '') or str(($ap_orig.get('phase') or {}).get('name', '') or '')
     ${pname_dest}=    Evaluate    ($phase_map_dest.get($pid_dest, '') if isinstance($phase_map_dest, dict) else '') or str(($ap_dest.get('phase') or {}).get('name', '') or '')
     # AD — Fase destino
-    IF    ${run_ad} and '${pname_orig}' != '' and '${pname_dest}' != '' and '${pname_orig}' != '${pname_dest}'
+    IF    ${run_ad} and $pname_orig != '' and $pname_dest != '' and $pname_orig != $pname_dest
         Append To List    ${divergencias}
         ...    [AUTOMACAO FASE_DESTINO] "${nome}": Para fase Origem="${pname_orig}" | Destino="${pname_dest}"
     END
@@ -393,7 +393,7 @@ Comparar Atributos Da Automacao
     # AH — URL do webhook / HTTP request
     ${url_orig}=    Evaluate    str($ap_orig.get('url', '') or '')
     ${url_dest}=    Evaluate    str($ap_dest.get('url', '') or '')
-    IF    ${run_ah} and '${url_orig}' != '${url_dest}' and ('${url_orig}' != '' or '${url_dest}' != '')
+    IF    ${run_ah} and $url_orig != $url_dest and ($url_orig != '' or $url_dest != '')
         Append To List    ${divergencias}
         ...    [AUTOMACAO URL] "${nome}": URL Origem="${url_orig}" | Destino="${url_dest}"
     END
@@ -401,7 +401,7 @@ Comparar Atributos Da Automacao
     # AH — HTTP Method (GET, POST, PUT...)
     ${method_orig}=    Evaluate    str($ap_orig.get('httpMethod', '') or '')
     ${method_dest}=    Evaluate    str($ap_dest.get('httpMethod', '') or '')
-    IF    ${run_ah} and '${method_orig}' != '${method_dest}' and ('${method_orig}' != '' or '${method_dest}' != '')
+    IF    ${run_ah} and $method_orig != $method_dest and ($method_orig != '' or $method_dest != '')
         Append To List    ${divergencias}
         ...    [AUTOMACAO HTTP_METHOD] "${nome}": Método Origem="${method_orig}" | Destino="${method_dest}"
     END
@@ -409,7 +409,7 @@ Comparar Atributos Da Automacao
     # AH — Body do request HTTP
     ${body_orig}=    Evaluate    str($ap_orig.get('body', '') or '')
     ${body_dest}=    Evaluate    str($ap_dest.get('body', '') or '')
-    IF    ${run_ah} and '${body_orig}' != '${body_dest}' and ('${body_orig}' != '' or '${body_dest}' != '')
+    IF    ${run_ah} and $body_orig != $body_dest and ($body_orig != '' or $body_dest != '')
         Append To List    ${divergencias}
         ...    [AUTOMACAO HTTP_BODY] "${nome}": Body do request difere entre Origem e Destino
     END
@@ -417,7 +417,7 @@ Comparar Atributos Da Automacao
     # AH — Headers do request HTTP
     ${hdr_orig}=    Evaluate    str($ap_orig.get('headers', '') or '')
     ${hdr_dest}=    Evaluate    str($ap_dest.get('headers', '') or '')
-    IF    ${run_ah} and '${hdr_orig}' != '${hdr_dest}' and ('${hdr_orig}' != '' or '${hdr_dest}' != '')
+    IF    ${run_ah} and $hdr_orig != $hdr_dest and ($hdr_orig != '' or $hdr_dest != '')
         Append To List    ${divergencias}
         ...    [AUTOMACAO HTTP_HEADERS] "${nome}": Headers do request diferem entre Origem e Destino
     END
@@ -432,7 +432,7 @@ Comparar Atributos Da Automacao
     ${ep_phase_orig}=    Evaluate    ($phase_map_orig.get($ep_pid_orig, '') if isinstance($phase_map_orig, dict) and $ep_pid_orig else '') or str(($ep_orig.get('phase') or {}).get('name', '') or '')
     ${ep_phase_dest}=    Evaluate    ($phase_map_dest.get($ep_pid_dest, '') if isinstance($phase_map_dest, dict) and $ep_pid_dest else '') or str(($ep_dest.get('phase') or {}).get('name', '') or '')
     # AD — Fase do evento
-    IF    ${run_ad} and '${ep_phase_orig}' != '${ep_phase_dest}' and ('${ep_phase_orig}' != '' or '${ep_phase_dest}' != '')
+    IF    ${run_ad} and $ep_phase_orig != $ep_phase_dest and ($ep_phase_orig != '' or $ep_phase_dest != '')
         Append To List    ${divergencias}
         ...    [AUTOMACAO FASE_EVENTO] "${nome}": Fase do evento Origem="${ep_phase_orig}" | Destino="${ep_phase_dest}"
     END
