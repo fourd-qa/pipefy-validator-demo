@@ -856,7 +856,9 @@ def run_validation():
             )
             _state["process"] = proc
             try:
-                stdout, stderr = proc.communicate(timeout=120)
+                # Timeout de 600s (10min) acomoda batch grande (~11 pipes) no Render free,
+                # que é mais lento que dev local. User pode cancelar via botão Cancelar.
+                stdout, stderr = proc.communicate(timeout=600)
                 _state["exit_code"] = proc.returncode
                 stderr_tail = (stderr or "")[-2000:]
                 stdout_tail = (stdout or "")[-2000:]
@@ -864,7 +866,7 @@ def run_validation():
                 proc.kill()
                 stdout, stderr = proc.communicate()
                 _state["exit_code"] = -1
-                stderr_tail = f"TIMEOUT após 120s: {(stderr or '')[-1500:]}"
+                stderr_tail = f"TIMEOUT após 600s: {(stderr or '')[-1500:]}"
         except Exception as ex:
             _state["exit_code"] = -2
             stderr_tail = f"Exceção não esperada: {ex}"
