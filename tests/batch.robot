@@ -65,20 +65,28 @@ CT-BATCH-01: Validação Batch De Múltiplos Pipes
         ${num}=    Evaluate    ${idx} + 1
         ${nome_par}=    Set Variable    ${par}[nome]
         Log    \n━━━ [${num}/${total_pipes}] ${nome_par} ━━━    console=True
-        Registrar Log    Validando pipe ${num}/${total_pipes}: ${nome_par}
+        Registrar Log    [${num}/${total_pipes}] Iniciando: ${nome_par}
 
         # Extrai estrutura
         Atualizar Progresso    ${num}    ${total_pipes}    Extraindo ${nome_par}...    running
+        Registrar Log    [${num}/${total_pipes}] Extraindo estrutura do pipe origem...
         ${pipe_orig}=    Extrair Estrutura Do Pipe    ${par}[uuid_origem]
+        Registrar Log    [${num}/${total_pipes}] Origem OK: ${pipe_orig}[name]
+        Registrar Log    [${num}/${total_pipes}] Extraindo estrutura do pipe destino...
         ${pipe_dest}=    Extrair Estrutura Do Pipe    ${par}[uuid_destino]
+        Registrar Log    [${num}/${total_pipes}] Destino OK: ${pipe_dest}[name]
         Log    Origem: ${pipe_orig}[name] | Destino: ${pipe_dest}[name]    console=True
 
         # Extrai automações
+        Registrar Log    [${num}/${total_pipes}] Carregando automações...
         ${auto_orig}=    Extrair Automacoes Do Pipe    ${par}[repo_origem]    ${ORGANIZATION_ID}
         ${auto_dest}=    Extrair Automacoes Do Pipe    ${par}[repo_destino]    ${ORGANIZATION_ID}
+        Registrar Log    [${num}/${total_pipes}] Automações: origem=${{len($auto_orig)}}, destino=${{len($auto_dest)}}
 
         # Compara
+        Registrar Log    [${num}/${total_pipes}] Comparando estruturas...
         ${divergencias}=    Comparar Estrutura Completa    ${pipe_orig}    ${pipe_dest}
+        Registrar Log    [${num}/${total_pipes}] Comparando automações...
         ${divergencias}=    Comparar Automacoes    ${auto_orig}    ${auto_dest}
         ...    ${pipe_orig}    ${pipe_dest}    ${divergencias}
 
@@ -96,8 +104,10 @@ CT-BATCH-01: Validação Batch De Múltiplos Pipes
 
         IF    ${total_div} == 0
             Log    ✅ ${nome_par}: 0 divergências    console=True
+            Registrar Log    [${num}/${total_pipes}] ✓ ${nome_par}: 0 divergências
         ELSE
             Log    ❌ ${nome_par}: ${total_div} divergência(s)    console=True
+            Registrar Log    [${num}/${total_pipes}] ! ${nome_par}: ${total_div} divergência(s)
         END
 
         Atualizar Progresso    ${num}    ${total_pipes}    ${nome_par}: ${total_div} div.    done
