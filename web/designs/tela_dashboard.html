@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Pipefy Validator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/v2/assets/tela_resultados_v1.css">
+<link rel="stylesheet" href="/v2/assets/v2_theme.css">
+<style>
+  .dash-wrap{padding:32px 28px;max-width:1100px;margin:0 auto}
+  .dash-hero{
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(108,194,108,.06), rgba(108,194,108,.01));
+    border-radius:14px;
+    padding:28px;
+    margin-bottom:18px;
+  }
+  .dash-kicker{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .dash-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:8px}
+  .dash-sub{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.55}
+  .dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .dash-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+    background:rgba(255,255,255,.01);
+  }
+  .dash-card h3{margin:0 0 6px;font-size:13.5px;font-weight:600}
+  .dash-card p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.55}
+  .dash-pill{
+    display:inline-block;
+    margin-top:10px;
+    padding:3px 9px;
+    border-radius:10px;
+    font-size:10.5px;
+    font-family:var(--mono);
+    background:rgba(108,194,108,.10);
+    color:#7dd584;
+    border:1px solid rgba(108,194,108,.22);
+  }
+  @media(max-width: 720px){ .dash-grid{grid-template-columns:1fr} }
+</style>
+<script src="/v2/assets/v2_theme.js" defer></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <header class="topbar">
+    <a href="/v2/configuracao" class="brand" aria-label="Voltar pra home">
+      <div class="brand-mark">P</div>
+      <div class="brand-name">Pipefy Validator <span>/ dashboard</span></div>
+    </a>
+    <nav class="crumbs" aria-label="breadcrumb">
+      <span class="current">Dashboard executivo</span>
+    </nav>
+    <div class="top-right">
+      <a class="icon-btn" href="/v2/docs" data-tip="Documentação"><svg><use href="#i-book"/></svg></a>
+      <a class="icon-btn" href="/v2/help" data-tip="Ajuda"><svg><use href="#i-help"/></svg></a>
+    </div>
+  </header>
+
+  <main class="main" style="grid-column:1 / -1">
+    <div class="dash-wrap">
+
+      <section class="dash-hero">
+        <div class="dash-kicker">Visão de liderança</div>
+        <h1 class="dash-title">Dashboard</h1>
+        <p class="dash-sub" id="dash-greeting">Olá. Aqui vai entrar a visão executiva da ferramenta.</p>
+        <span class="dash-pill" id="dash-role-pill">role: ...</span>
+      </section>
+
+      <div class="dash-grid">
+        <div class="dash-card">
+          <h3>Conteúdo a definir</h3>
+          <p>Estamos pra alinhar a estratégia do que aparece aqui. As opções discutidas são: KPIs operacionais (runs, divergências por categoria), KPIs estratégicos (cobertura L3 → L4 → L5), ou um mix.</p>
+        </div>
+        <div class="dash-card">
+          <h3>Acesso restrito</h3>
+          <p>Esta tela só é visível pra quem entra com o login <code>lideranca</code>. O usuário <code>demo</code> não vê o link nem consegue acessar a URL diretamente.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="/v2/assets/v2_utils.js"></script>
+<script>
+(function(){
+  function load(){
+    if(!window.V2Utils){ return; }
+    V2Utils.apiFetch('/api/dashboard/data').then(function(res){
+      if(!res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(!data) return;
+      var pill = document.getElementById('dash-role-pill');
+      if(pill){ pill.textContent = 'role: ' + (data.role || 'n/a'); }
+      var greet = document.getElementById('dash-greeting');
+      if(greet && data.note){ greet.textContent = data.note; }
+    }).catch(function(){});
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', load);
+  } else {
+    load();
+  }
+})();
+</script>
+
+</body>
+</html>

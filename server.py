@@ -15,7 +15,7 @@ import threading
 import time
 import glob
 from functools import wraps
-from flask import Flask, send_from_directory, jsonify, request, redirect, Response
+from flask import Flask, send_from_directory, jsonify, request, redirect, Response, g
 
 app = Flask(__name__, static_folder="web")
 
@@ -31,6 +31,11 @@ OUTPUT_XML = os.path.join(RESULTS_DIR, "output.xml")
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "").strip()
 APP_USERNAME = os.environ.get("APP_USERNAME", "demo").strip() or "demo"
 
+# Login secundário "lideranca" com acesso exclusivo ao Dashboard executivo.
+# Default: "lideranca / lideranca". Em produção, pode-se override via env vars.
+LIDERANCA_USERNAME = os.environ.get("LIDERANCA_USERNAME", "lideranca").strip() or "lideranca"
+LIDERANCA_PASSWORD = os.environ.get("LIDERANCA_PASSWORD", "lideranca").strip() or "lideranca"
+
 # Token default (opcional, pra UX do demo público).
 # Se setado, frontend pré-popula o modal de onboarding com essas credenciais.
 # IMPORTANTE: usar PAT de uma org dedicada ao demo, com user view-only.
@@ -41,10 +46,21 @@ DEFAULT_PIPEFY_NAME = os.environ.get("DEFAULT_PIPEFY_NAME", "Demo Sandbox").stri
 DEFAULT_PIPEFY_VERIFY_SSL = os.environ.get("DEFAULT_PIPEFY_VERIFY_SSL", "true").strip().lower() in ("true", "1", "yes")
 
 
+def _valid_credentials():
+    """Mapa (user, pw) -> role. Inclui demo só se APP_PASSWORD estiver setada.
+    lideranca é sempre aceito quando o gate de auth está ativo (APP_PASSWORD setada)."""
+    creds = {}
+    if APP_PASSWORD:
+        creds[(APP_USERNAME, APP_PASSWORD)] = "demo"
+    creds[(LIDERANCA_USERNAME, LIDERANCA_PASSWORD)] = "lideranca"
+    return creds
+
+
 def _check_basic_auth():
     """Se APP_PASSWORD estiver setada, exige Basic Auth em todas as rotas exceto
     /healthz. Sem APP_PASSWORD = modo dev liberado.
 
+    Em sucesso, anexa `g.role` com 'demo' ou 'lideranca'.
     Retorna None se ok, ou Response 401 se falhou.
     """
     if not APP_PASSWORD:
@@ -59,9 +75,27 @@ def _check_basic_auth():
         user, _, pw = decoded.partition(":")
     except Exception:
         return _auth_challenge()
-    if user != APP_USERNAME or pw != APP_PASSWORD:
+    role = _valid_credentials().get((user, pw))
+    if not role:
         return _auth_challenge()
+    g.role = role
     return None
+
+
+def _current_role():
+    """Retorna 'demo', 'lideranca' ou 'open' (se auth desativado)."""
+    if not APP_PASSWORD:
+        return "open"
+    return getattr(g, "role", None)
+
+
+def _require_lideranca():
+    """Retorna Response 403 se a role atual não pode ver o dashboard.
+    Em modo dev (auth off, role='open'), libera."""
+    role = _current_role()
+    if role in ("open", "lideranca"):
+        return None
+    return jsonify({"error": "Acesso restrito ao Dashboard"}), 403
 
 
 def _auth_challenge():
@@ -363,6 +397,39 @@ def index_v2_docs():
 def index_v2_help():
     """Página de ajuda: atalhos, FAQ, como reportar bug, contatos."""
     return send_from_directory("web/designs", "help.html")
+
+
+@app.route("/v2/dashboard")
+def index_v2_dashboard():
+    """Dashboard executivo: visível só pra role 'lideranca' (ou modo dev)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    return send_from_directory("web/designs", "tela_dashboard.html")
+
+
+@app.route("/api/whoami")
+def whoami():
+    """Retorna a role do usuário autenticado. Usado pelo frontend pra
+    decidir se mostra ou esconde o link 'Dashboard' no header."""
+    return jsonify({
+        "role": _current_role() or "anonymous",
+        "auth_enabled": bool(APP_PASSWORD),
+    })
+
+
+@app.route("/api/dashboard/data")
+def dashboard_data():
+    """Dados agregados pro Dashboard executivo. Placeholder por enquanto;
+    estratégia de conteúdo a definir."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    return jsonify({
+        "role": _current_role(),
+        "placeholder": True,
+        "note": "Conteúdo a definir. Aguardando estratégia.",
+    })
 
 
 @app.route("/v2/assets/<path:filename>")

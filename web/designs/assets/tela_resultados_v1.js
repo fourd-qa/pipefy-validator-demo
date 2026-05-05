@@ -8,6 +8,7 @@
       document.body.appendChild(o);
     }
     v2InjectOverlay();
+    if(window.V2Utils && window.V2Utils.renderDashboardLink) window.V2Utils.renderDashboardLink();
     if(sessionStorage.getItem('v2-in-transit') === '1'){
       sessionStorage.removeItem('v2-in-transit');
       document.body.classList.add('v2-arriving');

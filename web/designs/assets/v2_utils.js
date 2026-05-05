@@ -242,6 +242,42 @@
     });
   }
 
+  /* ===================== Dashboard link (gated por role) ===================== */
+  /** Consulta /api/whoami e injeta o link "Dashboard" no header se role permitir.
+   *  Visível pra 'lideranca' (auth ativo) e 'open' (modo dev sem APP_PASSWORD).
+   *  Idempotente: chamadas repetidas não duplicam o link.
+   *  Falhas silenciosas: se whoami falhar, simplesmente não mostra o link. */
+  function renderDashboardLink(){
+    if(typeof document === 'undefined') return Promise.resolve();
+    return apiFetch('/api/whoami').then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(!data) return;
+      if(data.role !== 'lideranca' && data.role !== 'open') return;
+      var topRight = document.querySelector('.topbar .top-right');
+      if(!topRight) return;
+      if(document.getElementById('v2-dashboard-link')) return;
+      var a = document.createElement('a');
+      a.id = 'v2-dashboard-link';
+      a.href = '/v2/dashboard';
+      a.textContent = 'Dashboard';
+      a.title = 'Dashboard executivo';
+      a.style.cssText = [
+        'display:inline-flex','align-items:center','gap:6px',
+        'padding:5px 12px','border-radius:14px',
+        'font-size:11.5px','font-weight:500',
+        'color:var(--ink-2)','text-decoration:none',
+        'border:1px solid rgba(108,194,108,.32)',
+        'background:rgba(108,194,108,.08)',
+        'transition:background .12s'
+      ].join(';');
+      a.addEventListener('mouseenter', function(){ a.style.background = 'rgba(108,194,108,.16)'; });
+      a.addEventListener('mouseleave', function(){ a.style.background = 'rgba(108,194,108,.08)'; });
+      topRight.insertBefore(a, topRight.firstChild);
+    }).catch(function(){});
+  }
+
   /* ===================== buildRunPayload ===================== */
   /** Empacota credenciais do env selecionado no body do POST /api/run.
    *  mode: 'single'|'cross'|'snapshot'|'batch'|'ipaas'|'healthcheck'
@@ -314,6 +350,7 @@
     vaultSanitized: vaultSanitized,
     buildRunPayload: buildRunPayload,
     apiFetch: apiFetch,
+    renderDashboardLink: renderDashboardLink,
     clearAppAuth: _clearAppAuth,
     VAULT_KEY: VAULT_KEY,
     APP_AUTH_KEY: APP_AUTH_KEY,

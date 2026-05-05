@@ -856,6 +856,7 @@ async function loadEnvironments(){
   populatePipeDropdowns();
   if(typeof populateSnapEnvDropdown === 'function') populateSnapEnvDropdown();
   if(typeof renderConnectedBadge === 'function') renderConnectedBadge();
+  if(window.V2Utils && window.V2Utils.renderDashboardLink) window.V2Utils.renderDashboardLink();
   if(typeof maybeShowOnboardingModal === 'function') maybeShowOnboardingModal();
 }
 
