@@ -420,16 +420,48 @@ def whoami():
 
 @app.route("/api/dashboard/data")
 def dashboard_data():
-    """Dados agregados pro Dashboard executivo. Placeholder por enquanto;
-    estratégia de conteúdo a definir."""
+    """Dados agregados pro Dashboard executivo. Hoje retorna apenas role +
+    velocity (Sprint 1). Sprints seguintes adicionam debt, hot spots, lead
+    time, burnup."""
     gate = _require_lideranca()
     if gate is not None:
         return gate
     return jsonify({
         "role": _current_role(),
-        "placeholder": True,
-        "note": "Conteúdo a definir. Aguardando estratégia.",
+        "velocity": _compute_velocity_safe(),
     })
+
+
+@app.route("/api/dashboard/velocity")
+def dashboard_velocity():
+    """Endpoint dedicado pra card de Snapshot Velocity. Retorna scoring da
+    run mais recente."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    return jsonify(_compute_velocity_safe())
+
+
+def _compute_velocity_safe():
+    """Wrapper que isola falhas do dashboard_metrics pra nao derrubar a rota."""
+    import dashboard_metrics
+    weights_path = os.path.join(CONFIG_DIR, "complexity_weights.json")
+    if not os.path.exists(weights_path):
+        # Fallback: usa o weights default do repo (caso CONFIG_DIR seja efêmero)
+        weights_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                     "config", "complexity_weights.json")
+    try:
+        return dashboard_metrics.compute_velocity(VALIDATION_FILE, weights_path)
+    except Exception as ex:
+        return {
+            "available": False,
+            "reason": f"Erro computando velocity: {ex}",
+            "total_points": 0,
+            "by_bucket": {"visual": 0, "structure": 0, "logic": 0, "integration": 0},
+            "by_prefix": {},
+            "top_items": [],
+            "meta": {},
+        }
 
 
 @app.route("/v2/assets/<path:filename>")

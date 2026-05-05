@@ -1,0 +1,140 @@
+{
+  "$comment": "Pesos de complexidade pro Dashboard de Produtividade. Editavel via PR. Versao 1.0 calibrada por intuicao tecnica de migracao Pega -> Pipefy. Recalibrar apos 2-3 sprints de uso real.",
+  "version": "1.0",
+  "updated_at": "2026-05-05",
+  "categories": {
+    "presentation": {
+      "label_rename": 1,
+      "label_color_change": 1,
+      "phase_rename": 2,
+      "field_rename": 2,
+      "field_description_change": 1,
+      "field_help_text_change": 1
+    },
+    "structure_simple": {
+      "field_create_text": 3,
+      "field_create_email": 3,
+      "field_create_number": 3,
+      "field_create_date": 3,
+      "field_create_currency": 4,
+      "field_create_attachment": 4,
+      "field_create_dropdown_base": 3,
+      "field_create_dropdown_per_option": 0.5,
+      "field_create_radio_base": 3,
+      "field_create_radio_per_option": 0.5,
+      "field_required_change": 2,
+      "field_type_change": 5,
+      "phase_reorder": 4,
+      "field_reorder_within_phase": 1
+    },
+    "structure_connected": {
+      "connection_field_create": 8,
+      "database_connection_create": 6,
+      "assignee_select_create": 5,
+      "phase_create": 6,
+      "phase_delete_with_cards": 10,
+      "phase_sla_change": 5
+    },
+    "logic": {
+      "automation_move_card_create": 8,
+      "automation_update_field_create": 8,
+      "automation_create_card_create": 10,
+      "automation_send_email_create": 6,
+      "automation_http_webhook_create": 12,
+      "automation_to_phase_change": 5,
+      "automation_url_method_change": 8,
+      "automation_body_headers_change": 6,
+      "automation_trigger_field_add": 4,
+      "automation_phase_filter_change": 4,
+      "condition_simple_add": 5,
+      "condition_medium_add": 8,
+      "condition_complex_add": 12,
+      "condition_nested_add": 15,
+      "automation_activate": 3,
+      "automation_deactivate": 2
+    },
+    "integration": {
+      "ipaas_flow_create": 15,
+      "ipaas_step_add": 8,
+      "ipaas_trigger_change": 6,
+      "ipaas_field_mapping": 5,
+      "ipaas_flow_activate": 3
+    }
+  },
+  "fanout_multipliers": {
+    "$comment": "Aplicados sobre o peso base. Em caso de multiplas regras, usar o MAIOR (nao somar).",
+    "field_referenced_by_0_automations": 1.0,
+    "field_referenced_by_1_to_3_automations": 1.5,
+    "field_referenced_by_4_or_more_automations": 2.0,
+    "field_is_trigger_field_id": 2.0,
+    "field_appears_in_condition": 2.5,
+    "phase_is_move_card_destination": 2.0,
+    "phase_is_trigger_from_phase": 1.5
+  },
+  "risk_multipliers": {
+    "field_new_without_description": 0.8,
+    "change_in_prd_without_hmg_mirror": 1.5,
+    "change_diverges_cross_env": 1.2,
+    "phase_deleted_with_100plus_cards": 1.5
+  },
+  "churn_penalties": {
+    "$comment": "Descontos aplicados no agregado total da semana/sprint.",
+    "field_create_then_delete_within_7_days": -3,
+    "automation_create_then_deactivate_within_7_days": -8,
+    "phase_create_then_delete_within_30_days": -10,
+    "field_renamed_3plus_times_within_14_days": -2
+  },
+  "buckets": {
+    "$comment": "Agrupamentos pra UI do dashboard. Cada categoria interna mapeia pra um balde.",
+    "visual": ["presentation"],
+    "structure": ["structure_simple", "structure_connected"],
+    "logic": ["logic"],
+    "integration": ["integration"]
+  },
+  "category_to_validator_mapping": {
+    "$comment": "Mapeia categorias deste config pra categorias do validador atual (validations.json). Permite scoring sobre o output existente sem refactor.",
+    "SF": "structure_simple",
+    "FA": "structure_simple",
+    "LB": "presentation",
+    "AS": "logic",
+    "AD": "logic",
+    "AH": "logic",
+    "AC": "logic",
+    "IF": "integration",
+    "IT": "integration",
+    "IS": "integration"
+  },
+  "divergencia_prefix_weights": {
+    "$comment": "Peso direto por prefixo de divergencia (formato real do validations.json). Engine usa isto como fonte primaria. Cada item tem peso, balde de UI e nome legivel.",
+    "[START FORM - CAMPO AUSENTE]": {"weight": 3, "bucket": "structure", "label": "Campo do start form ausente"},
+    "[START FORM - CAMPO EXTRA]":   {"weight": 3, "bucket": "structure", "label": "Campo do start form extra"},
+    "[CAMPO AUSENTE]":              {"weight": 3, "bucket": "structure", "label": "Campo de fase ausente"},
+    "[CAMPO EXTRA]":                {"weight": 3, "bucket": "structure", "label": "Campo de fase extra"},
+    "[TIPO DIFERENTE]":             {"weight": 5, "bucket": "structure", "label": "Tipo de campo divergente"},
+    "[REQUIRED DIFERENTE]":         {"weight": 2, "bucket": "structure", "label": "Required divergente"},
+    "[OPTIONS DIFERENTE]":          {"weight": 3, "bucket": "structure", "label": "Opcoes de dropdown/radio divergentes"},
+    "[FASE AUSENTE]":               {"weight": 6, "bucket": "structure", "label": "Fase ausente"},
+    "[FASE EXTRA]":                 {"weight": 6, "bucket": "structure", "label": "Fase extra"},
+    "[LABEL AUSENTE]":              {"weight": 1, "bucket": "visual",    "label": "Label ausente"},
+    "[LABEL EXTRA]":                {"weight": 1, "bucket": "visual",    "label": "Label extra"},
+    "[AUTOMACAO AUSENTE]":          {"weight": 8, "bucket": "logic",     "label": "Automacao ausente"},
+    "[AUTOMACAO EXTRA]":            {"weight": 8, "bucket": "logic",     "label": "Automacao extra"},
+    "[AUTOMACAO STATUS]":           {"weight": 2, "bucket": "logic",     "label": "Status (ativa/inativa) divergente"},
+    "[AUTOMACAO ACTION]":           {"weight": 5, "bucket": "logic",     "label": "Action_id divergente"},
+    "[AUTOMACAO EVENT]":            {"weight": 4, "bucket": "logic",     "label": "Event_id divergente"},
+    "[AUTOMACAO TRIGGER]":          {"weight": 4, "bucket": "logic",     "label": "Trigger field IDs divergentes"},
+    "[AUTOMACAO FASE_DESTINO]":     {"weight": 5, "bucket": "logic",     "label": "to_phase_id divergente"},
+    "[AUTOMACAO FASE_EVENTO]":      {"weight": 4, "bucket": "logic",     "label": "Phase do evento divergente"},
+    "[AUTOMACAO URL]":              {"weight": 8, "bucket": "logic",     "label": "URL de webhook divergente"},
+    "[AUTOMACAO HTTP_METHOD]":      {"weight": 8, "bucket": "logic",     "label": "HTTP method divergente"},
+    "[AUTOMACAO HTTP_BODY]":        {"weight": 6, "bucket": "logic",     "label": "Body de webhook divergente"},
+    "[AUTOMACAO HTTP_HEADERS]":     {"weight": 6, "bucket": "logic",     "label": "Headers de webhook divergentes"},
+    "[AUTOMACAO CONDITION]":        {"weight": 5, "bucket": "logic",     "label": "Condition divergente"}
+  },
+  "default_weight": {
+    "$comment": "Aplicado quando uma divergencia tem prefixo nao mapeado. Mantem score nao-zero pra nao sumir do radar.",
+    "weight": 2,
+    "bucket": "structure",
+    "label": "Divergencia generica"
+  }
+}

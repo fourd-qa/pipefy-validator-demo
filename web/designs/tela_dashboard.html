@@ -10,30 +10,32 @@
 <link rel="stylesheet" href="/v2/assets/tela_resultados_v1.css">
 <link rel="stylesheet" href="/v2/assets/v2_theme.css">
 <style>
-  .dash-wrap{padding:32px 28px;max-width:1100px;margin:0 auto}
+  .dash-wrap{padding:28px 24px;max-width:1200px;margin:0 auto}
   .dash-hero{
     border:1px solid var(--line);
     background:linear-gradient(180deg, rgba(108,194,108,.06), rgba(108,194,108,.01));
     border-radius:14px;
-    padding:28px;
+    padding:22px 24px;
     margin-bottom:18px;
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
   }
-  .dash-kicker{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
-  .dash-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:8px}
-  .dash-sub{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.55}
-  .dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  .dash-card{
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:18px 20px;
-    background:rgba(255,255,255,.01);
+  .dash-hero .left{flex:1;min-width:0}
+  .dash-kicker{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .dash-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:4px}
+  .dash-sub{color:var(--muted);font-size:12.5px;margin-top:4px;line-height:1.5}
+  .dash-shadow-banner{
+    background:rgba(218,162,52,.10);
+    border:1px solid rgba(218,162,52,.30);
+    color:#dba844;
+    padding:8px 14px;
+    border-radius:10px;
+    font-size:11.5px;
+    margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
   }
-  .dash-card h3{margin:0 0 6px;font-size:13.5px;font-weight:600}
-  .dash-card p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.55}
   .dash-pill{
     display:inline-block;
-    margin-top:10px;
-    padding:3px 9px;
+    padding:3px 10px;
     border-radius:10px;
     font-size:10.5px;
     font-family:var(--mono);
@@ -41,7 +43,80 @@
     color:#7dd584;
     border:1px solid rgba(108,194,108,.22);
   }
-  @media(max-width: 720px){ .dash-grid{grid-template-columns:1fr} }
+  .dash-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+  .dash-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+    background:rgba(255,255,255,.01);
+    grid-column:span 12;
+  }
+  .dash-card.col-6{grid-column:span 6}
+  .dash-card.col-4{grid-column:span 4}
+  .dash-card.col-8{grid-column:span 8}
+  @media(max-width:900px){
+    .dash-card.col-6,.dash-card.col-4,.dash-card.col-8{grid-column:span 12}
+  }
+  .dash-card h3{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--ink-2)}
+  .dash-card .sub{color:var(--muted);font-size:11.5px;margin:0 0 14px}
+
+  .kpi-big{
+    display:flex;align-items:baseline;gap:10px;margin-bottom:6px;
+  }
+  .kpi-big .num{font-size:42px;font-weight:600;letter-spacing:-.02em;color:var(--ink-2)}
+  .kpi-big .unit{font-size:14px;color:var(--muted);font-weight:500}
+  .kpi-big .delta{
+    font-size:11.5px;font-weight:500;font-family:var(--mono);
+    padding:2px 8px;border-radius:8px;
+    margin-left:auto;
+  }
+  .kpi-big .delta.up{background:rgba(108,194,108,.10);color:#7dd584}
+  .kpi-big .delta.down{background:rgba(229,107,107,.10);color:#e58a8a}
+  .kpi-big .delta.neutral{background:rgba(255,255,255,.04);color:var(--muted)}
+
+  .bucket-list{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .bucket-row{display:flex;align-items:center;gap:10px;font-size:12px}
+  .bucket-name{width:90px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;font-weight:600}
+  .bucket-bar{flex:1;height:8px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden;position:relative}
+  .bucket-fill{position:absolute;top:0;left:0;height:100%;border-radius:4px;transition:width .3s}
+  .bucket-fill.visual{background:#7aa6d8}
+  .bucket-fill.structure{background:#7dd584}
+  .bucket-fill.logic{background:#dba844}
+  .bucket-fill.integration{background:#c97aaf}
+  .bucket-num{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);min-width:42px;text-align:right}
+
+  .top-items{margin-top:8px}
+  .top-item{
+    display:flex;align-items:center;gap:10px;
+    padding:7px 10px;border-radius:8px;
+    font-size:11.5px;line-height:1.4;
+    border:1px solid transparent;
+    transition:background .12s;
+  }
+  .top-item + .top-item{margin-top:4px}
+  .top-item:hover{background:rgba(255,255,255,.02)}
+  .top-item .pts{font-family:var(--mono);font-size:11px;font-weight:600;min-width:36px;text-align:right;color:var(--ink-2)}
+  .top-item .b{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:5px;font-weight:600}
+  .top-item .b.visual{background:rgba(122,166,216,.12);color:#9bbde0}
+  .top-item .b.structure{background:rgba(125,213,132,.12);color:#9adfa1}
+  .top-item .b.logic{background:rgba(219,168,68,.12);color:#e2bb6c}
+  .top-item .b.integration{background:rgba(201,122,175,.12);color:#d8a3c4}
+  .top-item .lbl{flex:1;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .placeholder-soft{
+    color:var(--muted);font-size:12.5px;line-height:1.55;
+    padding:18px;text-align:center;
+    border:1px dashed var(--line);border-radius:10px;
+    margin-top:6px;
+  }
+
+  .stub-card{
+    color:var(--muted);font-size:12px;line-height:1.5;
+    border:1px dashed var(--line);border-radius:10px;
+    padding:18px;display:flex;flex-direction:column;gap:6px;
+  }
+  .stub-card .stub-title{font-size:13px;font-weight:600;color:var(--ink-2)}
+  .stub-card .stub-tag{font-size:10px;font-family:var(--mono);color:#dba844;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -49,7 +124,6 @@
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
     <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></symbol>
     <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
   </defs>
@@ -74,22 +148,66 @@
   <main class="main" style="grid-column:1 / -1">
     <div class="dash-wrap">
 
+      <div class="dash-shadow-banner">
+        <span>⚠</span>
+        <span>Métricas em validação. Pesos sob calibração nas próximas 2 sprints, números são indicativos.</span>
+      </div>
+
       <section class="dash-hero">
-        <div class="dash-kicker">Visão de liderança</div>
-        <h1 class="dash-title">Dashboard</h1>
-        <p class="dash-sub" id="dash-greeting">Olá. Aqui vai entrar a visão executiva da ferramenta.</p>
+        <div class="left">
+          <div class="dash-kicker">Visão de liderança</div>
+          <h1 class="dash-title">Dashboard de produtividade</h1>
+          <p class="dash-sub" id="dash-greeting">Olá, líder. Acompanhe complexidade entregue, qualidade técnica e progresso da migração.</p>
+        </div>
         <span class="dash-pill" id="dash-role-pill">role: ...</span>
       </section>
 
       <div class="dash-grid">
-        <div class="dash-card">
-          <h3>Conteúdo a definir</h3>
-          <p>Estamos pra alinhar a estratégia do que aparece aqui. As opções discutidas são: KPIs operacionais (runs, divergências por categoria), KPIs estratégicos (cobertura L3 → L4 → L5), ou um mix.</p>
+
+        <!-- ======== VELOCITY (Sprint 1) ======== -->
+        <div class="dash-card col-8">
+          <h3>⚡ Snapshot Velocity</h3>
+          <p class="sub">Pontos de complexidade da última run de validação. Pesos configurados em <code>config/complexity_weights.json</code>.</p>
+
+          <div id="velocity-content">
+            <div class="placeholder-soft">Carregando...</div>
+          </div>
         </div>
-        <div class="dash-card">
-          <h3>Acesso restrito</h3>
-          <p>Esta tela só é visível pra quem entra com o login <code>lideranca</code>. O usuário <code>demo</code> não vê o link nem consegue acessar a URL diretamente.</p>
+
+        <!-- ======== METADATA DA RUN ======== -->
+        <div class="dash-card col-4">
+          <h3>Última run</h3>
+          <p class="sub">Contexto da validação que originou os pontos.</p>
+          <div id="run-meta-content">
+            <div class="placeholder-soft">Carregando...</div>
+          </div>
         </div>
+
+        <!-- ======== STUBS DAS PRÓXIMAS SPRINTS ======== -->
+        <div class="dash-card col-6 stub-card">
+          <span class="stub-tag">Sprint 1 — em construção</span>
+          <span class="stub-title">🔧 Pipe Debt Ratio</span>
+          <span>Vai mostrar % de débito técnico (automation sem condition, field sem doc, phase sem padrão de naming) com gauge + donut.</span>
+        </div>
+
+        <div class="dash-card col-6 stub-card">
+          <span class="stub-tag">Sprint 3 — após histórico</span>
+          <span class="stub-title">⏱ Lead Time HMG → PRD</span>
+          <span>Vai mostrar mediana de dias entre criação em HMG e chegada em PRD, com histograma de distribuição.</span>
+        </div>
+
+        <div class="dash-card col-6 stub-card">
+          <span class="stub-tag">Sprint 3 — após histórico</span>
+          <span class="stub-title">🔥 Phase Hot Spots</span>
+          <span>Heatmap mostrando phases que mais mudam ao longo das semanas, cruzando frequência com complexidade.</span>
+        </div>
+
+        <div class="dash-card col-6 stub-card">
+          <span class="stub-tag">Sprint 4 — após blueprint</span>
+          <span class="stub-title">📊 Burnup vs Blueprint</span>
+          <span>Linha de progresso da migração Pega → Pipefy contra a meta marcada como blueprint.</span>
+        </div>
+
       </div>
 
     </div>
@@ -100,19 +218,121 @@
 <script src="/v2/assets/v2_utils.js"></script>
 <script>
 (function(){
+
+  function fmtNumber(n){
+    if(n === null || n === undefined) return '0';
+    var num = Number(n);
+    if(!isFinite(num)) return '0';
+    if(num === 0) return '0';
+    if(Math.abs(num) < 10) return num.toFixed(1).replace(/\.0$/,'');
+    return Math.round(num).toString();
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+    });
+  }
+
+  function renderVelocity(data){
+    var container = document.getElementById('velocity-content');
+    if(!container) return;
+
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">'
+        + escapeHtml(data && data.reason ? data.reason : 'Sem validação executada ainda. Rode uma comparação primeiro.')
+        + '</div>';
+      return;
+    }
+
+    var total = data.total_points || 0;
+    var buckets = data.by_bucket || {visual:0, structure:0, logic:0, integration:0};
+    var bucketLabels = {visual:'Visual', structure:'Estrutura', logic:'Lógica', integration:'Integração'};
+    var maxBucket = Math.max(buckets.visual||0, buckets.structure||0, buckets.logic||0, buckets.integration||0, 1);
+
+    var html = ''
+      + '<div class="kpi-big">'
+      +   '<span class="num">' + fmtNumber(total) + '</span>'
+      +   '<span class="unit">pontos</span>'
+      +   '<span class="delta neutral">baseline</span>'
+      + '</div>'
+      + '<div class="bucket-list">';
+
+    ['logic','structure','visual','integration'].forEach(function(key){
+      var val = buckets[key] || 0;
+      var pct = (val / maxBucket) * 100;
+      html += ''
+        + '<div class="bucket-row">'
+        +   '<span class="bucket-name">' + bucketLabels[key] + '</span>'
+        +   '<div class="bucket-bar">'
+        +     '<div class="bucket-fill ' + key + '" style="width:' + pct + '%"></div>'
+        +   '</div>'
+        +   '<span class="bucket-num">' + fmtNumber(val) + '</span>'
+        + '</div>';
+    });
+    html += '</div>';
+
+    var tops = (data.top_items || []).slice(0, 6);
+    if(tops.length){
+      html += '<h3 style="margin-top:18px">Top divergências por peso</h3>';
+      html += '<div class="top-items">';
+      tops.forEach(function(item){
+        html += ''
+          + '<div class="top-item" title="' + escapeHtml(item.text || '') + '">'
+          +   '<span class="pts">' + fmtNumber(item.weight) + '</span>'
+          +   '<span class="b ' + escapeHtml(item.bucket) + '">' + escapeHtml(item.bucket) + '</span>'
+          +   '<span class="lbl">' + escapeHtml(item.label) + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+  }
+
+  function renderRunMeta(data){
+    var container = document.getElementById('run-meta-content');
+    if(!container) return;
+
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">Sem run recente.</div>';
+      return;
+    }
+
+    var meta = data.meta || {};
+    var when = meta.timestamp ? new Date(meta.timestamp).toLocaleString('pt-BR') : '—';
+    var html = ''
+      + '<div style="display:flex;flex-direction:column;gap:10px;font-size:12px">'
+      +   '<div><div style="color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Status</div>'
+      +     '<div style="color:var(--ink-2);font-family:var(--mono)">' + escapeHtml(meta.status || '—') + '</div></div>'
+      +   '<div><div style="color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Pipe Origem</div>'
+      +     '<div style="color:var(--ink-2)">' + escapeHtml(meta.pipe_origem || '—') + '</div></div>'
+      +   '<div><div style="color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Pipe Destino</div>'
+      +     '<div style="color:var(--ink-2)">' + escapeHtml(meta.pipe_destino || '—') + '</div></div>'
+      +   '<div><div style="color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Total divergências</div>'
+      +     '<div style="color:var(--ink-2);font-family:var(--mono)">' + (meta.total_divergencias != null ? meta.total_divergencias : '—') + '</div></div>'
+      +   '<div><div style="color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Quando</div>'
+      +     '<div style="color:var(--ink-2);font-size:11px">' + escapeHtml(when) + '</div></div>'
+      + '</div>';
+    container.innerHTML = html;
+  }
+
   function load(){
-    if(!window.V2Utils){ return; }
+    if(!window.V2Utils) return;
     V2Utils.apiFetch('/api/dashboard/data').then(function(res){
-      if(!res.ok) return null;
+      if(!res || !res.ok) return null;
       return res.json();
     }).then(function(data){
       if(!data) return;
       var pill = document.getElementById('dash-role-pill');
       if(pill){ pill.textContent = 'role: ' + (data.role || 'n/a'); }
-      var greet = document.getElementById('dash-greeting');
-      if(greet && data.note){ greet.textContent = data.note; }
-    }).catch(function(){});
+      renderVelocity(data.velocity);
+      renderRunMeta(data.velocity);
+    }).catch(function(err){
+      console.error('Erro carregando dashboard', err);
+    });
   }
+
   if(document.readyState === 'loading'){
     document.addEventListener('DOMContentLoaded', load);
   } else {

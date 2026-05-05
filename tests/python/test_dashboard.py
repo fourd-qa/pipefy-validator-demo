@@ -140,7 +140,9 @@ def test_dashboard_data_lideranca_retorna_payload(tmp_path, monkeypatch):
     assert res.status_code == 200
     body = res.get_json()
     assert body["role"] == "lideranca"
-    assert body["placeholder"] is True
+    # Sprint 1 plugou velocity no payload de /api/dashboard/data
+    assert "velocity" in body
+    assert "total_points" in body["velocity"]
 
 
 def test_dashboard_data_demo_recebe_403(tmp_path, monkeypatch):
