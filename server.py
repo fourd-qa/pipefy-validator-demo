@@ -36,6 +36,16 @@ APP_USERNAME = os.environ.get("APP_USERNAME", "demo").strip() or "demo"
 LIDERANCA_USERNAME = os.environ.get("LIDERANCA_USERNAME", "lideranca").strip() or "lideranca"
 LIDERANCA_PASSWORD = os.environ.get("LIDERANCA_PASSWORD", "lideranca").strip() or "lideranca"
 
+# Sprint 2: cron externo (GitHub Actions) dispara snapshots automaticos.
+# CRON_SNAPSHOT_TOKEN: secret compartilhado entre Render env e GitHub Actions
+# secret. Vazio = endpoint /api/cron/snapshot fica desativado.
+CRON_SNAPSHOT_TOKEN = os.environ.get("CRON_SNAPSHOT_TOKEN", "").strip()
+# MONITOR_PIPEFY_TOKEN: token persistente do Pipefy usado pelo cron pra
+# coletar snapshots. So aceita Bearer. Vazio = cron pula a coleta.
+MONITOR_PIPEFY_TOKEN = os.environ.get("MONITOR_PIPEFY_TOKEN", "").strip()
+MONITOR_PIPEFY_BASE_URL = os.environ.get("MONITOR_PIPEFY_BASE_URL", "https://api.pipefy.com/graphql").strip()
+MONITOR_PIPEFY_ORG_ID = os.environ.get("MONITOR_PIPEFY_ORG_ID", "").strip()
+
 # Token default (opcional, pra UX do demo público).
 # Se setado, frontend pré-popula o modal de onboarding com essas credenciais.
 # IMPORTANTE: usar PAT de uma org dedicada ao demo, com user view-only.
@@ -420,15 +430,15 @@ def whoami():
 
 @app.route("/api/dashboard/data")
 def dashboard_data():
-    """Dados agregados pro Dashboard executivo. Hoje retorna apenas role +
-    velocity (Sprint 1). Sprints seguintes adicionam debt, hot spots, lead
-    time, burnup."""
+    """Dados agregados pro Dashboard executivo. Sprint 1 carrega velocity +
+    debt. Sprints seguintes adicionam hot spots, lead time, burnup."""
     gate = _require_lideranca()
     if gate is not None:
         return gate
     return jsonify({
         "role": _current_role(),
         "velocity": _compute_velocity_safe(),
+        "debt": _compute_debt_safe(),
     })
 
 
@@ -442,16 +452,264 @@ def dashboard_velocity():
     return jsonify(_compute_velocity_safe())
 
 
+@app.route("/api/dashboard/debt")
+def dashboard_debt():
+    """Endpoint dedicado pra card de Pipe Debt Index."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    return jsonify(_compute_debt_safe())
+
+
+# ===========================================================================
+# Sprint 2 — Pipes monitorados e cron de snapshots
+# ===========================================================================
+
+MONITORED_PIPES_FILE = os.path.join(CONFIG_DIR, "monitored_pipes.json")
+AUTO_SNAPSHOTS_DIR = os.path.join(os.getcwd(), "snapshots", "auto")
+
+
+def _load_monitored_pipes():
+    """Le config/monitored_pipes.json. Retorna dict com 'pipes' lista. Se
+    arquivo nao existe, retorna estrutura vazia padrao."""
+    if not os.path.exists(MONITORED_PIPES_FILE):
+        return {"version": "1.0", "pipes": []}
+    try:
+        with open(MONITORED_PIPES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return {"version": "1.0", "pipes": []}
+        if "pipes" not in data or not isinstance(data["pipes"], list):
+            data["pipes"] = []
+        return data
+    except (json.JSONDecodeError, IOError):
+        return {"version": "1.0", "pipes": []}
+
+
+def _save_monitored_pipes(data):
+    """Salva config/monitored_pipes.json. Cria diretorio se necessario."""
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(MONITORED_PIPES_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+@app.route("/api/dashboard/monitored-pipes", methods=["GET"])
+def get_monitored_pipes():
+    """Lista pipes que o cron monitora. Acesso restrito a lideranca."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    data = _load_monitored_pipes()
+    return jsonify({
+        "pipes": data.get("pipes", []),
+        "monitor_token_configured": bool(MONITOR_PIPEFY_TOKEN),
+        "cron_token_configured": bool(CRON_SNAPSHOT_TOKEN),
+    })
+
+
+@app.route("/api/dashboard/monitored-pipes", methods=["POST"])
+def save_monitored_pipes():
+    """Substitui a lista de pipes monitorados.
+
+    Body: {"pipes": [{"id": "uuid", "name": "Pipe X", "repo_id": "111",
+                       "env_label": "HMG", "enabled": true}]}
+
+    Restrito a lideranca."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    raw = request.get_json(silent=True) or {}
+    pipes = raw.get("pipes")
+    if not isinstance(pipes, list):
+        return jsonify({"error": "Body deve conter 'pipes' como lista"}), 400
+
+    cleaned = []
+    for p in pipes:
+        if not isinstance(p, dict):
+            continue
+        cleaned.append({
+            "id": str(p.get("id", "")).strip(),
+            "name": str(p.get("name", "")).strip(),
+            "repo_id": str(p.get("repo_id", "")).strip(),
+            "env_label": str(p.get("env_label", "")).strip(),
+            "enabled": bool(p.get("enabled", True)),
+        })
+
+    data = _load_monitored_pipes()
+    data["pipes"] = cleaned
+    data["updated_at"] = datetime_now_iso()
+    _save_monitored_pipes(data)
+    return jsonify({"ok": True, "count": len(cleaned)})
+
+
+def datetime_now_iso():
+    """Helper isolado pra facilitar mock em testes."""
+    import datetime as _dt
+    return _dt.datetime.now().isoformat()
+
+
+@app.route("/api/cron/snapshot", methods=["POST"])
+def cron_snapshot():
+    """Endpoint disparado por cron externo (GitHub Actions ou similar) pra
+    coletar snapshots dos pipes monitorados.
+
+    Auth: header X-Cron-Token deve casar com env CRON_SNAPSHOT_TOKEN.
+    NAO usa Basic Auth (cron nao tem credencial de usuario).
+
+    Comportamento Sprint 2:
+    - Valida token
+    - Carrega lista de pipes monitorados
+    - Pra cada pipe enabled, chama Pipefy GraphQL com MONITOR_PIPEFY_TOKEN
+    - Salva snapshot em snapshots/auto/<pipe_id>/<timestamp>.json
+    - Retorna sumario de execucao
+
+    Sprints futuras: aplicar scoring, detectar churn, atualizar metricas
+    do dashboard sem precisar de validator run.
+    """
+    if not CRON_SNAPSHOT_TOKEN:
+        return jsonify({"error": "Cron desabilitado (CRON_SNAPSHOT_TOKEN nao setado)"}), 503
+    if request.headers.get("X-Cron-Token", "").strip() != CRON_SNAPSHOT_TOKEN:
+        return jsonify({"error": "Token invalido"}), 401
+    if not MONITOR_PIPEFY_TOKEN:
+        return jsonify({"error": "Token Pipefy nao configurado (MONITOR_PIPEFY_TOKEN)"}), 503
+
+    data = _load_monitored_pipes()
+    pipes = [p for p in data.get("pipes", []) if p.get("enabled", True) and p.get("id")]
+    if not pipes:
+        return jsonify({"ok": True, "skipped": True, "reason": "Nenhum pipe monitorado"}), 200
+
+    results = []
+    for pipe in pipes:
+        try:
+            outcome = _fetch_and_save_pipe_snapshot(pipe)
+            results.append(outcome)
+        except Exception as ex:
+            results.append({
+                "pipe_id": pipe.get("id"),
+                "ok": False,
+                "error": str(ex),
+            })
+
+    return jsonify({
+        "ok": True,
+        "timestamp": datetime_now_iso(),
+        "total_pipes": len(pipes),
+        "results": results,
+    })
+
+
+def _fetch_and_save_pipe_snapshot(pipe):
+    """Coleta snapshot de um pipe via GraphQL e salva em
+    snapshots/auto/<pipe_id>/<timestamp>.json. Retorna dict com outcome."""
+    import urllib.request
+    import urllib.error
+    import datetime as _dt
+    import re as _re
+
+    pipe_id = pipe.get("id", "")
+    pipe_name = pipe.get("name", "")
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    os.makedirs(pipe_dir, exist_ok=True)
+    timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = os.path.join(pipe_dir, f"{timestamp}.json")
+
+    # Query simplificada pra Sprint 2. Usuario pode ampliar depois.
+    query = """
+    query($pipeId: ID!) {
+      pipe(id: $pipeId) {
+        id
+        name
+        phases { id name }
+        start_form_fields { id label type required }
+        labels { id name color }
+      }
+    }
+    """
+    body = json.dumps({"query": query, "variables": {"pipeId": pipe_id}}).encode("utf-8")
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {MONITOR_PIPEFY_TOKEN}",
+    }
+    req = urllib.request.Request(MONITOR_PIPEFY_BASE_URL, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            response_body = resp.read().decode("utf-8")
+            response_data = json.loads(response_body)
+    except urllib.error.HTTPError as ex:
+        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": f"HTTP {ex.code}"}
+    except urllib.error.URLError as ex:
+        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": f"Network: {ex.reason}"}
+    except json.JSONDecodeError:
+        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": "Resposta nao-JSON"}
+
+    if "errors" in response_data:
+        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": "GraphQL errors", "graphql_errors": response_data["errors"]}
+
+    snapshot = {
+        "metadata": {
+            "timestamp": _dt.datetime.now().isoformat(),
+            "pipe_id": pipe_id,
+            "pipe_name": pipe_name,
+            "env_label": pipe.get("env_label", ""),
+            "source": "cron_auto",
+            "tool_version": "1.0",
+        },
+        "data": response_data.get("data", {}),
+    }
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, indent=2, ensure_ascii=False)
+
+    return {
+        "pipe_id": pipe_id,
+        "name": pipe_name,
+        "ok": True,
+        "snapshot_path": out_path,
+        "size_bytes": os.path.getsize(out_path),
+    }
+
+
+@app.route("/api/dashboard/auto-snapshots/<path:pipe_id>")
+def list_auto_snapshots(pipe_id):
+    """Lista snapshots automaticos coletados pelo cron pra um pipe especifico.
+    Usado pela UI pra mostrar historico mesmo antes do Sprint 3."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    import re as _re
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    if not os.path.isdir(pipe_dir):
+        return jsonify({"pipe_id": pipe_id, "snapshots": []})
+    files = sorted(os.listdir(pipe_dir), reverse=True)[:50]
+    items = []
+    for f in files:
+        path = os.path.join(pipe_dir, f)
+        if not os.path.isfile(path):
+            continue
+        items.append({
+            "filename": f,
+            "size_bytes": os.path.getsize(path),
+            "mtime": os.path.getmtime(path),
+        })
+    return jsonify({"pipe_id": pipe_id, "snapshots": items})
+
+
+def _weights_path():
+    """Resolve o path do complexity_weights.json com fallback pro repo."""
+    p = os.path.join(CONFIG_DIR, "complexity_weights.json")
+    if not os.path.exists(p):
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "config", "complexity_weights.json")
+    return p
+
+
 def _compute_velocity_safe():
     """Wrapper que isola falhas do dashboard_metrics pra nao derrubar a rota."""
     import dashboard_metrics
-    weights_path = os.path.join(CONFIG_DIR, "complexity_weights.json")
-    if not os.path.exists(weights_path):
-        # Fallback: usa o weights default do repo (caso CONFIG_DIR seja efêmero)
-        weights_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                     "config", "complexity_weights.json")
     try:
-        return dashboard_metrics.compute_velocity(VALIDATION_FILE, weights_path)
+        return dashboard_metrics.compute_velocity(VALIDATION_FILE, _weights_path())
     except Exception as ex:
         return {
             "available": False,
@@ -461,6 +719,23 @@ def _compute_velocity_safe():
             "by_prefix": {},
             "top_items": [],
             "meta": {},
+        }
+
+
+def _compute_debt_safe():
+    """Wrapper que isola falhas pra nao derrubar a rota."""
+    import dashboard_metrics
+    try:
+        return dashboard_metrics.compute_debt(VALIDATION_FILE, _weights_path())
+    except Exception as ex:
+        return {
+            "available": False,
+            "reason": f"Erro computando debt: {ex}",
+            "level": "CLEAN",
+            "total_points": 0,
+            "by_bucket": {"visual": 0, "structure": 0, "logic": 0, "integration": 0},
+            "issues_count": 0,
+            "top_issues": [],
         }
 
 

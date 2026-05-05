@@ -130,6 +130,88 @@ def list_historical_validations(results_dir: str) -> List[str]:
     return paths
 
 
+def classify_debt_level(total_points: float) -> str:
+    """Classifica pontos totais em nivel de debito categorico.
+
+    Sprint 1 usa proxy de divergencias (cross-env). Limites calibrados por
+    intuicao, ajustar apos 2-3 sprints de uso.
+    - 0 pts        -> CLEAN  (verde, nenhum debito detectado)
+    - 1-30 pts     -> LOW    (amarelo claro, debito controlado)
+    - 31-80 pts    -> MEDIUM (laranja, atencao)
+    - 80+ pts      -> HIGH   (vermelho, refator urgente)
+    """
+    pts = total_points or 0
+    if pts <= 0:
+        return "CLEAN"
+    if pts <= 30:
+        return "LOW"
+    if pts <= 80:
+        return "MEDIUM"
+    return "HIGH"
+
+
+def compute_debt(
+    validations_path: str,
+    weights_path: str,
+) -> Dict[str, Any]:
+    """Computa Debt Index sobre o validations.json mais recente.
+
+    Sprint 1: usa divergencias cross-env como proxy de debito (mais
+    divergencias = mais problemas que ainda precisam ser endereçados).
+    Sprint 3 vai expandir pra debito intrinseco (regras estaticas sobre
+    snapshot atual: automation sem condition, field sem doc, etc).
+    """
+    if not os.path.exists(validations_path):
+        return {
+            "available": False,
+            "reason": "Sem validacao executada ainda. Rode uma comparacao primeiro.",
+            "level": "CLEAN",
+            "total_points": 0,
+            "by_bucket": {"visual": 0, "structure": 0, "logic": 0, "integration": 0},
+            "issues_count": 0,
+            "top_issues": [],
+        }
+
+    try:
+        with open(validations_path, "r", encoding="utf-8") as f:
+            validations = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return {
+            "available": False,
+            "reason": f"Falha lendo validations.json: {ex}",
+            "level": "CLEAN",
+            "total_points": 0,
+            "by_bucket": {"visual": 0, "structure": 0, "logic": 0, "integration": 0},
+            "issues_count": 0,
+            "top_issues": [],
+        }
+
+    weights = load_weights(weights_path)
+    scoring = score_validations(validations, weights)
+
+    total = scoring["total_points"]
+    level = classify_debt_level(total)
+    issues_count = scoring["meta"].get("total_divergencias", 0)
+
+    return {
+        "available": True,
+        "level": level,
+        "total_points": total,
+        "by_bucket": scoring["by_bucket"],
+        "by_prefix": scoring["by_prefix"],
+        "issues_count": issues_count,
+        "top_issues": scoring["top_items"],
+        "meta": scoring["meta"],
+        "weights_version": scoring["weights_version"],
+        "thresholds": {
+            "CLEAN": "0 pts",
+            "LOW": "1-30 pts",
+            "MEDIUM": "31-80 pts",
+            "HIGH": "80+ pts",
+        },
+    }
+
+
 def compute_velocity(
     validations_path: str,
     weights_path: str,

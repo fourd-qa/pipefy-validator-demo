@@ -117,6 +117,109 @@
   }
   .stub-card .stub-title{font-size:13px;font-weight:600;color:var(--ink-2)}
   .stub-card .stub-tag{font-size:10px;font-family:var(--mono);color:#dba844;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+
+  /* Monitored pipes card */
+  .monitor-status{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    margin:8px 0 6px;
+  }
+  .monitor-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:4px 10px;border-radius:10px;
+    font-size:11px;font-family:var(--mono);
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.02);
+    color:var(--ink-2);
+  }
+  .monitor-pill.ok{background:rgba(108,194,108,.08);border-color:rgba(108,194,108,.22);color:#9adfa1}
+  .monitor-pill.warn{background:rgba(218,162,52,.08);border-color:rgba(218,162,52,.22);color:#e2bb6c}
+  .monitor-pill.err{background:rgba(229,107,107,.08);border-color:rgba(229,107,107,.22);color:#ee8e8e}
+  .monitor-pill .dot{width:6px;height:6px;border-radius:50%}
+  .monitor-pill.ok .dot{background:#7dd584}
+  .monitor-pill.warn .dot{background:#dba844}
+  .monitor-pill.err .dot{background:#e56b6b}
+
+  .monitor-table{
+    width:100%;border-collapse:collapse;margin-top:10px;
+    font-size:11.5px;
+  }
+  .monitor-table th{
+    text-align:left;padding:8px 10px;
+    color:var(--muted);font-weight:600;font-size:10px;
+    text-transform:uppercase;letter-spacing:.06em;
+    border-bottom:1px solid var(--line);
+  }
+  .monitor-table td{
+    padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.03);
+    color:var(--ink-2);
+  }
+  .monitor-table input{
+    background:rgba(255,255,255,.03);border:1px solid var(--line);
+    color:var(--ink-2);padding:5px 8px;border-radius:6px;
+    font-size:11px;font-family:inherit;
+    width:100%;box-sizing:border-box;
+  }
+  .monitor-table input:focus{outline:none;border-color:rgba(108,194,108,.5)}
+  .monitor-actions{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+  .btn-icon-mini{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    cursor:pointer;font-size:12px;padding:3px 7px;border-radius:5px;
+    transition:all .12s;
+  }
+  .btn-icon-mini:hover{color:var(--ink-2);border-color:rgba(255,255,255,.18)}
+  .btn-icon-mini.danger:hover{color:#ee8e8e;border-color:rgba(229,107,107,.32)}
+  .btn-primary{
+    background:rgba(108,194,108,.10);
+    border:1px solid rgba(108,194,108,.32);
+    color:#9adfa1;
+    padding:7px 14px;border-radius:8px;font-size:11.5px;font-weight:500;
+    cursor:pointer;transition:background .12s;
+  }
+  .btn-primary:hover{background:rgba(108,194,108,.18)}
+  .btn-secondary{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding:7px 14px;border-radius:8px;font-size:11.5px;font-weight:500;
+    cursor:pointer;transition:all .12s;
+  }
+  .btn-secondary:hover{color:var(--ink-2);border-color:rgba(255,255,255,.18)}
+
+  .switch{
+    position:relative;display:inline-block;width:32px;height:18px;
+  }
+  .switch input{opacity:0;width:0;height:0}
+  .switch .slider{
+    position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
+    background:rgba(255,255,255,.08);border-radius:18px;transition:.2s;
+  }
+  .switch .slider:before{
+    content:"";position:absolute;height:14px;width:14px;left:2px;bottom:2px;
+    background:var(--muted);border-radius:50%;transition:.2s;
+  }
+  .switch input:checked + .slider{background:rgba(108,194,108,.32)}
+  .switch input:checked + .slider:before{transform:translateX(14px);background:#9adfa1}
+
+  /* Debt Index gauge */
+  .debt-gauge{
+    display:flex;align-items:center;gap:18px;margin:8px 0 14px;
+  }
+  .debt-dial{
+    width:96px;height:96px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;flex-shrink:0;
+    font-weight:600;letter-spacing:.04em;
+    border:3px solid var(--line);
+  }
+  .debt-dial .lvl{font-size:14px}
+  .debt-dial .pts{font-size:11px;font-family:var(--mono);font-weight:500;color:var(--muted);margin-top:2px}
+  .debt-dial.lvl-CLEAN  {border-color:#7dd584;background:rgba(125,213,132,.08);color:#9adfa1}
+  .debt-dial.lvl-LOW    {border-color:#dba844;background:rgba(219,168,68,.08);color:#e2bb6c}
+  .debt-dial.lvl-MEDIUM {border-color:#e08a4f;background:rgba(224,138,79,.10);color:#eaa779}
+  .debt-dial.lvl-HIGH   {border-color:#e56b6b;background:rgba(229,107,107,.10);color:#ee8e8e}
+  .debt-info{flex:1;font-size:12px;color:var(--muted);line-height:1.5}
+  .debt-info strong{color:var(--ink-2);font-weight:600}
+  .debt-thresh{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:6px}
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -183,11 +286,28 @@
           </div>
         </div>
 
-        <!-- ======== STUBS DAS PRÓXIMAS SPRINTS ======== -->
-        <div class="dash-card col-6 stub-card">
-          <span class="stub-tag">Sprint 1 — em construção</span>
-          <span class="stub-title">🔧 Pipe Debt Ratio</span>
-          <span>Vai mostrar % de débito técnico (automation sem condition, field sem doc, phase sem padrão de naming) com gauge + donut.</span>
+        <!-- ======== MONITORED PIPES (Sprint 2) ======== -->
+        <div class="dash-card col-12">
+          <h3>📡 Pipes monitorados</h3>
+          <p class="sub">Cron coleta snapshot a cada 30 minutos (08h-19h, dias úteis). Adicione pipes manualmente ou desative os que não interessam mais.</p>
+
+          <div id="monitor-status-bar" class="monitor-status">
+            <span class="monitor-pill"><span class="dot"></span><span>carregando...</span></span>
+          </div>
+
+          <div id="monitor-content">
+            <div class="placeholder-soft">Carregando...</div>
+          </div>
+        </div>
+
+        <!-- ======== DEBT INDEX (Sprint 1 parte 2) ======== -->
+        <div class="dash-card col-12">
+          <h3>🔧 Pipe Debt Index</h3>
+          <p class="sub">Nível de débito técnico baseado em divergências cross-env. Sprint 3 vai expandir pra débito intrínseco (regras estáticas sobre snapshot atual).</p>
+
+          <div id="debt-content">
+            <div class="placeholder-soft">Carregando...</div>
+          </div>
         </div>
 
         <div class="dash-card col-6 stub-card">
@@ -290,6 +410,198 @@
     container.innerHTML = html;
   }
 
+  function renderDebt(data){
+    var container = document.getElementById('debt-content');
+    if(!container) return;
+
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">'
+        + escapeHtml(data && data.reason ? data.reason : 'Sem validação executada ainda.')
+        + '</div>';
+      return;
+    }
+
+    var level = data.level || 'CLEAN';
+    var levelDescriptions = {
+      'CLEAN':  'Nenhum débito detectado. Pipe limpo.',
+      'LOW':    'Débito controlado. Monitorar mas sem urgência.',
+      'MEDIUM': 'Débito em nível de atenção. Vale priorizar correção.',
+      'HIGH':   'Débito alto. Refator recomendado antes de novas features.'
+    };
+    var thresh = data.thresholds || {};
+
+    var buckets = data.by_bucket || {};
+    var bucketLabels = {visual:'Visual', structure:'Estrutura', logic:'Lógica', integration:'Integração'};
+    var maxBucket = Math.max(buckets.visual||0, buckets.structure||0, buckets.logic||0, buckets.integration||0, 1);
+
+    var html = ''
+      + '<div class="debt-gauge">'
+      +   '<div class="debt-dial lvl-' + escapeHtml(level) + '">'
+      +     '<div class="lvl">' + escapeHtml(level) + '</div>'
+      +     '<div class="pts">' + fmtNumber(data.total_points) + ' pts</div>'
+      +   '</div>'
+      +   '<div class="debt-info">'
+      +     '<strong>' + escapeHtml(levelDescriptions[level] || '') + '</strong>'
+      +     '<div style="margin-top:4px">' + (data.issues_count || 0) + ' divergências detectadas na última validação.</div>'
+      +     '<div class="debt-thresh">Faixas: CLEAN=' + escapeHtml(thresh.CLEAN || '0')
+      +       ' · LOW=' + escapeHtml(thresh.LOW || '')
+      +       ' · MEDIUM=' + escapeHtml(thresh.MEDIUM || '')
+      +       ' · HIGH=' + escapeHtml(thresh.HIGH || '') + '</div>'
+      +   '</div>'
+      + '</div>';
+
+    if(data.total_points > 0){
+      html += '<h3 style="margin-top:14px">Composição por área</h3>';
+      html += '<div class="bucket-list">';
+      ['logic','structure','visual','integration'].forEach(function(key){
+        var val = buckets[key] || 0;
+        var pct = (val / maxBucket) * 100;
+        html += ''
+          + '<div class="bucket-row">'
+          +   '<span class="bucket-name">' + bucketLabels[key] + '</span>'
+          +   '<div class="bucket-bar">'
+          +     '<div class="bucket-fill ' + key + '" style="width:' + pct + '%"></div>'
+          +   '</div>'
+          +   '<span class="bucket-num">' + fmtNumber(val) + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+
+      var tops = (data.top_issues || []).slice(0, 8);
+      if(tops.length){
+        html += '<h3 style="margin-top:18px">Issues por peso (candidatos a virar tickets)</h3>';
+        html += '<div class="top-items">';
+        tops.forEach(function(item){
+          html += ''
+            + '<div class="top-item" title="' + escapeHtml(item.text || '') + '">'
+            +   '<span class="pts">' + fmtNumber(item.weight) + '</span>'
+            +   '<span class="b ' + escapeHtml(item.bucket) + '">' + escapeHtml(item.bucket) + '</span>'
+            +   '<span class="lbl">' + escapeHtml(item.label) + '</span>'
+            + '</div>';
+        });
+        html += '</div>';
+      }
+    }
+
+    container.innerHTML = html;
+  }
+
+  /* ===================== Monitored pipes ===================== */
+  var _monitorState = { pipes: [], monitor_token_configured: false, cron_token_configured: false };
+
+  function renderMonitorStatus(){
+    var bar = document.getElementById('monitor-status-bar');
+    if(!bar) return;
+    var enabled = _monitorState.pipes.filter(function(p){ return p.enabled; }).length;
+    var total = _monitorState.pipes.length;
+
+    var html = '';
+    html += '<span class="monitor-pill ' + (enabled > 0 ? 'ok' : 'warn') + '"><span class="dot"></span><span>'
+         +  (enabled > 0 ? enabled + ' / ' + total + ' pipes ativos' : 'nenhum pipe ativo')
+         +  '</span></span>';
+    html += '<span class="monitor-pill ' + (_monitorState.cron_token_configured ? 'ok' : 'err') + '"><span class="dot"></span><span>'
+         +  (_monitorState.cron_token_configured ? 'cron configurado' : 'CRON_SNAPSHOT_TOKEN ausente')
+         +  '</span></span>';
+    html += '<span class="monitor-pill ' + (_monitorState.monitor_token_configured ? 'ok' : 'err') + '"><span class="dot"></span><span>'
+         +  (_monitorState.monitor_token_configured ? 'token Pipefy configurado' : 'MONITOR_PIPEFY_TOKEN ausente')
+         +  '</span></span>';
+    bar.innerHTML = html;
+  }
+
+  function renderMonitorTable(){
+    var container = document.getElementById('monitor-content');
+    if(!container) return;
+
+    var rows = '';
+    _monitorState.pipes.forEach(function(pipe, idx){
+      rows += ''
+        + '<tr data-idx="' + idx + '">'
+        +   '<td><input class="m-name" value="' + escapeHtml(pipe.name || '') + '" placeholder="Nome legível"></td>'
+        +   '<td><input class="m-id" value="' + escapeHtml(pipe.id || '') + '" placeholder="UUID Pipefy"></td>'
+        +   '<td><input class="m-repo" value="' + escapeHtml(pipe.repo_id || '') + '" placeholder="ID numérico"></td>'
+        +   '<td><input class="m-env" value="' + escapeHtml(pipe.env_label || '') + '" placeholder="HMG/PRD"></td>'
+        +   '<td><label class="switch"><input type="checkbox" class="m-en" ' + (pipe.enabled ? 'checked' : '') + '><span class="slider"></span></label></td>'
+        +   '<td class="monitor-actions"><button class="btn-icon-mini danger" data-action="remove">remover</button></td>'
+        + '</tr>';
+    });
+
+    var html = ''
+      + '<table class="monitor-table">'
+      +   '<thead><tr><th>Nome</th><th>UUID</th><th>repo_id</th><th>Ambiente</th><th>ativo</th><th></th></tr></thead>'
+      +   '<tbody>' + rows + '</tbody>'
+      + '</table>'
+      + '<div style="display:flex;gap:8px;margin-top:14px">'
+      +   '<button class="btn-secondary" id="btn-add-pipe">+ Adicionar pipe</button>'
+      +   '<button class="btn-primary" id="btn-save-pipes">Salvar configuração</button>'
+      + '</div>'
+      + '<p style="color:var(--muted);font-size:11px;margin-top:10px;line-height:1.5">'
+      +   '<strong>Próximo passo</strong> depois de salvar: configure no Render as env vars '
+      +   '<code>CRON_SNAPSHOT_TOKEN</code> (qualquer string aleatória) e '
+      +   '<code>MONITOR_PIPEFY_TOKEN</code> (Bearer do Pipefy). Configure os mesmos valores como secrets no GitHub Actions: '
+      +   '<code>APP_URL</code> = URL do Render, <code>CRON_TOKEN</code> = mesmo da env var.'
+      + '</p>';
+    container.innerHTML = html;
+
+    document.getElementById('btn-add-pipe').addEventListener('click', function(){
+      _monitorState.pipes.push({id:'', name:'', repo_id:'', env_label:'', enabled:true});
+      renderMonitorTable();
+      renderMonitorStatus();
+    });
+    document.getElementById('btn-save-pipes').addEventListener('click', saveMonitorConfig);
+    container.querySelectorAll('tr[data-idx]').forEach(function(tr){
+      var idx = parseInt(tr.getAttribute('data-idx'), 10);
+      tr.querySelector('.m-name').addEventListener('input', function(e){ _monitorState.pipes[idx].name = e.target.value; });
+      tr.querySelector('.m-id').addEventListener('input', function(e){ _monitorState.pipes[idx].id = e.target.value; });
+      tr.querySelector('.m-repo').addEventListener('input', function(e){ _monitorState.pipes[idx].repo_id = e.target.value; });
+      tr.querySelector('.m-env').addEventListener('input', function(e){ _monitorState.pipes[idx].env_label = e.target.value; });
+      tr.querySelector('.m-en').addEventListener('change', function(e){
+        _monitorState.pipes[idx].enabled = e.target.checked;
+        renderMonitorStatus();
+      });
+      tr.querySelector('[data-action=remove]').addEventListener('click', function(){
+        _monitorState.pipes.splice(idx, 1);
+        renderMonitorTable();
+        renderMonitorStatus();
+      });
+    });
+  }
+
+  function loadMonitorConfig(){
+    if(!window.V2Utils) return;
+    V2Utils.apiFetch('/api/dashboard/monitored-pipes').then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(!data) return;
+      _monitorState.pipes = data.pipes || [];
+      _monitorState.monitor_token_configured = data.monitor_token_configured;
+      _monitorState.cron_token_configured = data.cron_token_configured;
+      renderMonitorStatus();
+      renderMonitorTable();
+    }).catch(function(err){ console.error('Erro carregando monitored-pipes', err); });
+  }
+
+  function saveMonitorConfig(){
+    if(!window.V2Utils) return;
+    V2Utils.apiFetch('/api/dashboard/monitored-pipes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pipes: _monitorState.pipes}),
+    }).then(function(res){
+      if(!res.ok) throw new Error('save falhou');
+      return res.json();
+    }).then(function(data){
+      var btn = document.getElementById('btn-save-pipes');
+      if(btn){
+        var orig = btn.textContent;
+        btn.textContent = 'Salvo (' + data.count + ' pipes)';
+        setTimeout(function(){ if(btn) btn.textContent = orig; }, 2200);
+      }
+    }).catch(function(err){
+      alert('Erro salvando configuração: ' + err.message);
+    });
+  }
+
   function renderRunMeta(data){
     var container = document.getElementById('run-meta-content');
     if(!container) return;
@@ -328,6 +640,8 @@
       if(pill){ pill.textContent = 'role: ' + (data.role || 'n/a'); }
       renderVelocity(data.velocity);
       renderRunMeta(data.velocity);
+      renderDebt(data.debt);
+      loadMonitorConfig();
     }).catch(function(err){
       console.error('Erro carregando dashboard', err);
     });

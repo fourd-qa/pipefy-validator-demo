@@ -1,0 +1,51 @@
+name: Cron Snapshot
+
+# Cron disparado a cada 30 minutos pra coletar snapshots automaticos dos
+# pipes monitorados (Sprint 2 do Dashboard de Produtividade).
+#
+# Pre-requisitos:
+# - Secret APP_URL no GitHub (ex: https://pipefy-validator-demo.onrender.com)
+# - Secret CRON_TOKEN no GitHub (mesmo valor que CRON_SNAPSHOT_TOKEN no Render)
+#
+# O endpoint /api/cron/snapshot:
+# - Valida X-Cron-Token contra CRON_SNAPSHOT_TOKEN
+# - Le config/monitored_pipes.json
+# - Pra cada pipe enabled, coleta snapshot via Pipefy GraphQL
+# - Salva em snapshots/auto/<pipe_id>/<timestamp>.json
+#
+# Render free tier dorme depois de 15min ocioso. O cron tambem funciona como
+# wake-up ping, mantendo o app vivo durante o horario comercial (e dormindo
+# fora dele pra economizar quota).
+
+on:
+  schedule:
+    # A cada 30 minutos, segunda a sexta, 8h-19h BRT (11h-22h UTC)
+    - cron: "*/30 11-22 * * 1-5"
+  workflow_dispatch: # permite disparo manual via UI do GitHub
+
+jobs:
+  trigger-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger snapshot endpoint
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "::error::APP_URL secret nao configurado"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_TOKEN }}" ]; then
+            echo "::error::CRON_TOKEN secret nao configurado"
+            exit 1
+          fi
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "X-Cron-Token: ${{ secrets.CRON_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/snapshot")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n -1)
+          echo "HTTP $http_code"
+          echo "$body" | head -c 2000
+          if [ "$http_code" -ge 400 ]; then
+            echo "::error::Snapshot falhou com HTTP $http_code"
+            exit 1
+          fi

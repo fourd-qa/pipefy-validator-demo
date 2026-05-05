@@ -306,6 +306,126 @@ def test_endpoint_velocity_sem_validations_retorna_unavailable(tmp_path, monkeyp
     assert body["total_points"] == 0
 
 
+# ---------- compute_debt + classify_debt_level ----------
+
+def test_classify_debt_level_clean(metrics_module):
+    assert metrics_module.classify_debt_level(0) == "CLEAN"
+
+
+def test_classify_debt_level_low(metrics_module):
+    assert metrics_module.classify_debt_level(1) == "LOW"
+    assert metrics_module.classify_debt_level(15) == "LOW"
+    assert metrics_module.classify_debt_level(30) == "LOW"
+
+
+def test_classify_debt_level_medium(metrics_module):
+    assert metrics_module.classify_debt_level(31) == "MEDIUM"
+    assert metrics_module.classify_debt_level(50) == "MEDIUM"
+    assert metrics_module.classify_debt_level(80) == "MEDIUM"
+
+
+def test_classify_debt_level_high(metrics_module):
+    assert metrics_module.classify_debt_level(81) == "HIGH"
+    assert metrics_module.classify_debt_level(200) == "HIGH"
+
+
+def test_classify_debt_level_aceita_none(metrics_module):
+    assert metrics_module.classify_debt_level(None) == "CLEAN"
+
+
+def test_compute_debt_arquivo_inexistente(metrics_module, weights_path, tmp_path):
+    result = metrics_module.compute_debt(
+        str(tmp_path / "naoexiste.json"), weights_path
+    )
+    assert result["available"] is False
+    assert result["level"] == "CLEAN"
+    assert result["total_points"] == 0
+
+
+def test_compute_debt_arquivo_corrompido(metrics_module, weights_path, tmp_path):
+    bad = tmp_path / "validations.json"
+    bad.write_text("{ corrompido", encoding="utf-8")
+    result = metrics_module.compute_debt(str(bad), weights_path)
+    assert result["available"] is False
+
+
+def test_compute_debt_validations_validas(metrics_module, weights_path, tmp_path, sample_validations):
+    valid = tmp_path / "validations.json"
+    valid.write_text(json.dumps(sample_validations), encoding="utf-8")
+    result = metrics_module.compute_debt(str(valid), weights_path)
+    assert result["available"] is True
+    assert result["total_points"] == 28
+    assert result["level"] == "LOW"  # 28 está entre 1-30
+    assert result["issues_count"] == 6
+    assert "thresholds" in result
+
+
+def test_compute_debt_zero_divergencias_clean(metrics_module, weights_path, tmp_path):
+    valid = tmp_path / "validations.json"
+    valid.write_text(json.dumps({
+        "status": "IDENTICOS",
+        "divergencias": [],
+        "metadata": {},
+    }), encoding="utf-8")
+    result = metrics_module.compute_debt(str(valid), weights_path)
+    assert result["available"] is True
+    assert result["level"] == "CLEAN"
+    assert result["total_points"] == 0
+
+
+def test_compute_debt_high_quando_muitas_divergencias(metrics_module, weights_path, tmp_path):
+    # Gera 10x [AUTOMACAO URL] (peso 8 cada) = 80 pontos = MEDIUM (limite)
+    # 11x [AUTOMACAO URL] = 88 pontos = HIGH
+    divergencias = ["[AUTOMACAO URL] X muda" for _ in range(11)]
+    valid = tmp_path / "validations.json"
+    valid.write_text(json.dumps({
+        "status": "DIVERGENCIAS_ENCONTRADAS",
+        "divergencias": divergencias,
+        "metadata": {},
+    }), encoding="utf-8")
+    result = metrics_module.compute_debt(str(valid), weights_path)
+    assert result["level"] == "HIGH"
+    assert result["total_points"] == 88
+
+
+# ---------- Endpoints HTTP do Debt ----------
+
+def test_endpoint_debt_lideranca_retorna_index(tmp_path, monkeypatch, sample_validations):
+    server = _reload_server_with_validations(tmp_path, monkeypatch, sample_validations, env={
+        "APP_PASSWORD": "demosecret",
+    })
+    res = server.app.test_client().get(
+        "/api/dashboard/debt",
+        headers={"Authorization": _basic("lideranca", "lideranca")},
+    )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["available"] is True
+    assert body["level"] == "LOW"
+    assert body["total_points"] == 28
+
+
+def test_endpoint_debt_demo_recebe_403(tmp_path, monkeypatch, sample_validations):
+    server = _reload_server_with_validations(tmp_path, monkeypatch, sample_validations, env={
+        "APP_PASSWORD": "demosecret",
+    })
+    res = server.app.test_client().get(
+        "/api/dashboard/debt",
+        headers={"Authorization": _basic("demo", "demosecret")},
+    )
+    assert res.status_code == 403
+
+
+def test_endpoint_dashboard_data_inclui_debt_alem_de_velocity(tmp_path, monkeypatch, sample_validations):
+    server = _reload_server_with_validations(tmp_path, monkeypatch, sample_validations)
+    res = server.app.test_client().get("/api/dashboard/data")
+    assert res.status_code == 200
+    body = res.get_json()
+    assert "velocity" in body
+    assert "debt" in body
+    assert body["debt"]["level"] == "LOW"
+
+
 def test_endpoint_velocity_quebrado_nao_derruba_app(tmp_path, monkeypatch):
     """Se complexity_weights.json sumir (config volume nao montado), endpoint
     cai num fallback ao arquivo do repo."""
