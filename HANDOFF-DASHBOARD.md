@@ -1,17 +1,18 @@
 # Handoff — Dashboard de Produtividade
 
 Documento pra retomar o trabalho num chat novo sem perder contexto.
-Última atualização: 2026-05-05, fim de sessão. Sprints 1 e 2 entregues.
+Última atualização: 2026-05-05, fim de sessão. Sprints 1, 2 e 3 entregues.
 
 ---
 
 ## TL;DR
 
-- **Onde estamos**: Sprints 1 e 2 do `PLANO-DASHBOARD-PRODUTIVIDADE.md` no ar. Sprint 3 e Sprint 4 pendentes.
+- **Onde estamos**: Sprints 1, 2 e 3 do `PLANO-DASHBOARD-PRODUTIVIDADE.md` no ar. Sprint 4 pendente.
 - **Repositório**: `fourd-qa/pipefy-validator-demo` (público), branch `main`.
 - **Deploy**: Render free tier. URL `https://pipefy-validator-demo.onrender.com`.
-- **Testes**: 208 pytest + 49 vitest verde no commit `728d3a2`.
+- **Testes**: 226 pytest + 49 vitest verdes (Sprint 3 adicionou 18 pytest novos).
 - **Login**: `lideranca / lideranca` vê o dashboard. `demo / <APP_PASSWORD>` continua usando o validador normal sem ver o dashboard.
+- **Massa demo**: `scripts/seed_dashboard_snapshots.py` gera 20 snapshots fictícios (10/pipe × 2 pipes HMG/PRD) pra Sprint 3 funcionar offline enquanto o cron real não roda.
 
 ---
 
@@ -49,6 +50,29 @@ Documento pra retomar o trabalho num chat novo sem perder contexto.
 - Stubs visuais dos próximos cards (Lead Time, Hot Spots, Burnup) com tag de sprint.
 
 **Testes**: `tests/python/test_dashboard_metrics.py` (38 casos).
+
+### 1.4 Sprint 3 — Hot Spots + Lead Time
+
+**Engine** (em `dashboard_metrics.py`, segue padrão da Sprint 1):
+- `compute_hotspots(snapshots_root, pipe_id, weights_path)`: ordena snapshots por timestamp, faz diff entre pares consecutivos, agrega por phase. Detecta phase create/delete/rename, field create/delete/type/required em phase, mudanças no start form. Score = soma dos pesos das mudanças. Level CLEAN/LOW/MEDIUM/HIGH classifica score.
+- `compute_leadtime(snapshots_root, monitored)`: pareia pipes monitorados pelo nome base ignorando sufixos (HMG/PRD/(demo)). Pra cada par, calcula primeira aparição de phases e fields em cada lado, lag = diff em dias úteis. Filtra baseline pré-existente (elementos no t0 dos dois lados) pra não enviesar mediana.
+
+**Endpoints**:
+- `GET /api/dashboard/hotspots?pipe_id=...` (gated lideranca): default usa primeiro pipe enabled.
+- `GET /api/dashboard/leadtime` (gated): retorna todos os pares HMG/PRD com mediana, média, máximo e listas de promovidos/pendentes.
+- `/api/dashboard/data` foi expandido pra incluir `hotspots` e `leadtime` no payload agregado.
+
+**UI** (cards Hot Spots e Lead Time substituem os stubs):
+- Hot Spots: barra colorida por level + score numérico + samples expansíveis (clique na linha) com kind, peso e detalhe da mudança.
+- Lead Time: 3 KPIs (mediana global, média, total promovidos) + por par mostra contadores baseline/promovidos/pendentes e lista das promoções com cor (verde <3d, laranja 3-4d, vermelho ≥5d).
+
+**Massa demo** (`scripts/seed_dashboard_snapshots.py`):
+- Gera 20 snapshots fictícios (10/pipe × 2 pipes) ao longo de 14 dias úteis terminando em 2026-05-05.
+- 1 par HMG/PRD ("Mesa de Crédito PF") com evolução determinística em 7 estados (v1→v7).
+- Cenário verificado: phase "Análise de Crédito" acumula 4 mudanças (MEDIUM), phase "Validação de Renda" 1 mudança (LOW), Start Form 1 mudança. Lead time mediano 3d úteis, máximo 4d, 6 elementos promovidos, 0 pendentes.
+- Idempotente: `python scripts/seed_dashboard_snapshots.py` recria. `--dry-run` simula. `--no-monitored` não toca a config.
+
+**Testes**: `tests/python/test_dashboard_sprint3.py` (18 casos: engine + endpoints + integração `/api/dashboard/data`).
 
 ### 1.3 Sprint 2 — Cron + Pipes Monitorados (commit `728d3a2`)
 
@@ -145,47 +169,31 @@ Veja `memory/project_pendencia_flake_sterilize.md`. Não relacionada ao dashboar
 pipefy-validator-demo/
 ├── PLANO-DASHBOARD-PRODUTIVIDADE.md    canônico da feature
 ├── HANDOFF-DASHBOARD.md                este arquivo
-├── server.py                           +monitored-pipes, +cron, +dashboard endpoints
-├── dashboard_metrics.py                engine pura (NOVO)
+├── server.py                           +hotspots, +leadtime, +monitored-pipes, +cron, +dashboard endpoints
+├── dashboard_metrics.py                engine pura: velocity, debt, hotspots, leadtime
 ├── config/
-│   ├── complexity_weights.json         24 prefixos + multiplicadores (NOVO)
-│   └── monitored_pipes.json            lista de pipes do cron (NOVO)
+│   ├── complexity_weights.json         24 prefixos + multiplicadores
+│   └── monitored_pipes.json            lista de pipes do cron (Sprint 3 adiciona 2 demos automaticamente)
+├── snapshots/auto/                     histórico do cron (Sprint 3 popula via seed quando cron real ainda não rodou)
+│   ├── pipe-mesa-credito-hmg/          10 snapshots demo (HMG)
+│   └── pipe-mesa-credito-prd/          10 snapshots demo (PRD)
+├── scripts/
+│   └── seed_dashboard_snapshots.py     gerador determinístico da massa demo (NOVO Sprint 3)
 ├── web/designs/
-│   ├── tela_dashboard.html             4 cards: Velocity, RunMeta, Debt, Monitored Pipes
-│   └── assets/v2_utils.js              renderDashboardLink() já injetado em todas as 3 telas existentes
+│   ├── tela_dashboard.html             6 cards: Velocity, RunMeta, Monitored Pipes, Debt, Hot Spots, Lead Time
+│   └── assets/v2_utils.js              renderDashboardLink() injetado nas 3 telas existentes
 ├── tests/python/
 │   ├── test_dashboard.py               15 casos: whoami + gates + lideranca login
 │   ├── test_dashboard_metrics.py       38 casos: scoring + endpoints velocity/debt
-│   └── test_dashboard_cron.py          19 casos: monitored-pipes + cron + auto-snapshots
+│   ├── test_dashboard_cron.py          19 casos: monitored-pipes + cron + auto-snapshots
+│   └── test_dashboard_sprint3.py       18 casos: hotspots + leadtime + endpoints (NOVO)
 └── .github/workflows/
     └── cron-snapshot.yml               cron */30 chama /api/cron/snapshot
 ```
 
 ---
 
-## 5. Próximos passos: Sprint 3
-
-### Sprint 3 — Hot Spots + Lead Time
-
-**Pré-requisito**: 1-2 semanas de snapshots históricos acumulados pelo cron (Sprint 2 rodando em produção).
-
-**Hot Spots**
-- Engine em `dashboard_metrics.py` que carrega N snapshots de `snapshots/auto/<pipe_id>/`, calcula:
-  - Frequência de mudança por phase (quantas vezes phase X mudou em N snapshots)
-  - Complexidade média por phase (peso médio das mudanças que envolveram a phase)
-  - Score = frequência × complexidade
-- Endpoint `GET /api/dashboard/hotspots`
-- UI: heatmap 2D (linhas = phases, colunas = semanas) ou scatter plot (frequência × complexidade) ou ambos
-
-**Lead Time HMG → PRD**
-- Engine que casa snapshots de pipe HMG e PRD pelo `env_label` em `monitored_pipes.json`, calcula tempo entre elemento aparecer em HMG e mesmo elemento aparecer em PRD.
-- Pré-requisito: pares HMG/PRD configurados na lista de monitored.
-- Endpoint `GET /api/dashboard/leadtime`
-- UI: histograma de distribuição + line chart de mediana semanal.
-
-**Bibliotecas de gráfico**: Chart.js via CDN (~70KB) cobre line/bar/scatter/donut. ApexCharts (~190KB) só se precisar heatmap nativo (pode fazer em CSS Grid puro também).
-
-**Estimativa**: 14-17h, 1 sprint corrida.
+## 5. Próximos passos: Sprint 4
 
 ### Sprint 4 — Burnup vs Blueprint + Email
 
@@ -246,11 +254,11 @@ Detalhes em conversa anterior do chat (resumida em `PLANO-DASHBOARD-PRODUTIVIDAD
 Cole no início do chat novo:
 
 ```
-Lê o HANDOFF-DASHBOARD.md desta pasta. Estamos no fim da Sprint 2 do
-Dashboard de Produtividade. Próximo passo: Sprint 3 (Hot Spots + Lead Time).
-Sprint 4 (Burnup + Email) vem depois. Sistema de pontuação e plano canônico
-estão em PLANO-DASHBOARD-PRODUTIVIDADE.md. Memória do Claude está em
-~/.claude/projects/.../memory/MEMORY.md.
+Lê o HANDOFF-DASHBOARD.md desta pasta. Sprints 1, 2 e 3 do Dashboard de
+Produtividade estão entregues. Próximo passo: Sprint 4 (Burnup + Email).
+Sistema de pontuação e plano canônico estão em PLANO-DASHBOARD-PRODUTIVIDADE.md.
+Memória do Claude está em ~/.claude/projects/.../memory/MEMORY.md.
+Pra rebootar massa demo localmente: python scripts/seed_dashboard_snapshots.py
 ```
 
 Aí o Claude novo lê os 2 arquivos, atualiza memória se precisar, e continua.
@@ -272,10 +280,10 @@ Aí o Claude novo lê os 2 arquivos, atualiza memória se precisar, e continua.
 
 ## 10. Status final desta sessão
 
-- Sprints 1 e 2 entregues e em produção.
-- 208 pytest verde, 49 vitest verde.
-- 3 commits novos no main: `315555a` (lideranca login), `bb61497` (Velocity), `728d3a2` (Debt + Cron).
-- 4 arquivos `.md` versionados pra contexto: PLANO-DASHBOARD-PRODUTIVIDADE.md, HANDOFF-DASHBOARD.md, BRIEFING.md (handoff original), CHANGELOG-DEMO.md.
-- Pendência operacional: configurar 5 secrets/envs descritos na seção 2 deste documento.
+- Sprints 1, 2 e 3 entregues. Sprints 1 e 2 em produção; Sprint 3 já no `main` mas roda offline com massa demo até o cron real começar a coletar.
+- 226 pytest verdes, 49 vitest verdes.
+- Sprint 3 adicionou: `dashboard_metrics.py` (compute_hotspots + compute_leadtime), 2 endpoints, 2 cards na UI, 18 pytest, 1 script de seed determinístico.
+- Pendência operacional: os 5 secrets/envs da seção 2 continuam pendentes. Quando configurados, o cron vai sobrescrever a massa demo com snapshots reais — o engine aceita os dois formatos.
+- Decisão pendente herdada: persistência do `monitored_pipes.json` no Render free tier (seção 3.2).
 
-Próxima sessão começa pela Sprint 3 com snapshots já acumulados (assumindo cron rodando esta semana).
+Próxima sessão: Sprint 4 (Burnup vs Blueprint + email diário Resend).

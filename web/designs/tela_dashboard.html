@@ -10,6 +10,13 @@
 <link rel="stylesheet" href="/v2/assets/tela_resultados_v1.css">
 <link rel="stylesheet" href="/v2/assets/v2_theme.css">
 <style>
+  /* Override do shell shared (tela_resultados_v1.css fixa altura em 100vh):
+     dashboard tem 6+ cards e precisa de scroll natural da pagina. */
+  html, body { height: auto !important; overflow: auto !important; }
+  body { overflow-y: scroll !important; }
+  .app { height: auto !important; min-height: 100vh; display: block !important; }
+  .main { grid-column: unset !important; }
+
   .dash-wrap{padding:28px 24px;max-width:1200px;margin:0 auto}
   .dash-hero{
     border:1px solid var(--line);
@@ -220,6 +227,133 @@
   .debt-info{flex:1;font-size:12px;color:var(--muted);line-height:1.5}
   .debt-info strong{color:var(--ink-2);font-weight:600}
   .debt-thresh{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:6px}
+
+  /* Vault picker (importar pipes de ambientes cadastrados) */
+  .vault-picker{
+    margin-top:14px;padding:14px 16px;
+    border:1px solid var(--line);border-radius:10px;
+    background:rgba(255,255,255,.015);
+  }
+  .vault-picker.hidden{display:none}
+  .vault-picker h4{
+    margin:0 0 10px;font-size:11.5px;font-weight:600;color:var(--ink-2);
+    display:flex;align-items:center;gap:8px;
+  }
+  .vault-picker .help{font-size:11px;color:var(--muted);line-height:1.5;margin:0 0 12px}
+  .vault-picker .help a{color:#9adfa1;text-decoration:none}
+  .vault-picker .help a:hover{text-decoration:underline}
+  .vault-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:8px}
+  .vault-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:200px}
+  .vault-field label{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .vault-field select, .vault-field input{
+    background:rgba(255,255,255,.03);
+    border:1px solid var(--line);
+    color:var(--ink-2);
+    padding:7px 10px;border-radius:6px;
+    font-size:12px;font-family:inherit;
+  }
+  .vault-field select{min-width:200px}
+  .vault-field select:focus, .vault-field input:focus{outline:none;border-color:rgba(108,194,108,.5)}
+  .vault-empty{
+    color:var(--muted);font-size:11.5px;line-height:1.5;
+    padding:10px 12px;background:rgba(218,162,52,.06);
+    border:1px solid rgba(218,162,52,.20);border-radius:8px;
+  }
+
+  /* Hot Spots (Sprint 3) */
+  .hotspot-picker{
+    display:flex;justify-content:center;align-items:center;gap:10px;
+    margin:6px 0 14px;
+  }
+  .hotspot-picker label{
+    font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+  }
+  .hotspot-picker select{
+    background:rgba(255,255,255,.03);
+    border:1px solid var(--line);
+    color:var(--ink-2);
+    padding:7px 28px 7px 12px;
+    border-radius:8px;
+    font-size:12px;
+    font-family:inherit;
+    cursor:pointer;
+    min-width:280px;
+    appearance:none;
+    -webkit-appearance:none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1L5 5L9 1' stroke='%237dd584' stroke-width='1.5' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 10px center;
+  }
+  .hotspot-picker select:focus{outline:none;border-color:rgba(108,194,108,.5)}
+  .hotspot-picker select:hover{border-color:rgba(255,255,255,.18)}
+  .hotspot-picker .picker-empty{
+    font-size:11.5px;color:var(--muted);font-style:italic;
+  }
+
+  .hotspot-meta{
+    display:flex;gap:14px;flex-wrap:wrap;
+    margin:6px 0 12px;font-size:11px;color:var(--muted);font-family:var(--mono);
+  }
+  .hotspot-meta span{padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+  .hotspot-row{
+    display:grid;grid-template-columns:120px 1fr 60px 50px;
+    align-items:center;gap:10px;
+    padding:9px 10px;border-radius:8px;font-size:12px;
+    border:1px solid transparent;
+  }
+  .hotspot-row + .hotspot-row{margin-top:3px}
+  .hotspot-row:hover{background:rgba(255,255,255,.02)}
+  .hotspot-name{color:var(--ink-2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hotspot-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.04);overflow:hidden;position:relative}
+  .hotspot-bar .fill{position:absolute;top:0;left:0;height:100%;border-radius:4px}
+  .hotspot-bar .fill.lvl-CLEAN  {background:#7dd584}
+  .hotspot-bar .fill.lvl-LOW    {background:#dba844}
+  .hotspot-bar .fill.lvl-MEDIUM {background:#e08a4f}
+  .hotspot-bar .fill.lvl-HIGH   {background:#e56b6b}
+  .hotspot-score{font-family:var(--mono);font-size:11px;color:var(--ink-2);text-align:right}
+  .hotspot-level{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;text-align:center;padding:1px 6px;border-radius:5px}
+  .hotspot-level.lvl-CLEAN  {background:rgba(125,213,132,.12);color:#9adfa1}
+  .hotspot-level.lvl-LOW    {background:rgba(219,168,68,.12);color:#e2bb6c}
+  .hotspot-level.lvl-MEDIUM {background:rgba(224,138,79,.14);color:#eaa779}
+  .hotspot-level.lvl-HIGH   {background:rgba(229,107,107,.14);color:#ee8e8e}
+  .hotspot-samples{
+    display:none;padding:8px 12px;background:rgba(255,255,255,.02);
+    border-radius:6px;margin:4px 0 8px;
+    font-size:11px;color:var(--muted);
+  }
+  .hotspot-row.expanded + .hotspot-samples{display:block}
+  .hotspot-sample{display:flex;gap:10px;padding:3px 0;align-items:center}
+  .hotspot-sample .when{font-family:var(--mono);font-size:10.5px;color:var(--muted);min-width:90px}
+  .hotspot-sample .kind{font-size:9.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em;color:#9bbde0;min-width:140px}
+  .hotspot-sample .det{flex:1;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hotspot-sample .w{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+  /* Lead Time (Sprint 3) */
+  .lt-summary{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 14px}
+  .lt-stat{
+    flex:1;min-width:90px;
+    border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;background:rgba(255,255,255,.01);
+  }
+  .lt-stat .label{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:4px}
+  .lt-stat .num{font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--ink-2);font-family:var(--mono)}
+  .lt-stat .num .unit{font-size:11px;color:var(--muted);font-weight:500;margin-left:4px;font-family:inherit}
+  .lt-pair-title{font-size:11.5px;color:var(--ink-2);font-weight:600;margin:14px 0 6px;display:flex;align-items:center;gap:8px}
+  .lt-pair-tag{font-size:9.5px;font-family:var(--mono);color:var(--muted);font-weight:500;padding:2px 6px;border-radius:5px;border:1px solid var(--line)}
+  .lt-list{display:flex;flex-direction:column;gap:4px}
+  .lt-item{
+    display:grid;grid-template-columns:120px 1fr 80px;
+    gap:10px;align-items:center;
+    padding:6px 10px;border-radius:6px;font-size:11.5px;
+    border:1px solid transparent;
+  }
+  .lt-item:hover{background:rgba(255,255,255,.02)}
+  .lt-kind{font-size:9.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em;color:#9bbde0}
+  .lt-id{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lt-lag{font-family:var(--mono);font-size:11px;text-align:right;color:var(--ink-2)}
+  .lt-lag.warn{color:#e2bb6c}
+  .lt-lag.alert{color:#ee8e8e}
+  .lt-pending{color:#dba844;font-style:italic}
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -310,16 +444,27 @@
           </div>
         </div>
 
-        <div class="dash-card col-6 stub-card">
-          <span class="stub-tag">Sprint 3 — após histórico</span>
-          <span class="stub-title">⏱ Lead Time HMG → PRD</span>
-          <span>Vai mostrar mediana de dias entre criação em HMG e chegada em PRD, com histograma de distribuição.</span>
+        <!-- ======== HOT SPOTS (Sprint 3) ======== -->
+        <div class="dash-card col-6">
+          <h3>🔥 Phase Hot Spots</h3>
+          <p class="sub">Phases que mais mudam no histórico recente, cruzando frequência com complexidade. Score = soma dos pesos das mudanças observadas.</p>
+
+          <div class="hotspot-picker" id="hotspot-picker">
+            <span class="picker-empty">carregando pipes monitorados...</span>
+          </div>
+
+          <div id="hotspots-content">
+            <div class="placeholder-soft">Selecione um pipe acima.</div>
+          </div>
         </div>
 
-        <div class="dash-card col-6 stub-card">
-          <span class="stub-tag">Sprint 3 — após histórico</span>
-          <span class="stub-title">🔥 Phase Hot Spots</span>
-          <span>Heatmap mostrando phases que mais mudam ao longo das semanas, cruzando frequência com complexidade.</span>
+        <!-- ======== LEAD TIME (Sprint 3) ======== -->
+        <div class="dash-card col-6">
+          <h3>⏱ Lead Time HMG → PRD</h3>
+          <p class="sub">Tempo (dias úteis) entre um elemento aparecer em HMG e chegar em PRD. Calculado sobre pares HMG/PRD configurados em pipes monitorados.</p>
+          <div id="leadtime-content">
+            <div class="placeholder-soft">Carregando...</div>
+          </div>
         </div>
 
         <div class="dash-card col-6 stub-card">
@@ -508,6 +653,108 @@
     bar.innerHTML = html;
   }
 
+  var _vaultPickerOpen = false;
+  var _vaultPickerSel = { envId: '', pipeUuid: '', envLabel: 'HMG' };
+
+  function _vaultEnvs(){
+    if(!window.V2Utils || !window.V2Utils.vaultList) return [];
+    return window.V2Utils.vaultList().filter(function(e){
+      return e && (e.type === 'pipefy' || !e.type) && Array.isArray(e.pipes) && e.pipes.length;
+    });
+  }
+
+  function renderVaultPicker(){
+    var picker = document.getElementById('vault-picker');
+    if(!picker) return;
+    if(!_vaultPickerOpen){ picker.classList.add('hidden'); return; }
+    picker.classList.remove('hidden');
+
+    var envs = _vaultEnvs();
+    if(!envs.length){
+      picker.innerHTML = ''
+        + '<h4>Importar pipe de ambiente cadastrado</h4>'
+        + '<div class="vault-empty">'
+        +   'Nenhum ambiente Pipefy com pipes descobertos no navegador. '
+        +   'Cadastre um em <a href="/v2/configuracao">/v2/configuracao</a> '
+        +   '(formulário "Adicionar ambiente Pipefy" → "Buscar pipes da org").'
+        + '</div>';
+      return;
+    }
+
+    if(!_vaultPickerSel.envId || !envs.some(function(e){ return e.id === _vaultPickerSel.envId; })){
+      _vaultPickerSel.envId = envs[0].id;
+      _vaultPickerSel.pipeUuid = '';
+    }
+    var selectedEnv = envs.find(function(e){ return e.id === _vaultPickerSel.envId; }) || envs[0];
+    var pipes = (selectedEnv.pipes || []).slice().sort(function(a, b){
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+    if(!_vaultPickerSel.pipeUuid && pipes.length){ _vaultPickerSel.pipeUuid = pipes[0].uuid; }
+
+    var html = ''
+      + '<h4>Importar pipe de ambiente cadastrado</h4>'
+      + '<p class="help">Reusa os ambientes que você cadastrou em '
+      +   '<a href="/v2/configuracao">/v2/configuracao</a>. O botão "Buscar pipes da org" '
+      +   'lá popula o vault local com os pipes descobertos via GraphQL — aqui só selecionamos.'
+      + '</p>'
+      + '<div class="vault-row">'
+      +   '<div class="vault-field">'
+      +     '<label>Ambiente</label>'
+      +     '<select id="vault-env-select">';
+    envs.forEach(function(e){
+      var sel = (e.id === _vaultPickerSel.envId) ? ' selected' : '';
+      html += '<option value="' + escapeHtml(e.id) + '"' + sel + '>' + escapeHtml(e.name || e.id) + ' (' + (e.pipes || []).length + ' pipes)</option>';
+    });
+    html += '</select></div>'
+      +   '<div class="vault-field">'
+      +     '<label>Pipe</label>'
+      +     '<select id="vault-pipe-select">';
+    pipes.forEach(function(p){
+      var sel = (p.uuid === _vaultPickerSel.pipeUuid) ? ' selected' : '';
+      var label = (p.name || '(sem nome)') + ' · ' + String(p.uuid || '').slice(0, 8);
+      html += '<option value="' + escapeHtml(p.uuid) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+    });
+    html += '</select></div>'
+      +   '<div class="vault-field" style="flex:0 0 110px;min-width:110px">'
+      +     '<label>Env label</label>'
+      +     '<input id="vault-env-label" value="' + escapeHtml(_vaultPickerSel.envLabel) + '" placeholder="HMG/PRD" maxlength="16">'
+      +   '</div>'
+      +   '<button class="btn-primary" id="vault-add-btn" style="height:32px">Adicionar à tabela</button>'
+      + '</div>';
+    picker.innerHTML = html;
+
+    document.getElementById('vault-env-select').addEventListener('change', function(e){
+      _vaultPickerSel.envId = e.target.value;
+      _vaultPickerSel.pipeUuid = '';
+      renderVaultPicker();
+    });
+    document.getElementById('vault-pipe-select').addEventListener('change', function(e){
+      _vaultPickerSel.pipeUuid = e.target.value;
+    });
+    document.getElementById('vault-env-label').addEventListener('input', function(e){
+      _vaultPickerSel.envLabel = e.target.value;
+    });
+    document.getElementById('vault-add-btn').addEventListener('click', function(){
+      var env = _vaultEnvs().find(function(x){ return x.id === _vaultPickerSel.envId; });
+      if(!env){ alert('Ambiente não encontrado.'); return; }
+      var pipe = (env.pipes || []).find(function(p){ return p.uuid === _vaultPickerSel.pipeUuid; });
+      if(!pipe){ alert('Selecione um pipe.'); return; }
+      var dup = _monitorState.pipes.some(function(p){ return p.id === pipe.uuid; });
+      if(dup){ alert('Pipe já está na lista de monitorados.'); return; }
+      _monitorState.pipes.push({
+        id: pipe.uuid,
+        name: pipe.name || '',
+        repo_id: pipe.repo_id || '',
+        env_label: (_vaultPickerSel.envLabel || '').trim() || 'HMG',
+        enabled: true,
+      });
+      _vaultPickerSel.pipeUuid = '';
+      renderMonitorTable();
+      renderMonitorStatus();
+      renderHotspotPicker();
+    });
+  }
+
   function renderMonitorTable(){
     var container = document.getElementById('monitor-content');
     if(!container) return;
@@ -525,14 +772,20 @@
         + '</tr>';
     });
 
+    var vaultCount = _vaultEnvs().length;
+    var importLabel = vaultCount
+      ? '+ Importar do vault (' + vaultCount + ' ambiente' + (vaultCount === 1 ? '' : 's') + ')'
+      : '+ Importar do vault';
     var html = ''
       + '<table class="monitor-table">'
       +   '<thead><tr><th>Nome</th><th>UUID</th><th>repo_id</th><th>Ambiente</th><th>ativo</th><th></th></tr></thead>'
       +   '<tbody>' + rows + '</tbody>'
       + '</table>'
-      + '<div style="display:flex;gap:8px;margin-top:14px">'
-      +   '<button class="btn-secondary" id="btn-add-pipe">+ Adicionar pipe</button>'
-      +   '<button class="btn-primary" id="btn-save-pipes">Salvar configuração</button>'
+      + '<div id="vault-picker" class="vault-picker hidden"></div>'
+      + '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">'
+      +   '<button class="btn-secondary" id="btn-import-vault">' + escapeHtml(importLabel) + '</button>'
+      +   '<button class="btn-secondary" id="btn-add-pipe">+ Manual</button>'
+      +   '<button class="btn-primary" id="btn-save-pipes" style="margin-left:auto">Salvar configuração</button>'
       + '</div>'
       + '<p style="color:var(--muted);font-size:11px;margin-top:10px;line-height:1.5">'
       +   '<strong>Próximo passo</strong> depois de salvar: configure no Render as env vars '
@@ -542,6 +795,12 @@
       + '</p>';
     container.innerHTML = html;
 
+    renderVaultPicker();
+
+    document.getElementById('btn-import-vault').addEventListener('click', function(){
+      _vaultPickerOpen = !_vaultPickerOpen;
+      renderVaultPicker();
+    });
     document.getElementById('btn-add-pipe').addEventListener('click', function(){
       _monitorState.pipes.push({id:'', name:'', repo_id:'', env_label:'', enabled:true});
       renderMonitorTable();
@@ -562,6 +821,7 @@
         _monitorState.pipes.splice(idx, 1);
         renderMonitorTable();
         renderMonitorStatus();
+        renderHotspotPicker();
       });
     });
   }
@@ -578,6 +838,7 @@
       _monitorState.cron_token_configured = data.cron_token_configured;
       renderMonitorStatus();
       renderMonitorTable();
+      renderHotspotPicker();
     }).catch(function(err){ console.error('Erro carregando monitored-pipes', err); });
   }
 
@@ -629,6 +890,164 @@
     container.innerHTML = html;
   }
 
+  var _selectedHotspotPipeId = null;
+
+  function renderHotspotPicker(){
+    var picker = document.getElementById('hotspot-picker');
+    if(!picker) return;
+    var pipes = (_monitorState.pipes || []).filter(function(p){ return p.enabled && p.id; });
+    if(!pipes.length){
+      picker.innerHTML = '<span class="picker-empty">Nenhum pipe monitorado. Adicione na seção abaixo.</span>';
+      return;
+    }
+    if(!_selectedHotspotPipeId || !pipes.some(function(p){ return p.id === _selectedHotspotPipeId; })){
+      _selectedHotspotPipeId = pipes[0].id;
+    }
+    var html = '<label for="hotspot-pipe-select">Pipe:</label>'
+             + '<select id="hotspot-pipe-select">';
+    pipes.forEach(function(p){
+      var sel = (p.id === _selectedHotspotPipeId) ? ' selected' : '';
+      var label = (p.name || p.id) + (p.env_label ? ' [' + p.env_label + ']' : '');
+      html += '<option value="' + escapeHtml(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+    });
+    html += '</select>';
+    picker.innerHTML = html;
+
+    var sel = document.getElementById('hotspot-pipe-select');
+    if(sel){
+      sel.addEventListener('change', function(){
+        _selectedHotspotPipeId = sel.value;
+        fetchHotspotsForSelected();
+      });
+    }
+  }
+
+  function fetchHotspotsForSelected(){
+    if(!window.V2Utils || !_selectedHotspotPipeId) return;
+    var container = document.getElementById('hotspots-content');
+    if(container){ container.innerHTML = '<div class="placeholder-soft">Carregando...</div>'; }
+    V2Utils.apiFetch('/api/dashboard/hotspots?pipe_id=' + encodeURIComponent(_selectedHotspotPipeId)).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(data) renderHotspots(data);
+    }).catch(function(err){
+      console.error('Erro fetch hotspots', err);
+    });
+  }
+
+  function renderHotspots(data){
+    var container = document.getElementById('hotspots-content');
+    if(!container) return;
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">'
+        + escapeHtml(data && data.reason ? data.reason : 'Sem histórico suficiente ainda. Cron precisa rodar pelo menos 2x.')
+        + '</div>';
+      return;
+    }
+    var phases = data.phases || [];
+    var maxScore = data.max_score || 1;
+    var html = ''
+      + '<div class="hotspot-meta">'
+      +   '<span>' + escapeHtml(data.snapshot_count + ' snapshots') + '</span>'
+      +   '<span>' + escapeHtml((data.total_changes || 0) + ' mudanças')+ '</span>';
+    if(data.window_start){
+      var d1 = String(data.window_start).slice(0,10);
+      var d2 = data.window_end ? String(data.window_end).slice(0,10) : '';
+      html += '<span>' + escapeHtml(d1 + ' → ' + d2) + '</span>';
+    }
+    html += '</div>';
+
+    if(!phases.length){
+      html += '<div class="placeholder-soft">Sem mudanças detectadas no período. Pipe estável.</div>';
+      container.innerHTML = html;
+      return;
+    }
+    phases.forEach(function(p, idx){
+      var pct = Math.max(8, (p.score / maxScore) * 100);
+      html += ''
+        + '<div class="hotspot-row" data-idx="' + idx + '" title="' + p.change_count + ' mudanças, score ' + fmtNumber(p.score) + '">'
+        +   '<span class="hotspot-name">' + escapeHtml(p.phase_name || p.phase_id) + '</span>'
+        +   '<div class="hotspot-bar"><div class="fill lvl-' + escapeHtml(p.level) + '" style="width:' + pct + '%"></div></div>'
+        +   '<span class="hotspot-score">' + fmtNumber(p.score) + ' pts</span>'
+        +   '<span class="hotspot-level lvl-' + escapeHtml(p.level) + '">' + escapeHtml(p.level) + '</span>'
+        + '</div>';
+      html += '<div class="hotspot-samples" id="hs-samples-' + idx + '">';
+      (p.samples || []).forEach(function(s){
+        var when = s.when ? String(s.when).slice(0,10) : '—';
+        html += ''
+          + '<div class="hotspot-sample">'
+          +   '<span class="when">' + escapeHtml(when) + '</span>'
+          +   '<span class="kind">' + escapeHtml(s.kind || '') + '</span>'
+          +   '<span class="det">' + escapeHtml(s.detail || s.label || '') + '</span>'
+          +   '<span class="w">+' + fmtNumber(s.weight) + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    });
+    container.innerHTML = html;
+
+    container.querySelectorAll('.hotspot-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        row.classList.toggle('expanded');
+      });
+      row.style.cursor = 'pointer';
+    });
+  }
+
+  function renderLeadtime(data){
+    var container = document.getElementById('leadtime-content');
+    if(!container) return;
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">'
+        + escapeHtml(data && data.reason ? data.reason : 'Sem pares HMG/PRD configurados.')
+        + '</div>';
+      return;
+    }
+    var pairs = data.pairs || [];
+    var html = ''
+      + '<div class="lt-summary">'
+      +   '<div class="lt-stat"><div class="label">Mediana global</div><div class="num">' + fmtNumber(data.global_median_lag_days) + '<span class="unit">d úteis</span></div></div>'
+      +   '<div class="lt-stat"><div class="label">Média global</div><div class="num">' + fmtNumber(data.global_mean_lag_days) + '<span class="unit">d úteis</span></div></div>'
+      +   '<div class="lt-stat"><div class="label">Promovidos</div><div class="num">' + (data.total_promoted_elements || 0) + '</div></div>'
+      + '</div>';
+
+    pairs.forEach(function(pair){
+      if(pair.available === false){
+        html += '<div class="placeholder-soft">' + escapeHtml(pair.reason || 'Par sem dados.') + '</div>';
+        return;
+      }
+      html += ''
+        + '<div class="lt-pair-title">'
+        +   escapeHtml(pair.base_name || '(sem nome)')
+        +   '<span class="lt-pair-tag">baseline ' + (pair.baseline_count || 0) + '</span>'
+        +   '<span class="lt-pair-tag">promovidos ' + (pair.promoted_count || 0) + '</span>'
+        +   '<span class="lt-pair-tag">pendentes ' + (pair.pending_count || 0) + '</span>'
+        + '</div>'
+        + '<div class="lt-list">';
+      (pair.promoted || []).slice(0, 8).forEach(function(p){
+        var cls = p.lag_days >= 5 ? 'alert' : (p.lag_days >= 3 ? 'warn' : '');
+        html += ''
+          + '<div class="lt-item">'
+          +   '<span class="lt-kind">' + escapeHtml(p.kind) + '</span>'
+          +   '<span class="lt-id">' + escapeHtml(p.id) + '</span>'
+          +   '<span class="lt-lag ' + cls + '">' + fmtNumber(p.lag_days) + ' d</span>'
+          + '</div>';
+      });
+      (pair.pending || []).slice(0, 4).forEach(function(p){
+        html += ''
+          + '<div class="lt-item">'
+          +   '<span class="lt-kind">' + escapeHtml(p.kind) + '</span>'
+          +   '<span class="lt-id">' + escapeHtml(p.id) + '</span>'
+          +   '<span class="lt-lag lt-pending">pendente</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
   function load(){
     if(!window.V2Utils) return;
     V2Utils.apiFetch('/api/dashboard/data').then(function(res){
@@ -641,6 +1060,13 @@
       renderVelocity(data.velocity);
       renderRunMeta(data.velocity);
       renderDebt(data.debt);
+      // Hot spots: usa o pipe_id que o backend escolheu como default no payload
+      // agregado, mas o seletor abaixo permite trocar pra outro pipe monitorado.
+      if(data.hotspots && data.hotspots.pipe_id){
+        _selectedHotspotPipeId = data.hotspots.pipe_id;
+      }
+      renderHotspots(data.hotspots);
+      renderLeadtime(data.leadtime);
       loadMonitorConfig();
     }).catch(function(err){
       console.error('Erro carregando dashboard', err);

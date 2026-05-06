@@ -1,6 +1,21 @@
 {
   "$comment": "Pipes monitorados pelo cron de snapshots automaticos. Editado pela tela /v2/dashboard pelo usuario lideranca, lido pelo endpoint /api/cron/snapshot. Estrutura: lista de objetos com id (uuid Pipefy), name (legivel), repo_id (numerico do GraphQL), env_label (HMG/PRD/etc) e enabled.",
   "version": "1.0",
-  "updated_at": "2026-05-05",
-  "pipes": []
+  "updated_at": "2026-05-05T21:26:14.425259",
+  "pipes": [
+    {
+      "id": "pipe-mesa-credito-hmg",
+      "name": "Mesa de Credito PF - HMG (demo)",
+      "repo_id": "301001",
+      "env_label": "HMG",
+      "enabled": true
+    },
+    {
+      "id": "pipe-mesa-credito-prd",
+      "name": "Mesa de Credito PF - PRD (demo)",
+      "repo_id": "301002",
+      "env_label": "PRD",
+      "enabled": true
+    }
+  ]
 }

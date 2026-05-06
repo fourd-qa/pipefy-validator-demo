@@ -139,11 +139,13 @@ Em caso de múltiplas regras, usa-se o **maior multiplicador**, não soma.
 - [ ] Env var `MONITOR_PIPEFY_TOKEN` no Render
 - [ ] Storage filesystem (`snapshots/auto/<pipe>/<timestamp>.json`)
 
-### Sprint 3: Hot Spots + Lead Time
-- [ ] Engine de hot spots (frequência x complexidade por phase)
-- [ ] Engine de lead time HMG→PRD (timestamps de snapshots)
-- [ ] UI: heatmap + line chart
-- [ ] Pré-requisito: 1-2 semanas de histórico
+### Sprint 3 (entregue): Hot Spots + Lead Time
+- [x] Engine `compute_hotspots` (diff por phase entre snapshots consecutivos)
+- [x] Engine `compute_leadtime` (pareia HMG/PRD por nome base, filtra baseline)
+- [x] Endpoints `GET /api/dashboard/hotspots` e `/leadtime` (gated lideranca)
+- [x] UI: cards Hot Spots (rank por score + samples expansíveis) e Lead Time (KPIs + lista de promovidos/pendentes)
+- [x] 18 pytest dedicados em `test_dashboard_sprint3.py`
+- [x] Massa fictícia gerada por `scripts/seed_dashboard_snapshots.py` (10 snapshots × 2 pipes em 14 dias úteis)
 
 ### Sprint 4: Burnup + Email
 - [ ] UI marcar snapshot como blueprint

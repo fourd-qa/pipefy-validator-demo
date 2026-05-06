@@ -431,14 +431,28 @@ def whoami():
 @app.route("/api/dashboard/data")
 def dashboard_data():
     """Dados agregados pro Dashboard executivo. Sprint 1 carrega velocity +
-    debt. Sprints seguintes adicionam hot spots, lead time, burnup."""
+    debt. Sprint 3 adicionou hot spots e lead time. Sprint 4 vai trazer
+    burnup."""
     gate = _require_lideranca()
     if gate is not None:
         return gate
+    # Hot spots pega o primeiro pipe enabled como default. UI pode trocar via
+    # endpoint dedicado /api/dashboard/hotspots?pipe_id=...
+    monitored = _load_monitored_pipes()
+    default_pipe_id = ""
+    for p in monitored.get("pipes", []):
+        if p.get("enabled", True) and p.get("id"):
+            default_pipe_id = p["id"]
+            break
     return jsonify({
         "role": _current_role(),
         "velocity": _compute_velocity_safe(),
         "debt": _compute_debt_safe(),
+        "hotspots": _compute_hotspots_safe(default_pipe_id) if default_pipe_id else {
+            "available": False, "reason": "Nenhum pipe monitorado.",
+            "phases": [], "snapshot_count": 0,
+        },
+        "leadtime": _compute_leadtime_safe(),
     })
 
 
@@ -737,6 +751,68 @@ def _compute_debt_safe():
             "issues_count": 0,
             "top_issues": [],
         }
+
+
+def _compute_hotspots_safe(pipe_id):
+    """Wrapper que isola falhas pra nao derrubar a rota (Sprint 3)."""
+    import dashboard_metrics
+    try:
+        return dashboard_metrics.compute_hotspots(AUTO_SNAPSHOTS_DIR, pipe_id, _weights_path())
+    except Exception as ex:
+        return {
+            "available": False,
+            "reason": f"Erro computando hotspots: {ex}",
+            "pipe_id": pipe_id,
+            "snapshot_count": 0,
+            "phases": [],
+        }
+
+
+def _compute_leadtime_safe():
+    """Wrapper pra lead time. Le monitored_pipes via _load_monitored_pipes."""
+    import dashboard_metrics
+    try:
+        data = _load_monitored_pipes()
+        return dashboard_metrics.compute_leadtime(AUTO_SNAPSHOTS_DIR, data.get("pipes", []))
+    except Exception as ex:
+        return {
+            "available": False,
+            "reason": f"Erro computando leadtime: {ex}",
+            "pairs": [],
+        }
+
+
+@app.route("/api/dashboard/hotspots")
+def dashboard_hotspots():
+    """Card de Phase Hot Spots. Param ?pipe_id=... seleciona pipe; default usa o
+    primeiro pipe enabled em monitored_pipes.json."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        data = _load_monitored_pipes()
+        for p in data.get("pipes", []):
+            if p.get("enabled", True) and p.get("id"):
+                pipe_id = p["id"]
+                break
+    if not pipe_id:
+        return jsonify({
+            "available": False,
+            "reason": "Nenhum pipe monitorado. Configure pipes na tela e rode o cron (ou seed_dashboard_snapshots.py em dev).",
+            "phases": [],
+        })
+    return jsonify(_compute_hotspots_safe(pipe_id))
+
+
+@app.route("/api/dashboard/leadtime")
+def dashboard_leadtime():
+    """Card de Lead Time HMG -> PRD. Casa pares pelo nome base dos pipes
+    monitorados (env_label HMG e PRD)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    return jsonify(_compute_leadtime_safe())
 
 
 @app.route("/v2/assets/<path:filename>")

@@ -1,0 +1,157 @@
+{
+  "metadata": {
+    "timestamp": "2026-05-04T14:30:00",
+    "pipe_id": "pipe-mesa-credito-prd",
+    "pipe_name": "Mesa de Credito PF - PRD (demo)",
+    "env_label": "PRD",
+    "source": "seed_demo",
+    "tool_version": "1.0"
+  },
+  "data": {
+    "pipe": {
+      "id": "pipe-mesa-credito-prd",
+      "name": "Mesa de Credito PF - PRD (demo)",
+      "phases": [
+        {
+          "id": "phase_setup",
+          "name": "Setup",
+          "fields": [
+            {
+              "id": "statement_intro",
+              "label": "Bem-vindo",
+              "type": "statement",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "phase_triagem",
+          "name": "Triagem",
+          "fields": [
+            {
+              "id": "score_inicial",
+              "label": "Score inicial",
+              "type": "number",
+              "required": true
+            },
+            {
+              "id": "obs_triagem",
+              "label": "Observacoes da triagem",
+              "type": "long_text",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "phase_analise",
+          "name": "Analise PF",
+          "fields": [
+            {
+              "id": "score_credito",
+              "label": "Score Serasa",
+              "type": "number",
+              "required": true
+            },
+            {
+              "id": "limite_aprovado",
+              "label": "Limite aprovado",
+              "type": "currency",
+              "required": false
+            },
+            {
+              "id": "open_banking",
+              "label": "Validacao Open Banking",
+              "type": "connector",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "phase_validacao_renda",
+          "name": "Validacao de Renda",
+          "fields": [
+            {
+              "id": "comprovante_renda",
+              "label": "Comprovante de renda",
+              "type": "attachment",
+              "required": true
+            },
+            {
+              "id": "renda_validada",
+              "label": "Renda validada",
+              "type": "currency",
+              "required": false
+            }
+          ]
+        },
+        {
+          "id": "phase_aprovacao",
+          "name": "Aprovacao",
+          "fields": [
+            {
+              "id": "aprovador",
+              "label": "Aprovador",
+              "type": "assignee_select",
+              "required": true
+            }
+          ]
+        },
+        {
+          "id": "phase_concluido",
+          "name": "Concluido",
+          "fields": []
+        }
+      ],
+      "start_form_fields": [
+        {
+          "id": "nome",
+          "label": "Nome Completo",
+          "type": "short_text",
+          "required": true
+        },
+        {
+          "id": "cpf",
+          "label": "CPF",
+          "type": "cpf",
+          "required": true
+        },
+        {
+          "id": "telefone",
+          "label": "Telefone",
+          "type": "phone",
+          "required": false
+        },
+        {
+          "id": "email",
+          "label": "Email",
+          "type": "email",
+          "required": false
+        },
+        {
+          "id": "valor_solicitado",
+          "label": "Valor solicitado",
+          "type": "currency",
+          "required": true
+        },
+        {
+          "id": "data_de_nascimento",
+          "label": "Data de nascimento",
+          "type": "date",
+          "required": false
+        }
+      ],
+      "labels": [
+        {
+          "id": "lbl_urgente",
+          "name": "Urgente",
+          "color": "#e56b6b"
+        },
+        {
+          "id": "lbl_revisar",
+          "name": "Revisar",
+          "color": "#dba844"
+        }
+      ]
+    }
+  }
+}
