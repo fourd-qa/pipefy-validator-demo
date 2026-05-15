@@ -29,6 +29,75 @@ def _safe_int(x: Any) -> int:
         return 0
 
 
+def _security_scan_pipes(
+    monitored: List[Dict[str, Any]],
+    snapshots_root: str,
+    semantic_rules_path: Optional[str],
+) -> Dict[str, Any]:
+    """Roda scan semantico no ultimo snapshot de cada pipe enabled.
+    Retorna {by_pipe: [...], total_high, total_med, total_low}.
+
+    Resiliente: se nao tem regras ou nao tem snapshots, retorna estrutura
+    vazia (available=False) ao inves de levantar.
+    """
+    import os as _os
+    if not semantic_rules_path or not _os.path.exists(semantic_rules_path):
+        return {"available": False, "reason": "Sem arquivo de regras"}
+    try:
+        import semantic_scanner
+        rules = semantic_scanner.load_rules(semantic_rules_path)
+    except Exception as ex:
+        return {"available": False, "reason": f"Erro carregando regras: {ex}"}
+    if not rules:
+        return {"available": False, "reason": "Nenhuma regra ativa"}
+
+    by_pipe: List[Dict[str, Any]] = []
+    total = {"high": 0, "med": 0, "low": 0}
+    for p in monitored:
+        if not (p.get("enabled", True) and p.get("id")):
+            continue
+        import re as _re
+        safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", p["id"])[:64] or "unknown"
+        pipe_dir = _os.path.join(snapshots_root, safe_id)
+        if not _os.path.isdir(pipe_dir):
+            continue
+        files = sorted(f for f in _os.listdir(pipe_dir) if f.endswith(".json"))
+        if not files:
+            continue
+        try:
+            import json as _json
+            with open(_os.path.join(pipe_dir, files[-1]), "r", encoding="utf-8") as f:
+                snapshot = _json.load(f)
+        except Exception:
+            continue
+        env_label = p.get("env_label") or (snapshot.get("metadata") or {}).get("env_label")
+        targets = semantic_scanner.extract_targets_from_snapshot(snapshot, env_label=env_label)
+        findings = semantic_scanner.scan_targets(targets, rules)
+        summary = semantic_scanner.summarize_findings(findings)
+        for k in ("high", "med", "low"):
+            total[k] += summary["by_severity"].get(k, 0)
+        by_pipe.append({
+            "pipe_id": p["id"],
+            "pipe_name": p.get("name", p["id"]),
+            "env_label": env_label,
+            "total": summary["total"],
+            "by_severity": summary["by_severity"],
+            "top_high_findings": [
+                {"rule_id": f["rule_id"], "target_name": f.get("target_name"),
+                 "field": f.get("field"), "message": f.get("message")}
+                for f in findings if f.get("severity") == "high"
+            ][:3],
+        })
+
+    return {
+        "available": bool(by_pipe),
+        "reason": None if by_pipe else "Nenhum pipe com snapshot scaneavel",
+        "total_findings": sum(total.values()),
+        "by_severity": total,
+        "by_pipe": by_pipe,
+    }
+
+
 def build_daily_digest(
     validations_path: str,
     weights_path: str,
@@ -36,12 +105,16 @@ def build_daily_digest(
     blueprints_root: str,
     monitored: List[Dict[str, Any]],
     today: Optional[_dt.date] = None,
+    semantic_rules_path: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Monta dict com KPIs e alertas pro email diario.
 
     Reusa as engines de dashboard_metrics. Pra Burnup e Hot Spots, escolhe o
     primeiro pipe enabled como representativo (poderia ser por pipe, mas o
     email precisa caber em 1 tela).
+
+    Se semantic_rules_path eh passado, roda scan de seguranca em cada pipe
+    enabled e adiciona alertas pra findings high.
     """
     today = today or _dt.date.today()
 
@@ -117,6 +190,21 @@ def build_daily_digest(
             ),
         })
 
+    # Security scan (Pendencia 1 da Fase A resolvida)
+    security = _security_scan_pipes(monitored, snapshots_root, semantic_rules_path)
+    if security.get("available"):
+        for pipe_row in security.get("by_pipe", []):
+            for f in pipe_row.get("top_high_findings", [])[:2]:
+                alerts.append({
+                    "kind": "security_high",
+                    "severity": "high",
+                    "message": (
+                        f"Security: {pipe_row.get('pipe_name')} - "
+                        f"{f.get('rule_id')}: {f.get('message')} "
+                        f"(automation: {f.get('target_name', '?')})"
+                    ),
+                })
+
     return {
         "date": today.isoformat(),
         "kpis": {
@@ -144,6 +232,7 @@ def build_daily_digest(
         },
         "alerts": alerts[:10],
         "monitored_pipes_count": sum(1 for p in monitored if p.get("enabled", True)),
+        "security": security,
     }
 
 

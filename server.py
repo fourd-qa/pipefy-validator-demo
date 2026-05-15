@@ -637,35 +637,15 @@ def cron_snapshot():
     })
 
 
-def _fetch_and_save_pipe_snapshot(pipe):
-    """Coleta snapshot de um pipe via GraphQL e salva em
-    snapshots/auto/<pipe_id>/<timestamp>.json. Retorna dict com outcome."""
+def _pipefy_graphql(query, variables):
+    """Faz uma chamada GraphQL no Pipefy. Retorna tupla (data, error_dict).
+    Em sucesso: ({...}, None). Em erro: (None, {"error": "...", ...}).
+
+    Isolado pra ser facil de monkeypatchar em testes e pra evitar duplicacao
+    entre snapshot de pipe e snapshot de automations."""
     import urllib.request
     import urllib.error
-    import datetime as _dt
-    import re as _re
-
-    pipe_id = pipe.get("id", "")
-    pipe_name = pipe.get("name", "")
-    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
-    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
-    os.makedirs(pipe_dir, exist_ok=True)
-    timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = os.path.join(pipe_dir, f"{timestamp}.json")
-
-    # Query simplificada pra Sprint 2. Usuario pode ampliar depois.
-    query = """
-    query($pipeId: ID!) {
-      pipe(id: $pipeId) {
-        id
-        name
-        phases { id name }
-        start_form_fields { id label type required }
-        labels { id name color }
-      }
-    }
-    """
-    body = json.dumps({"query": query, "variables": {"pipeId": pipe_id}}).encode("utf-8")
+    body = json.dumps({"query": query, "variables": variables}).encode("utf-8")
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {MONITOR_PIPEFY_TOKEN}",
@@ -676,14 +656,107 @@ def _fetch_and_save_pipe_snapshot(pipe):
             response_body = resp.read().decode("utf-8")
             response_data = json.loads(response_body)
     except urllib.error.HTTPError as ex:
-        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": f"HTTP {ex.code}"}
+        return None, {"error": f"HTTP {ex.code}"}
     except urllib.error.URLError as ex:
-        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": f"Network: {ex.reason}"}
+        return None, {"error": f"Network: {ex.reason}"}
     except json.JSONDecodeError:
-        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": "Resposta nao-JSON"}
-
+        return None, {"error": "Resposta nao-JSON"}
     if "errors" in response_data:
-        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, "error": "GraphQL errors", "graphql_errors": response_data["errors"]}
+        return None, {"error": "GraphQL errors", "graphql_errors": response_data["errors"]}
+    return response_data.get("data", {}), None
+
+
+def _fetch_automations_for_pipe(repo_id, org_id):
+    """Coleta lista de automations via GraphQL com paginacao. Retorna
+    (automations_list, error_dict). Aceita ate 5 paginas (limit defensivo).
+    Sem repo_id ou sem org_id retorna ([], None) e o snapshot fica sem
+    automations (campo vazio, nao erro)."""
+    if not repo_id or not org_id:
+        return [], None
+    query = """
+    query GetAutomations($repoId: ID!, $orgId: ID!, $after: String) {
+      automations(repoId: $repoId, organizationId: $orgId, after: $after) {
+        edges {
+          node {
+            id name active action_id event_id
+            action_params { to_phase_id phase { id name } url body headers httpMethod }
+            event_params { triggerFieldIds phase { id name } to_phase_id fromPhaseId inPhaseId }
+            condition { expressions { field_address operation value } expressions_structure }
+          }
+        }
+        totalCount
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+    """
+    automations = []
+    after = None
+    for _ in range(5):  # cap defensivo: 5 paginas x N por pagina
+        data, err = _pipefy_graphql(query, {
+            "repoId": str(repo_id),
+            "orgId": str(org_id),
+            "after": after,
+        })
+        if err:
+            return automations, err
+        page = (data or {}).get("automations") or {}
+        for edge in page.get("edges") or []:
+            node = edge.get("node")
+            if node:
+                automations.append(node)
+        page_info = page.get("pageInfo") or {}
+        if not page_info.get("hasNextPage"):
+            break
+        after = page_info.get("endCursor")
+        if not after:
+            break
+    return automations, None
+
+
+def _fetch_and_save_pipe_snapshot(pipe):
+    """Coleta snapshot de um pipe via GraphQL e salva em
+    snapshots/auto/<pipe_id>/<timestamp>.json. Retorna dict com outcome.
+
+    Duas chamadas GraphQL:
+    1. pipe_structure (phases, fields, labels) — obrigatoria
+    2. automations_list (URLs, headers, body) — opt-in se repo_id + org_id
+       estao configurados. Falha aqui nao invalida o snapshot inteiro;
+       campo automations fica [] com warning no outcome.
+
+    Backwards compat: snapshots antigos sem 'data.automations' continuam
+    validos. extract_targets_from_snapshot trata 'automations' faltante como []."""
+    import datetime as _dt
+    import re as _re
+
+    pipe_id = pipe.get("id", "")
+    pipe_name = pipe.get("name", "")
+    repo_id = pipe.get("repo_id", "")
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    os.makedirs(pipe_dir, exist_ok=True)
+    timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_path = os.path.join(pipe_dir, f"{timestamp}.json")
+
+    pipe_query = """
+    query($pipeId: ID!) {
+      pipe(id: $pipeId) {
+        id
+        name
+        phases { id name }
+        start_form_fields { id label type required }
+        labels { id name color }
+      }
+    }
+    """
+    pipe_data, err = _pipefy_graphql(pipe_query, {"pipeId": pipe_id})
+    if err:
+        return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, **err}
+
+    # Tentativa de coletar automations. Falha aqui eh degradacao, nao erro fatal.
+    automations, autom_err = _fetch_automations_for_pipe(repo_id, MONITOR_PIPEFY_ORG_ID)
+
+    data_block = dict(pipe_data or {})
+    data_block["automations"] = automations
 
     snapshot = {
         "metadata": {
@@ -692,21 +765,28 @@ def _fetch_and_save_pipe_snapshot(pipe):
             "pipe_name": pipe_name,
             "env_label": pipe.get("env_label", ""),
             "source": "cron_auto",
-            "tool_version": "1.0",
+            "tool_version": "1.1",  # bump: agora inclui automations
+            "automations_collected": autom_err is None and (repo_id and MONITOR_PIPEFY_ORG_ID),
         },
-        "data": response_data.get("data", {}),
+        "data": data_block,
     }
 
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, indent=2, ensure_ascii=False)
 
-    return {
+    outcome = {
         "pipe_id": pipe_id,
         "name": pipe_name,
         "ok": True,
         "snapshot_path": out_path,
         "size_bytes": os.path.getsize(out_path),
+        "automations_count": len(automations),
     }
+    if autom_err:
+        outcome["automations_warning"] = autom_err.get("error", "falha coletando automations")
+    elif not repo_id or not MONITOR_PIPEFY_ORG_ID:
+        outcome["automations_warning"] = "repo_id ou MONITOR_PIPEFY_ORG_ID ausente; automations vazias"
+    return outcome
 
 
 @app.route("/api/dashboard/auto-snapshots/<path:pipe_id>")
@@ -976,6 +1056,80 @@ def security_scan():
     })
 
 
+@app.route("/api/security-scan/auto")
+def security_scan_auto():
+    """Roda scan automatico sobre o ultimo snapshot coletado pelo cron.
+
+    Param ?pipe_id=... obrigatorio. Resolve env_label do monitored_pipes,
+    pega ultimo snapshot do filesystem, extrai automations e roda scan.
+    Retorna mesmo shape do POST /api/security-scan + metadata do snapshot.
+
+    Util pra UI dispara scan sem precisar copiar JSON, e pra fluxo
+    automatizado (cron + email diario).
+    """
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+
+    import re as _re
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    if not os.path.isdir(pipe_dir):
+        return jsonify({
+            "available": False,
+            "reason": "Pipe sem snapshots ainda. Cron precisa rodar pelo menos 1x.",
+            "pipe_id": pipe_id,
+        })
+    files = sorted(f for f in os.listdir(pipe_dir) if f.endswith(".json"))
+    if not files:
+        return jsonify({
+            "available": False,
+            "reason": "Pipe sem snapshots ainda.",
+            "pipe_id": pipe_id,
+        })
+    latest = files[-1]
+    try:
+        with open(os.path.join(pipe_dir, latest), "r", encoding="utf-8") as f:
+            snapshot = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return jsonify({"error": f"Falha lendo snapshot: {ex}"}), 500
+
+    # Resolve env_label preferindo monitored_pipes (config canonica do user)
+    # com fallback pro metadata do snapshot.
+    env_label = None
+    for p in (_load_monitored_pipes().get("pipes") or []):
+        if p.get("id") == pipe_id:
+            env_label = p.get("env_label") or None
+            break
+    if not env_label:
+        env_label = (snapshot.get("metadata") or {}).get("env_label") or None
+
+    import semantic_scanner
+    if not os.path.exists(SEMANTIC_RULES_PATH):
+        return jsonify({"error": "Arquivo de regras nao encontrado"}), 500
+    rules = semantic_scanner.load_rules(SEMANTIC_RULES_PATH)
+    targets = semantic_scanner.extract_targets_from_snapshot(snapshot, env_label=env_label)
+    findings = semantic_scanner.scan_targets(targets, rules)
+    summary = semantic_scanner.summarize_findings(findings)
+    return jsonify({
+        "available": True,
+        "pipe_id": pipe_id,
+        "snapshot": {
+            "filename": latest,
+            "timestamp": (snapshot.get("metadata") or {}).get("timestamp"),
+            "env_label": env_label,
+            "automations_collected": (snapshot.get("metadata") or {}).get("automations_collected", False),
+        },
+        "findings": findings,
+        "summary": summary,
+        "rules_count": len(rules),
+        "targets_count": len(targets),
+    })
+
+
 @app.route("/api/security-scan/rules")
 def security_scan_rules():
     """Lista as regras configuradas (sem o regex compilado, sem campos internos).
@@ -1074,6 +1228,7 @@ def cron_daily_email():
         snapshots_root=AUTO_SNAPSHOTS_DIR,
         blueprints_root=BLUEPRINTS_DIR,
         monitored=monitored,
+        semantic_rules_path=SEMANTIC_RULES_PATH,
     )
     html_body = daily_digest.render_email_html(digest, dashboard_url=DASHBOARD_URL or None)
     subject = f"Pipefy Validator - Resumo de {digest.get('date', '')}"

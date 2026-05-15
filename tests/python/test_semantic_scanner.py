@@ -488,6 +488,141 @@ def test_v2_security_scan_html_gated_demo(tmp_path, monkeypatch):
     assert res.status_code == 403
 
 
+# ============== extract_targets_from_snapshot (Pendencia 1) ==============
+
+def test_extract_targets_from_snapshot_novo(scanner_module):
+    """Snapshot tool_version 1.1 com data.automations -> targets extraidos."""
+    snapshot = {
+        "metadata": {"tool_version": "1.1", "env_label": "PRD"},
+        "data": {
+            "pipe": {"id": "p1"},
+            "automations": [
+                {"id": "a1", "name": "X", "action_params": {"url": "http://bad.com"}},
+            ],
+        },
+    }
+    targets = scanner_module.extract_targets_from_snapshot(snapshot)
+    assert len(targets) == 1
+    assert targets[0]["env_label"] == "PRD"
+    assert targets[0]["url"] == "http://bad.com"
+
+
+def test_extract_targets_from_snapshot_antigo_retorna_vazio(scanner_module):
+    """Backwards compat: snapshot v1.0 sem data.automations retorna []."""
+    snapshot = {
+        "metadata": {"tool_version": "1.0", "env_label": "HMG"},
+        "data": {"pipe": {"id": "p1"}},
+    }
+    targets = scanner_module.extract_targets_from_snapshot(snapshot)
+    assert targets == []
+
+
+def test_extract_targets_from_snapshot_invalido(scanner_module):
+    assert scanner_module.extract_targets_from_snapshot(None) == []
+    assert scanner_module.extract_targets_from_snapshot("nao-eh-dict") == []
+    assert scanner_module.extract_targets_from_snapshot({}) == []
+
+
+def test_extract_targets_from_snapshot_usa_env_label_explicito(scanner_module):
+    """env_label passado explicitamente sobrescreve metadata."""
+    snapshot = {
+        "metadata": {"env_label": "HMG"},
+        "data": {"automations": [
+            {"id": "a1", "name": "X", "action_params": {"url": "http://bad.com"}},
+        ]},
+    }
+    targets = scanner_module.extract_targets_from_snapshot(snapshot, env_label="PRD")
+    assert targets[0]["env_label"] == "PRD"
+
+
+# ============== Endpoint /api/security-scan/auto ==============
+
+def _write_snapshot_with_automations(tmp_path, pipe_id, env_label, automations):
+    """Cria 1 snapshot no filesystem no formato tool_version 1.1."""
+    pipe_dir = tmp_path / "snapshots" / "auto" / pipe_id
+    pipe_dir.mkdir(parents=True, exist_ok=True)
+    snap = {
+        "metadata": {
+            "timestamp": "2026-05-15T10:00:00",
+            "pipe_id": pipe_id,
+            "pipe_name": pipe_id,
+            "env_label": env_label,
+            "source": "test",
+            "tool_version": "1.1",
+            "automations_collected": True,
+        },
+        "data": {
+            "pipe": {"id": pipe_id, "name": pipe_id, "phases": []},
+            "automations": automations,
+        },
+    }
+    path = pipe_dir / "20260515_100000.json"
+    path.write_text(json.dumps(snap), encoding="utf-8")
+    return path
+
+
+def test_endpoint_auto_400_sem_pipe_id(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    res = server.app.test_client().get(
+        "/api/security-scan/auto",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 400
+
+
+def test_endpoint_auto_pipe_sem_snapshot(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    res = server.app.test_client().get(
+        "/api/security-scan/auto?pipe_id=novato",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["available"] is False
+
+
+def test_endpoint_auto_happy_path_com_findings(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    # Configura monitored_pipes pra ter env_label confiavel.
+    (tmp_path / "config" / "monitored_pipes.json").write_text(json.dumps({
+        "version": "1.0",
+        "pipes": [{"id": "p1", "name": "Mesa - PRD", "env_label": "PRD", "enabled": True}],
+    }), encoding="utf-8")
+    _write_snapshot_with_automations(tmp_path, "p1", "PRD", [
+        {"id": "auto_1", "name": "Webhook ruim",
+         "action_params": {"url": "http://hmg.api.com/x"}},
+    ])
+    res = server.app.test_client().get(
+        "/api/security-scan/auto?pipe_id=p1",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["available"] is True
+    assert body["pipe_id"] == "p1"
+    assert body["snapshot"]["env_label"] == "PRD"
+    assert body["targets_count"] == 1
+    assert any(f["rule_id"] == "url_no_tls_in_prd" for f in body["findings"])
+
+
+def test_endpoint_auto_gated_demo(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={"APP_PASSWORD": "demosecret"})
+    res = server.app.test_client().get(
+        "/api/security-scan/auto?pipe_id=x",
+        headers={"Authorization": _basic("demo", "demosecret")},
+    )
+    assert res.status_code == 403
+
+
 def test_v2_security_scan_html_lideranca_recebe_pagina(tmp_path, monkeypatch):
     """Lideranca pega a pagina HTML servida do web/designs."""
     server = _reload_server(tmp_path, monkeypatch, env={

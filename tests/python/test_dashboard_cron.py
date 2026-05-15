@@ -305,6 +305,153 @@ def test_cron_snapshot_pula_pipes_desabilitados(tmp_path, monkeypatch):
     assert body["total_pipes"] == 1  # so o ativo
 
 
+# ---------- Pendencia 1 da Fase A: snapshot estendido com automations ----------
+
+
+def _make_fake_response(payload):
+    """Helper pra mockar urlopen retornando dict como JSON body."""
+    fake = MagicMock()
+    fake.read.return_value = json.dumps(payload).encode("utf-8")
+    fake.__enter__ = lambda self: fake
+    fake.__exit__ = lambda *args: None
+    return fake
+
+
+def test_snapshot_inclui_automations_quando_org_id_configurado(tmp_path, monkeypatch):
+    """Com MONITOR_PIPEFY_ORG_ID e repo_id setados, snapshot deve ter 2 chamadas
+    GraphQL e incluir data.automations no resultado."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "CRON_SNAPSHOT_TOKEN": "secreto",
+        "MONITOR_PIPEFY_TOKEN": "Bearer xxx",
+        "MONITOR_PIPEFY_ORG_ID": "999",
+    })
+    server.app.test_client().post(
+        "/api/dashboard/monitored-pipes",
+        json={"pipes": [{"id": "p1", "name": "P1", "repo_id": "337",
+                         "env_label": "PRD", "enabled": True}]},
+    )
+    # 1a chamada: pipe_structure. 2a: automations (1 pagina, sem next).
+    pipe_resp = _make_fake_response({
+        "data": {"pipe": {"id": "p1", "name": "P1", "phases": [], "start_form_fields": [], "labels": []}}
+    })
+    automations_resp = _make_fake_response({
+        "data": {"automations": {
+            "edges": [
+                {"node": {"id": "auto_1", "name": "Webhook ruim",
+                          "action_params": {"url": "http://api.x.com"}}},
+            ],
+            "totalCount": 1,
+            "pageInfo": {"hasNextPage": False, "endCursor": None},
+        }}
+    })
+    with patch("urllib.request.urlopen", side_effect=[pipe_resp, automations_resp]):
+        res = server.app.test_client().post(
+            "/api/cron/snapshot",
+            headers={"X-Cron-Token": "secreto"},
+        )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["results"][0]["ok"] is True
+    assert body["results"][0]["automations_count"] == 1
+    assert "automations_warning" not in body["results"][0]
+
+    # Arquivo persistido tem data.automations
+    files = list((tmp_path / "snapshots" / "auto" / "p1").glob("*.json"))
+    saved = json.loads(files[0].read_text(encoding="utf-8"))
+    assert saved["metadata"]["tool_version"] == "1.1"
+    assert saved["data"]["automations"][0]["id"] == "auto_1"
+
+
+def test_snapshot_sem_org_id_pula_automations_com_warning(tmp_path, monkeypatch):
+    """Sem MONITOR_PIPEFY_ORG_ID, snapshot ainda eh valido (so com pipe_structure)
+    e tem warning indicando automations vazias."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "CRON_SNAPSHOT_TOKEN": "secreto",
+        "MONITOR_PIPEFY_TOKEN": "Bearer xxx",
+        # MONITOR_PIPEFY_ORG_ID nao setado
+    })
+    server.app.test_client().post(
+        "/api/dashboard/monitored-pipes",
+        json={"pipes": [{"id": "p1", "name": "P1", "repo_id": "337", "enabled": True}]},
+    )
+    pipe_resp = _make_fake_response({
+        "data": {"pipe": {"id": "p1", "name": "P1", "phases": []}}
+    })
+    with patch("urllib.request.urlopen", return_value=pipe_resp):
+        res = server.app.test_client().post(
+            "/api/cron/snapshot",
+            headers={"X-Cron-Token": "secreto"},
+        )
+    body = res.get_json()
+    assert body["results"][0]["ok"] is True
+    assert body["results"][0]["automations_count"] == 0
+    assert "automations_warning" in body["results"][0]
+
+    files = list((tmp_path / "snapshots" / "auto" / "p1").glob("*.json"))
+    saved = json.loads(files[0].read_text(encoding="utf-8"))
+    assert saved["data"]["automations"] == []
+
+
+def test_snapshot_falha_na_automations_nao_invalida_pipe(tmp_path, monkeypatch):
+    """Pipe_structure OK + automations com erro de GraphQL -> snapshot ainda salvo
+    com automations=[] e warning no outcome."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "CRON_SNAPSHOT_TOKEN": "secreto",
+        "MONITOR_PIPEFY_TOKEN": "Bearer xxx",
+        "MONITOR_PIPEFY_ORG_ID": "999",
+    })
+    server.app.test_client().post(
+        "/api/dashboard/monitored-pipes",
+        json={"pipes": [{"id": "p1", "name": "P1", "repo_id": "337", "enabled": True}]},
+    )
+    pipe_resp = _make_fake_response({"data": {"pipe": {"id": "p1", "name": "P1"}}})
+    automations_err = _make_fake_response({"errors": [{"message": "Access denied to org"}]})
+    with patch("urllib.request.urlopen", side_effect=[pipe_resp, automations_err]):
+        res = server.app.test_client().post(
+            "/api/cron/snapshot",
+            headers={"X-Cron-Token": "secreto"},
+        )
+    body = res.get_json()
+    assert body["results"][0]["ok"] is True  # snapshot ainda foi salvo
+    assert body["results"][0]["automations_count"] == 0
+    assert "GraphQL errors" in body["results"][0]["automations_warning"]
+
+
+def test_snapshot_automations_paginacao(tmp_path, monkeypatch):
+    """Multiplas paginas de automations sao agregadas no snapshot."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "CRON_SNAPSHOT_TOKEN": "secreto",
+        "MONITOR_PIPEFY_TOKEN": "Bearer xxx",
+        "MONITOR_PIPEFY_ORG_ID": "999",
+    })
+    server.app.test_client().post(
+        "/api/dashboard/monitored-pipes",
+        json={"pipes": [{"id": "p1", "name": "P1", "repo_id": "337", "enabled": True}]},
+    )
+    pipe_resp = _make_fake_response({"data": {"pipe": {"id": "p1", "name": "P1"}}})
+    page1 = _make_fake_response({
+        "data": {"automations": {
+            "edges": [{"node": {"id": f"a{i}", "name": f"Auto {i}",
+                                "action_params": {"url": "https://api.x.com"}}} for i in range(3)],
+            "pageInfo": {"hasNextPage": True, "endCursor": "cursor_p2"},
+        }}
+    })
+    page2 = _make_fake_response({
+        "data": {"automations": {
+            "edges": [{"node": {"id": f"a{i}", "name": f"Auto {i}",
+                                "action_params": {"url": "https://api.x.com"}}} for i in range(3, 5)],
+            "pageInfo": {"hasNextPage": False, "endCursor": None},
+        }}
+    })
+    with patch("urllib.request.urlopen", side_effect=[pipe_resp, page1, page2]):
+        res = server.app.test_client().post(
+            "/api/cron/snapshot",
+            headers={"X-Cron-Token": "secreto"},
+        )
+    body = res.get_json()
+    assert body["results"][0]["automations_count"] == 5
+
+
 # ---------- GET /api/dashboard/auto-snapshots/<pipe_id> ----------
 
 def test_auto_snapshots_pipe_inexistente_retorna_lista_vazia(tmp_path, monkeypatch):

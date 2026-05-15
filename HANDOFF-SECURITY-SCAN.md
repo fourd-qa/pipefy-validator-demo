@@ -2,17 +2,17 @@
 
 Documento canônico da Frente 1 do `PLANO-VALIDACAO-HMG-PRD.md`: equivalente Gitleaks + Snyk Code aplicado a automations Pipefy.
 
-Última atualização: 2026-05-15.
+Última atualização: 2026-05-15 (Pendência 1 resolvida).
 
 ---
 
 ## TL;DR
 
 - **O que é**: scanner de regras semânticas sobre URLs, headers e body de automation HTTP. Procura credenciais hardcoded, URLs HTTP sem TLS, IPs internos, indicadores de ambiente de teste em PRD.
-- **Onde está**: `/v2/security-scan` (UI), `POST /api/security-scan` (engine), `config/semantic_rules.json` (regras).
+- **Onde está**: `/v2/security-scan` (UI manual), `POST /api/security-scan` (engine), `GET /api/security-scan/auto?pipe_id=...` (scan auto sobre último snapshot do cron), `config/semantic_rules.json` (regras).
 - **Login**: restrito a `lideranca`.
-- **Testes**: 33 pytest verdes (`tests/python/test_semantic_scanner.py`).
-- **Estado**: standalone — não integrado ao fluxo do validador Robot. Usuário cola JSON das automations (ou consome via API direto) e roda scan.
+- **Testes**: 55 pytest verdes (`tests/python/test_semantic_scanner.py` + integração).
+- **Estado**: integrado ao cron de snapshots (snapshot v1.1 inclui automations) e ao email diário (findings high viram alertas). UI manual continua disponível.
 
 ---
 
@@ -53,6 +53,13 @@ tests/python/test_semantic_scanner.py  33 casos: load_rules, cada regra default
 **Snippets** dos findings têm máscara automática: tokens com 8+ chars viram `abcd***` no output, evitando relog de credenciais em logs.
 
 ## 3. Endpoints
+
+### `GET /api/security-scan/auto?pipe_id=...`
+Gated `lideranca`. Lê o último snapshot coletado pelo cron em `snapshots/auto/<pipe>/`, extrai automations, resolve env_label do `monitored_pipes.json` (fallback pro metadata do snapshot) e roda scan. Retorna mesmo shape do POST + bloco `snapshot` com `filename`, `timestamp`, `env_label`, `automations_collected`.
+
+Útil pra UI/dashboard mostrar findings sem o usuário precisar colar JSON, e pra fluxo automatizado (cron + email diário consomem via `daily_digest`).
+
+Quando o pipe ainda não tem snapshot: `{available: false, reason: "...", pipe_id: "..."}`.
 
 ### `POST /api/security-scan`
 Gated `lideranca`. Body:
@@ -112,14 +119,30 @@ curl -u lideranca:lideranca -X POST \
 
 ## 6. Pendências e próximos passos
 
-### Pendência 1: auto-coleta de automations
-O cron de snapshots (`_fetch_and_save_pipe_snapshot`) só coleta `pipe { phases, start_form_fields, labels }` — sem automations. Pra automatizar o scan, precisaria estender a query GraphQL pra trazer `automations { id, name, action_params }`. Custo: 1 alteração na query + ajuste no schema do snapshot. Risco: aumenta tamanho dos snapshots, pode bater rate limit do Pipefy.
+### ~~Pendência 1: auto-coleta de automations~~ ✅ resolvida
 
-### Pendência 2: alertas no email diário
-Quando a Pendência 1 estiver resolvida, faz sentido o email diário rodar o scan automaticamente sobre o último snapshot de cada pipe PRD e injetar findings high como alertas. Em `daily_digest.build_daily_digest` adicionaria um bloco `security_scan` no payload.
+`_fetch_and_save_pipe_snapshot` agora faz 2 chamadas GraphQL:
+1. **Pipe structure** (obrigatória): igual ao Sprint 2.
+2. **Automations** (opt-in): só dispara se o pipe tem `repo_id` e `MONITOR_PIPEFY_ORG_ID` está setado no Render. Suporta paginação (cap 5 páginas defensivo). Falha aqui não invalida o snapshot — campo `automations` fica `[]` com `automations_warning` no outcome do cron.
+
+Snapshot novo é `tool_version: "1.1"` com `data.automations[*]` no formato GraphQL node. Snapshots antigos (`1.0`) continuam válidos — `extract_targets_from_snapshot` trata ausência como lista vazia.
+
+**Setup operacional adicional** pra ativar: adicionar `MONITOR_PIPEFY_ORG_ID` no Render (ID numérico da org Pipefy).
+
+### ~~Pendência 2: alertas no email diário~~ ✅ resolvida
+
+`daily_digest.build_daily_digest` aceita `semantic_rules_path` opcional. Quando setado:
+- Pra cada pipe enabled com snapshot, extrai automations + roda scan
+- Adiciona bloco `security` no digest: `{available, total_findings, by_severity, by_pipe[]}`
+- Findings high de cada pipe (até 2 por pipe) viram alertas `security_high` no email
+
+`/api/cron/daily-email` já passa `SEMANTIC_RULES_PATH` automaticamente — não exige setup extra.
 
 ### Pendência 3: histórico de scans
 Hoje cada scan é stateless. Pra evoluir pra L5 (drift de segurança), os findings precisariam ser persistidos com timestamp pra mostrar evolução. Diretório candidato: `results/security_scans/<pipe>/<timestamp>.json`.
+
+### Pendência 4: card de Security no dashboard
+A info do scan já chega pelo `/api/security-scan/auto`, mas o `/v2/dashboard` ainda não tem card. Próximo passo de UI: novo card "Security" mostrando contagem high/med/low + lista de regras mais disparadas, atualizado automaticamente do snapshot mais recente.
 
 ### Próximos níveis do PLANO-VALIDACAO-HMG-PRD
 - **Frente 2 (Fase B): SonarQube equivalent** — quality scanner: field criado e não usado, automation com condition que nunca pode ser true, naming convention. Reusa o pattern desta Frente 1.

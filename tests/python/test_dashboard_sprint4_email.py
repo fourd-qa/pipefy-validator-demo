@@ -460,6 +460,94 @@ def test_email_endpoint_resend_falha_retorna_502(tmp_path, monkeypatch):
     assert body["error"] == "HTTP 422"
 
 
+def test_digest_com_semantic_rules_inclui_security_block(tmp_path, digest_module, weights_path):
+    """Pendencia 1 da Fase A: build_daily_digest com semantic_rules_path roda
+    scan e adiciona block 'security' + alertas pra findings high."""
+    auto = tmp_path / "auto"
+    auto.mkdir()
+    # Snapshot v1.1 com automation suja em PRD
+    pipe_dir = auto / "p1"
+    pipe_dir.mkdir()
+    snap = {
+        "metadata": {"tool_version": "1.1", "env_label": "PRD", "timestamp": "2026-05-15T10:00"},
+        "data": {
+            "pipe": {"id": "p1"},
+            "automations": [
+                {"id": "auto_1", "name": "Webhook sujo",
+                 "action_params": {"url": "http://hmg.api.x.com/hook?token=abc123"}},
+            ],
+        },
+    }
+    (pipe_dir / "20260515_100000.json").write_text(json.dumps(snap), encoding="utf-8")
+
+    monitored = [{"id": "p1", "name": "Mesa PRD", "env_label": "PRD", "enabled": True}]
+    rules_path = str(REPO_ROOT / "config" / "semantic_rules.json")
+    digest = digest_module.build_daily_digest(
+        validations_path=str(tmp_path / "vals.json"),
+        weights_path=weights_path,
+        snapshots_root=str(auto),
+        blueprints_root=str(tmp_path / "bps"),
+        monitored=monitored,
+        semantic_rules_path=rules_path,
+    )
+    assert "security" in digest
+    assert digest["security"]["available"] is True
+    assert digest["security"]["total_findings"] > 0
+    assert digest["security"]["by_severity"]["high"] >= 1
+    # Pelo menos 1 alerta security_high gerado.
+    sec_alerts = [a for a in digest["alerts"] if a["kind"] == "security_high"]
+    assert len(sec_alerts) >= 1
+    assert "Webhook sujo" in sec_alerts[0]["message"]
+
+
+def test_digest_sem_semantic_rules_security_indisponivel(tmp_path, digest_module, weights_path):
+    """Comportamento legado: sem semantic_rules_path, security block fica
+    available=False mas tudo o resto continua igual."""
+    digest = digest_module.build_daily_digest(
+        validations_path=str(tmp_path / "vals.json"),
+        weights_path=weights_path,
+        snapshots_root=str(tmp_path / "auto"),
+        blueprints_root=str(tmp_path / "bps"),
+        monitored=[],
+    )
+    assert digest["security"]["available"] is False
+
+
+def test_email_endpoint_passa_semantic_rules_path(tmp_path, monkeypatch):
+    """O endpoint /api/cron/daily-email deve passar SEMANTIC_RULES_PATH ao
+    build_daily_digest. Validamos via mock capturando o kwarg."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "CRON_SNAPSHOT_TOKEN": "secret",
+        "RESEND_API_KEY": "re_xxx",
+        "EMAIL_FROM": "x@y.com",
+        "EMAIL_TO": "a@b.com",
+    })
+    # Copia regras pra tmp pra existirem.
+    src = REPO_ROOT / "config" / "semantic_rules.json"
+    (tmp_path / "config" / "semantic_rules.json").write_text(
+        src.read_text(encoding="utf-8"), encoding="utf-8",
+    )
+    captured = {}
+    import daily_digest as dd_module
+
+    real_build = dd_module.build_daily_digest
+
+    def spy_build(**kwargs):
+        captured.update(kwargs)
+        return real_build(**kwargs)
+
+    monkeypatch.setattr(dd_module, "build_daily_digest", spy_build)
+    monkeypatch.setattr(server, "_send_via_resend",
+                        lambda **kw: {"ok": True, "status": 200, "body": "{}"})
+    res = server.app.test_client().post(
+        "/api/cron/daily-email",
+        headers={"X-Cron-Token": "secret"},
+    )
+    assert res.status_code == 200
+    assert "semantic_rules_path" in captured
+    assert captured["semantic_rules_path"].endswith("semantic_rules.json")
+
+
 def test_email_endpoint_funciona_sem_dashboard_url(tmp_path, monkeypatch):
     """DASHBOARD_URL vazio nao deve quebrar o render."""
     server = _reload_server(tmp_path, monkeypatch, env={

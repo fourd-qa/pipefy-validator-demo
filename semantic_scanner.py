@@ -168,6 +168,23 @@ def extract_targets_from_automations(
     return targets
 
 
+def extract_targets_from_snapshot(
+    snapshot: Dict[str, Any],
+    env_label: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Extrai targets do formato de snapshot persistido pelo cron
+    (snapshots/auto/<pipe>/<ts>.json). Le data.automations[*] e converte.
+
+    Backwards compat: snapshots antigos (tool_version 1.0) sem 'data.automations'
+    retornam []. Se 'env_label' nao for passado, usa metadata.env_label."""
+    if not isinstance(snapshot, dict):
+        return []
+    if env_label is None:
+        env_label = (snapshot.get("metadata") or {}).get("env_label") or None
+    automations = ((snapshot.get("data") or {}).get("automations")) or []
+    return extract_targets_from_automations(automations, env_label=env_label)
+
+
 def summarize_findings(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Agrega findings pra cards/KPIs da UI."""
     by_severity = {"high": 0, "med": 0, "low": 0}
