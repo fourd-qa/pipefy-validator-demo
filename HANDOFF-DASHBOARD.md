@@ -1,18 +1,18 @@
 # Handoff — Dashboard de Produtividade
 
 Documento pra retomar o trabalho num chat novo sem perder contexto.
-Última atualização: 2026-05-05, fim de sessão. Sprints 1, 2 e 3 entregues.
+Última atualização: 2026-05-15, fim de sessão. Sprints 1, 2, 3 e 4 (parte Burnup) entregues.
 
 ---
 
 ## TL;DR
 
-- **Onde estamos**: Sprints 1, 2 e 3 do `PLANO-DASHBOARD-PRODUTIVIDADE.md` no ar. Sprint 4 pendente.
+- **Onde estamos**: Sprints 1, 2, 3 e a parte Burnup da Sprint 4 do `PLANO-DASHBOARD-PRODUTIVIDADE.md` no ar. Falta da Sprint 4: email diário via Resend.
 - **Repositório**: `fourd-qa/pipefy-validator-demo` (público), branch `main`.
 - **Deploy**: Render free tier. URL `https://pipefy-validator-demo.onrender.com`.
-- **Testes**: 226 pytest + 49 vitest verdes (Sprint 3 adicionou 18 pytest novos).
+- **Testes**: 260 pytest + 49 vitest verdes (Sprint 4 adicionou 34 pytest novos).
 - **Login**: `lideranca / lideranca` vê o dashboard. `demo / <APP_PASSWORD>` continua usando o validador normal sem ver o dashboard.
-- **Massa demo**: `scripts/seed_dashboard_snapshots.py` gera 20 snapshots fictícios (10/pipe × 2 pipes HMG/PRD) pra Sprint 3 funcionar offline enquanto o cron real não roda.
+- **Massa demo**: `scripts/seed_dashboard_snapshots.py` gera 20 snapshots fictícios (10/pipe × 2 pipes HMG/PRD) + 1 blueprint demo no PRD com gap ~75-85% pra Sprint 4 mostrar progresso offline.
 
 ---
 
@@ -73,6 +73,35 @@ Documento pra retomar o trabalho num chat novo sem perder contexto.
 - Idempotente: `python scripts/seed_dashboard_snapshots.py` recria. `--dry-run` simula. `--no-monitored` não toca a config.
 
 **Testes**: `tests/python/test_dashboard_sprint3.py` (18 casos: engine + endpoints + integração `/api/dashboard/data`).
+
+### 1.5 Sprint 4 — Burnup vs Blueprint
+
+**Engine** (em `dashboard_metrics.py`):
+- `load_blueprint / save_blueprint / delete_blueprint`: persistem snapshot-meta em `snapshots/blueprints/<pipe_id>.json`. Estrutura: `{marked_at, source_snapshot, snapshot}`.
+- `compute_burnup(snapshots_root, blueprints_root, pipe_id)`: compara o snapshot mais recente do pipe contra o blueprint marcado. Cobertura por categoria (phases / phase_fields / start_form_fields) — itens extras no atual NÃO penalizam (podem ser features fora do escopo da migração). Overall pct = média ponderada por total de itens.
+
+**Endpoints**:
+- `GET /api/dashboard/burnup?pipe_id=...` (gated lideranca): default usa primeiro pipe enabled.
+- `GET /api/dashboard/blueprint?pipe_id=...` (gated): metadata do blueprint marcado (sem o snapshot completo).
+- `POST /api/dashboard/blueprint` (gated, body `{pipe_id, snapshot_filename}`): marca snapshot existente em `snapshots/auto/<pipe>/` como blueprint. Valida `snapshot_filename` contra path traversal.
+- `DELETE /api/dashboard/blueprint?pipe_id=...` (gated): remove blueprint.
+- `/api/dashboard/data` foi expandido pra incluir `burnup` no payload agregado.
+
+**UI** (card Burnup substitui o stub):
+- Picker próprio pra escolher pipe entre os monitorados.
+- KPI grande do `overall_pct` colorido por faixa (CLEAN ≥90, LOW ≥70, MEDIUM ≥50, HIGH <50).
+- 3 barras de cobertura: phases / phase_fields / start_form, cada uma expansível pra mostrar lista de itens missing com label legível ("Phase · Field" pra phase_fields).
+- Estado vazio: botão "Marcar snapshot mais recente como blueprint" que automaticamente busca `/api/dashboard/auto-snapshots/<pipe>` e usa o primeiro arquivo.
+- Estado marcado: botões "Remover blueprint" e "Re-marcar como snapshot atual".
+
+**Massa demo** (`scripts/seed_dashboard_snapshots.py`):
+- `_build_blueprint_state()`: gera v8 fictício partindo de v7 com 1 phase nova ("Documentação Final" com 2 fields) + 3 fields novos em phases existentes + 2 fields novos no start form.
+- `_write_blueprint_demo()`: grava `snapshots/blueprints/pipe-mesa-credito-prd.json` com formato igual ao do endpoint POST.
+- Burnup do pipe PRD demo mostra cobertura ~75-85% (gap visível).
+
+**Testes**: `tests/python/test_dashboard_sprint4.py` (34 casos: load/save/delete blueprint, compute_burnup com vários cenários, endpoints com gating + 400/404 + path traversal + fluxo end-to-end + integração `/api/dashboard/data`).
+
+**Pendência da Sprint 4**: email diário via Resend (`POST /api/cron/daily-email` + template HTML + GitHub Actions cron) — ver seção 5 abaixo.
 
 ### 1.3 Sprint 2 — Cron + Pipes Monitorados (commit `728d3a2`)
 
@@ -193,25 +222,19 @@ pipefy-validator-demo/
 
 ---
 
-## 5. Próximos passos: Sprint 4
+## 5. Próximos passos: parte restante da Sprint 4 (email diário)
 
-### Sprint 4 — Burnup vs Blueprint + Email
+**Burnup** ✅ entregue (ver seção 1.5).
 
-**Burnup**
-- UI no dashboard pra marcar um snapshot como `is_blueprint: true` em `metadata.json` dele.
-- Engine que compara snapshot atual vs blueprint marcado, calcula % de cobertura por categoria (phases / fields / automations).
-- Endpoint `GET /api/dashboard/burnup`
-- UI: line chart com 2 séries (real vs meta) + stacked area por categoria + progress bars por categoria.
-
-**Email diário**
+**Email diário** (pendente)
 - Provider sugerido: **Resend** (free tier 100 emails/dia, API JSON simples).
 - Env vars: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TO` (lista).
 - Endpoint `POST /api/cron/daily-email` (mesmo padrão de auth do cron snapshot, com `X-Cron-Token`).
 - GitHub Actions cron `0 18 * * 1-5` chama o endpoint.
-- Template HTML enxuto: 3 KPI cards (Velocity, Debt, Lead Time) + alertas (hot spots novos, churn detectado).
+- Template HTML enxuto: 4 KPI cards (Velocity, Debt, Lead Time, Burnup %) + alertas (hot spots novos, churn detectado, queda no Burnup).
 - Testes mockando Resend API.
 
-**Estimativa**: 15-18h, 1 sprint.
+**Estimativa**: 8-10h.
 
 ---
 
@@ -280,10 +303,11 @@ Aí o Claude novo lê os 2 arquivos, atualiza memória se precisar, e continua.
 
 ## 10. Status final desta sessão
 
-- Sprints 1, 2 e 3 entregues. Sprints 1 e 2 em produção; Sprint 3 já no `main` mas roda offline com massa demo até o cron real começar a coletar.
-- 226 pytest verdes, 49 vitest verdes.
-- Sprint 3 adicionou: `dashboard_metrics.py` (compute_hotspots + compute_leadtime), 2 endpoints, 2 cards na UI, 18 pytest, 1 script de seed determinístico.
+- Sprints 1, 2, 3 e Burnup da Sprint 4 entregues. Sprints 1 e 2 em produção; Sprints 3 e 4 já no `main` mas rodam offline com massa demo até o cron real começar a coletar.
+- 260 pytest verdes, 49 vitest verdes.
+- Sprint 4 adicionou: `dashboard_metrics.py` (load/save/delete_blueprint + compute_burnup), 4 endpoints (`/api/dashboard/burnup` + GET/POST/DELETE `/api/dashboard/blueprint`), card Burnup completo na UI, 34 pytest, blueprint demo determinístico no seed.
 - Pendência operacional: os 5 secrets/envs da seção 2 continuam pendentes. Quando configurados, o cron vai sobrescrever a massa demo com snapshots reais — o engine aceita os dois formatos.
 - Decisão pendente herdada: persistência do `monitored_pipes.json` no Render free tier (seção 3.2).
+- Decisão nova: persistência do `snapshots/blueprints/` no Render free tier — mesmo problema do `monitored_pipes.json`, mas blueprints são raros (1 marcação por iniciativa de migração). Aceitável re-marcar após hibernação.
 
-Próxima sessão: Sprint 4 (Burnup vs Blueprint + email diário Resend).
+Próxima sessão: parte restante da Sprint 4 (email diário Resend).
