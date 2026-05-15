@@ -447,6 +447,39 @@
     color:#7aa6d8;text-decoration:none;font-family:inherit;
   }
   .secur-link:hover{text-decoration:underline}
+
+  /* Quality card (Fase B do L4) - reusa visual do Security */
+  .qual-picker{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;flex-wrap:wrap}
+  .qual-picker select{
+    background:rgba(255,255,255,.02);border:1px solid var(--line);
+    color:var(--ink-2);border-radius:6px;padding:5px 8px;font-size:11.5px;
+    font-family:inherit;min-width:200px;
+  }
+  .qual-picker .picker-empty{color:var(--muted);font-size:11px;font-style:italic}
+  .qual-overall{display:flex;align-items:baseline;gap:14px;margin:8px 0 4px}
+  .qual-overall .num{font-size:42px;font-weight:600;letter-spacing:-.02em;font-family:var(--mono)}
+  .qual-overall .num.clean{color:#7dd584}
+  .qual-overall .num.warn{color:#dba844}
+  .qual-overall .num.bad{color:#e56b6b}
+  .qual-overall .label{color:var(--muted);font-size:12px}
+  .qual-sev-row{display:flex;gap:10px;margin:8px 0 14px;flex-wrap:wrap}
+  .qual-sev{flex:1;min-width:80px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:rgba(255,255,255,.01)}
+  .qual-sev .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:2px}
+  .qual-sev .n{font-size:18px;font-weight:600;font-family:var(--mono)}
+  .qual-sev.high .n{color:#e56b6b}
+  .qual-sev.med  .n{color:#dba844}
+  .qual-sev.low  .n{color:#7dd584}
+  .qual-meta{color:var(--muted);font-size:10.5px;margin-bottom:8px;line-height:1.4}
+  .qual-section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin:14px 0 6px}
+  .qual-check-list{display:flex;flex-direction:column;gap:4px}
+  .qual-check-row{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:6px;font-size:11.5px}
+  .qual-check-row:hover{background:rgba(255,255,255,.02)}
+  .qual-check-row .id{font-family:var(--mono);font-size:10.5px;color:#9bbde0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qual-check-row .n{font-family:var(--mono);font-size:11px;color:var(--ink-2);min-width:32px;text-align:right}
+  .qual-finding{padding:7px 10px;border-radius:6px;font-size:11px;border:1px solid rgba(229,107,107,.15);background:rgba(229,107,107,.04);margin-bottom:4px}
+  .qual-finding .check{font-family:var(--mono);font-size:10px;color:#ee8e8e}
+  .qual-finding .msg{color:var(--ink-2);margin-top:2px}
+  .qual-finding .target{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:2px}
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -584,6 +617,20 @@
           </div>
 
           <div id="secur-content">
+            <div class="placeholder-soft">Selecione um pipe acima.</div>
+          </div>
+        </div>
+
+        <!-- ======== QUALITY SCAN (Fase B do L4) ======== -->
+        <div class="dash-card col-6">
+          <h3>🧹 Quality Scan</h3>
+          <p class="sub">Equivalente SonarQube: dead fields, triggers órfãos, automations complexas, IDs hardcoded em conditions. Roda no último snapshot do cron.</p>
+
+          <div class="qual-picker" id="qual-picker">
+            <span class="picker-empty">carregando pipes monitorados...</span>
+          </div>
+
+          <div id="qual-content">
             <div class="placeholder-soft">Selecione um pipe acima.</div>
           </div>
         </div>
@@ -956,6 +1003,7 @@
       renderHotspotPicker();
       renderBurnupPicker();
       renderSecurPicker();
+      renderQualPicker();
     }).catch(function(err){ console.error('Erro carregando monitored-pipes', err); });
   }
 
@@ -1454,6 +1502,114 @@
     container.innerHTML = html;
   }
 
+  /* ===================== Quality Scan (Fase B do L4) ===================== */
+  var _selectedQualPipeId = null;
+
+  function renderQualPicker(){
+    var picker = document.getElementById('qual-picker');
+    if(!picker) return;
+    var pipes = (_monitorState.pipes || []).filter(function(p){ return p.enabled && p.id; });
+    if(!pipes.length){
+      picker.innerHTML = '<span class="picker-empty">Nenhum pipe monitorado.</span>';
+      return;
+    }
+    if(!_selectedQualPipeId || !pipes.some(function(p){ return p.id === _selectedQualPipeId; })){
+      _selectedQualPipeId = pipes[0].id;
+    }
+    var html = '<label for="qual-pipe-select">Pipe:</label>'
+             + '<select id="qual-pipe-select">';
+    pipes.forEach(function(p){
+      var sel = (p.id === _selectedQualPipeId) ? ' selected' : '';
+      var label = (p.name || p.id) + (p.env_label ? ' [' + p.env_label + ']' : '');
+      html += '<option value="' + escapeHtml(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+    });
+    html += '</select>';
+    picker.innerHTML = html;
+    var sel = document.getElementById('qual-pipe-select');
+    if(sel){
+      sel.addEventListener('change', function(){
+        _selectedQualPipeId = sel.value;
+        fetchQualForSelected();
+      });
+    }
+  }
+
+  function fetchQualForSelected(){
+    if(!window.V2Utils || !_selectedQualPipeId) return;
+    var container = document.getElementById('qual-content');
+    if(container){ container.innerHTML = '<div class="placeholder-soft">Carregando...</div>'; }
+    V2Utils.apiFetch('/api/dashboard/quality?pipe_id=' + encodeURIComponent(_selectedQualPipeId)).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(data) renderQuality(data);
+    }).catch(function(err){ console.error('Erro fetch quality', err); });
+  }
+
+  function renderQuality(data){
+    var container = document.getElementById('qual-content');
+    if(!container) return;
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">'
+        + escapeHtml((data && data.reason) || 'Sem dados de quality scan.')
+        + '</div>';
+      return;
+    }
+    var total = data.total || 0;
+    var sev = data.by_severity || {high:0, med:0, low:0};
+    var lvlClass = sev.high > 0 ? 'bad' : (sev.med > 0 ? 'warn' : 'clean');
+    var when = data.snapshot_timestamp ? new Date(data.snapshot_timestamp).toLocaleString('pt-BR') : '—';
+    var ver = data.snapshot_version || '?';
+    var versionNote = (ver < '1.2')
+      ? 'snapshot v' + ver + ' (sem phase fields - checks de dead phase field nao rodam)'
+      : 'snapshot v' + ver;
+
+    var html = ''
+      + '<div class="qual-overall">'
+      +   '<span class="num ' + lvlClass + '">' + total + '</span>'
+      +   '<span class="label">findings · ' + (data.rules_count||0) + ' checks ativos</span>'
+      + '</div>'
+      + '<div class="qual-meta">' + escapeHtml(when) + ' · ' + escapeHtml(versionNote) + '</div>'
+      + '<div class="qual-sev-row">'
+      +   '<div class="qual-sev high"><div class="lbl">High</div><div class="n">' + (sev.high||0) + '</div></div>'
+      +   '<div class="qual-sev med"><div class="lbl">Med</div><div class="n">' + (sev.med||0) + '</div></div>'
+      +   '<div class="qual-sev low"><div class="lbl">Low</div><div class="n">' + (sev.low||0) + '</div></div>'
+      + '</div>';
+
+    var topChecks = data.top_checks || [];
+    if(topChecks.length){
+      html += '<div class="qual-section-title">Checks mais disparados</div>';
+      html += '<div class="qual-check-list">';
+      topChecks.forEach(function(c){
+        html += ''
+          + '<div class="qual-check-row">'
+          +   '<span class="id">' + escapeHtml(c.check_id || '') + '</span>'
+          +   '<span class="n">' + (c.count || 0) + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+
+    var topHigh = data.top_findings_high || [];
+    if(topHigh.length){
+      html += '<div class="qual-section-title">Findings high (top 5)</div>';
+      topHigh.forEach(function(f){
+        html += ''
+          + '<div class="qual-finding">'
+          +   '<div class="check">' + escapeHtml(f.check_id || '') + '</div>'
+          +   '<div class="msg">' + escapeHtml(f.message || '') + '</div>'
+          +   '<div class="target">'
+          +     escapeHtml(f.target_kind || '') + ' · '
+          +     escapeHtml(f.target_name || '(sem nome)')
+          +     (f.detail ? ' · ' + escapeHtml(f.detail) : '')
+          +   '</div>'
+          + '</div>';
+      });
+    }
+
+    container.innerHTML = html;
+  }
+
   function load(){
     if(!window.V2Utils) return;
     V2Utils.apiFetch('/api/dashboard/data').then(function(res){
@@ -1477,10 +1633,14 @@
       if(data.security && data.security.pipe_id){
         _selectedSecurPipeId = data.security.pipe_id;
       }
+      if(data.quality && data.quality.pipe_id){
+        _selectedQualPipeId = data.quality.pipe_id;
+      }
       renderHotspots(data.hotspots);
       renderLeadtime(data.leadtime);
       renderBurnup(data.burnup);
       renderSecurity(data.security);
+      renderQuality(data.quality);
       loadMonitorConfig();
     }).catch(function(err){
       console.error('Erro carregando dashboard', err);

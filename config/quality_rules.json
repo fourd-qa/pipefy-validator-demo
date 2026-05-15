@@ -1,0 +1,68 @@
+{
+  "$comment": "Regras de qualidade pra Frente 2 (Fase B) do PLANO-VALIDACAO-HMG-PRD: equivalente SonarQube aplicado a pipes Pipefy. Cada check tem id, severity (high/med/low), enabled, e params especificos. Editavel via PR.",
+  "version": "1.0",
+  "checks": [
+    {
+      "id": "dangling_trigger_field",
+      "category": "consistency",
+      "severity": "high",
+      "enabled": true,
+      "message": "Automation tem triggerFieldIds apontando pra field que nao existe no pipe",
+      "params": {}
+    },
+    {
+      "id": "high_complexity_automation",
+      "category": "complexity",
+      "severity": "med",
+      "enabled": true,
+      "message": "Automation com muitas expressoes na condition (dificil de manter)",
+      "params": {
+        "threshold": 8
+      }
+    },
+    {
+      "id": "dead_start_form_field",
+      "category": "dead_code",
+      "severity": "med",
+      "enabled": true,
+      "message": "Start form field nunca referenciado por nenhuma automation",
+      "params": {}
+    },
+    {
+      "id": "dead_phase_field",
+      "category": "dead_code",
+      "severity": "low",
+      "enabled": true,
+      "message": "Phase field nunca referenciado por nenhuma automation",
+      "params": {}
+    },
+    {
+      "id": "inactive_automation_with_trigger",
+      "category": "stale",
+      "severity": "med",
+      "enabled": true,
+      "message": "Automation desativada mas ainda tem triggerFieldIds configurados (provavelmente esquecida)",
+      "params": {}
+    },
+    {
+      "id": "magic_id_in_condition",
+      "category": "magic_value",
+      "severity": "low",
+      "enabled": true,
+      "message": "Condition.value com ID hardcoded (UUID, numero longo) - melhor usar referencia de field",
+      "params": {
+        "min_length": 12
+      }
+    },
+    {
+      "id": "naming_inconsistent_field",
+      "category": "naming",
+      "severity": "low",
+      "enabled": false,
+      "message": "Field com label fora do padrao da empresa",
+      "params": {
+        "label_regex": "^[A-Z][a-zA-Zçãáéíóúâêô ]+$"
+      }
+    }
+  ]
+}

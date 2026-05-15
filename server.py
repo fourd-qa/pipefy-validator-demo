@@ -482,7 +482,134 @@ def dashboard_data():
             "available": False, "reason": "Nenhum pipe monitorado.",
             "pipe_id": "",
         },
+        "quality": _compute_quality_safe(default_pipe_id) if default_pipe_id else {
+            "available": False, "reason": "Nenhum pipe monitorado.",
+            "pipe_id": "",
+        },
     })
+
+
+def _compute_quality_safe(pipe_id):
+    """Wrapper que roda quality scan no ultimo snapshot (live, sem persistir).
+    Fase B: dashboard consome este shape pra card 'Quality'."""
+    try:
+        import quality_scanner
+    except Exception as ex:
+        return {"available": False, "reason": f"Erro: {ex}", "pipe_id": pipe_id}
+    if not os.path.exists(QUALITY_RULES_PATH):
+        return {"available": False, "reason": "Sem arquivo de regras de qualidade.", "pipe_id": pipe_id}
+
+    import re as _re
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    if not os.path.isdir(pipe_dir):
+        return {"available": False, "reason": "Pipe sem snapshots ainda.", "pipe_id": pipe_id}
+    files = sorted(f for f in os.listdir(pipe_dir) if f.endswith(".json"))
+    if not files:
+        return {"available": False, "reason": "Pipe sem snapshots ainda.", "pipe_id": pipe_id}
+    try:
+        with open(os.path.join(pipe_dir, files[-1]), "r", encoding="utf-8") as f:
+            snapshot = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return {"available": False, "reason": f"Erro lendo snapshot: {ex}", "pipe_id": pipe_id}
+
+    rules = quality_scanner.load_rules(QUALITY_RULES_PATH)
+    findings = quality_scanner.scan_pipe_quality(snapshot, rules)
+    summary = quality_scanner.summarize_findings(findings)
+
+    top_checks = sorted(summary["by_check"].items(), key=lambda kv: -kv[1])[:5]
+    top_findings_high = [
+        {"check_id": f["check_id"], "target_name": f.get("target_name"),
+         "target_kind": f.get("target_kind"), "message": f.get("message"),
+         "detail": f.get("detail")}
+        for f in findings if f.get("severity") == "high"
+    ][:5]
+
+    return {
+        "available": True,
+        "pipe_id": pipe_id,
+        "snapshot_filename": files[-1],
+        "snapshot_timestamp": (snapshot.get("metadata") or {}).get("timestamp"),
+        "snapshot_version": (snapshot.get("metadata") or {}).get("tool_version"),
+        "total": summary["total"],
+        "by_severity": summary["by_severity"],
+        "by_category": summary["by_category"],
+        "top_checks": [{"check_id": cid, "count": c} for cid, c in top_checks],
+        "top_findings_high": top_findings_high,
+        "rules_count": len(rules),
+    }
+
+
+@app.route("/api/dashboard/quality")
+def dashboard_quality():
+    """Endpoint dedicado pro card Quality do dashboard."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        for p in (_load_monitored_pipes().get("pipes") or []):
+            if p.get("enabled", True) and p.get("id"):
+                pipe_id = p["id"]
+                break
+    if not pipe_id:
+        return jsonify({"available": False, "reason": "Nenhum pipe monitorado.", "pipe_id": ""})
+    return jsonify(_compute_quality_safe(pipe_id))
+
+
+@app.route("/api/quality-scan/auto")
+def quality_scan_auto():
+    """Roda quality scan sobre o ultimo snapshot do pipe.
+    Param ?pipe_id=... obrigatorio."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    return jsonify(_compute_quality_safe(pipe_id))
+
+
+@app.route("/api/quality-scan/rules")
+def quality_scan_rules():
+    """Lista as regras de qualidade configuradas."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    if not os.path.exists(QUALITY_RULES_PATH):
+        return jsonify({"version": "0", "checks": [], "rules_count": 0, "enabled_count": 0})
+    try:
+        with open(QUALITY_RULES_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return jsonify({"error": f"Falha lendo regras: {ex}"}), 500
+    checks = [
+        {k: v for k, v in c.items() if not k.startswith("_")}
+        for c in (data.get("checks") or [])
+    ]
+    return jsonify({
+        "version": data.get("version", "0"),
+        "rules_count": len(checks),
+        "enabled_count": sum(1 for c in checks if c.get("enabled", True)),
+        "checks": checks,
+    })
+
+
+@app.route("/api/quality-scan/history")
+def quality_scan_history():
+    """Trend de quality scans pra um pipe. ?pipe_id obrigatorio, ?limit=10."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    try:
+        limit = int(request.args.get("limit", "10"))
+    except ValueError:
+        limit = 10
+    import quality_scanner
+    return jsonify(quality_scanner.compute_quality_trend(QUALITY_HISTORY_DIR, pipe_id, limit=limit))
 
 
 def _compute_security_safe(pipe_id):
@@ -827,7 +954,11 @@ def _fetch_and_save_pipe_snapshot(pipe):
       pipe(id: $pipeId) {
         id
         name
-        phases { id name }
+        phases {
+          id
+          name
+          fields { id label type required }
+        }
         start_form_fields { id label type required }
         labels { id name color }
       }
@@ -850,7 +981,7 @@ def _fetch_and_save_pipe_snapshot(pipe):
             "pipe_name": pipe_name,
             "env_label": pipe.get("env_label", ""),
             "source": "cron_auto",
-            "tool_version": "1.1",  # bump: agora inclui automations
+            "tool_version": "1.2",  # bump: agora inclui phase fields tambem (Fase B)
             "automations_collected": autom_err is None and (repo_id and MONITOR_PIPEFY_ORG_ID),
         },
         "data": data_block,
@@ -872,11 +1003,16 @@ def _fetch_and_save_pipe_snapshot(pipe):
     elif not repo_id or not MONITOR_PIPEFY_ORG_ID:
         outcome["automations_warning"] = "repo_id ou MONITOR_PIPEFY_ORG_ID ausente; automations vazias"
 
-    # Pendencia 3 da Fase A: roda scan + persiste no historico pra trend.
+    # Pendencia 3 da Fase A: roda scan semantico + persiste no historico.
     snapshot_filename = os.path.basename(out_path)
     security_summary = _run_and_persist_scan(pipe, snapshot, snapshot_filename)
     if security_summary is not None:
         outcome["security_findings"] = security_summary.get("total", 0)
+
+    # Fase B: roda quality scan + persiste no historico.
+    quality_summary = _run_and_persist_quality_scan(pipe, snapshot, snapshot_filename)
+    if quality_summary is not None:
+        outcome["quality_findings"] = quality_summary.get("total", 0)
 
     return outcome
 
@@ -1098,6 +1234,10 @@ def delete_blueprint_endpoint():
 SEMANTIC_RULES_PATH = os.path.join(os.getcwd(), "config", "semantic_rules.json")
 SECURITY_HISTORY_DIR = os.path.join(os.getcwd(), "results", "security_scans")
 
+# Fase B: quality scanner (equivalente SonarQube).
+QUALITY_RULES_PATH = os.path.join(os.getcwd(), "config", "quality_rules.json")
+QUALITY_HISTORY_DIR = os.path.join(os.getcwd(), "results", "quality_scans")
+
 
 def _run_and_persist_scan(pipe, snapshot, snapshot_filename):
     """Roda scan semantico no snapshot recem coletado e persiste a run em
@@ -1123,6 +1263,30 @@ def _run_and_persist_scan(pipe, snapshot, snapshot_filename):
             "targets_count": len(targets),
         }
         semantic_scanner.persist_scan_run(SECURITY_HISTORY_DIR, pipe.get("id", ""), run_data)
+        return summary
+    except Exception:
+        return None
+
+
+def _run_and_persist_quality_scan(pipe, snapshot, snapshot_filename):
+    """Roda quality scan no snapshot e persiste em results/quality_scans/.
+    Resiliente igual ao security."""
+    if not os.path.exists(QUALITY_RULES_PATH):
+        return None
+    try:
+        import quality_scanner
+        rules = quality_scanner.load_rules(QUALITY_RULES_PATH)
+        if not rules:
+            return None
+        findings = quality_scanner.scan_pipe_quality(snapshot, rules)
+        summary = quality_scanner.summarize_findings(findings)
+        run_data = {
+            "snapshot_filename": snapshot_filename,
+            "summary": summary,
+            "findings": findings,
+            "rules_count": len(rules),
+        }
+        quality_scanner.persist_scan_run(QUALITY_HISTORY_DIR, pipe.get("id", ""), run_data)
         return summary
     except Exception:
         return None

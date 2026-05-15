@@ -358,7 +358,7 @@ def test_snapshot_inclui_automations_quando_org_id_configurado(tmp_path, monkeyp
     # Arquivo persistido tem data.automations
     files = list((tmp_path / "snapshots" / "auto" / "p1").glob("*.json"))
     saved = json.loads(files[0].read_text(encoding="utf-8"))
-    assert saved["metadata"]["tool_version"] == "1.1"
+    assert saved["metadata"]["tool_version"] == "1.2"
     assert saved["data"]["automations"][0]["id"] == "auto_1"
 
 
@@ -464,6 +464,46 @@ def test_snapshot_persiste_security_run_no_historico(tmp_path, monkeypatch):
     run = json.loads(files[0].read_text(encoding="utf-8"))
     assert run["pipe_id"] == "p1"
     assert run["summary"]["total"] >= 1
+
+
+def test_snapshot_persiste_quality_run_no_historico(tmp_path, monkeypatch):
+    """Fase B: cron tambem persiste quality scan em results/quality_scans/."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "CRON_SNAPSHOT_TOKEN": "secreto",
+        "MONITOR_PIPEFY_TOKEN": "Bearer xxx",
+        "MONITOR_PIPEFY_ORG_ID": "999",
+    })
+    for f in ("semantic_rules.json", "quality_rules.json"):
+        src = REPO_ROOT / "config" / f
+        (tmp_path / "config" / f).write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    server.app.test_client().post(
+        "/api/dashboard/monitored-pipes",
+        json={"pipes": [{"id": "p1", "name": "P1", "repo_id": "337",
+                         "env_label": "PRD", "enabled": True}]},
+    )
+    pipe_resp = _make_fake_response({"data": {"pipe": {"id": "p1", "name": "P1",
+                                                       "phases": [], "start_form_fields": []}}})
+    # Automation com triggerFieldId pra field inexistente -> dangling_trigger.
+    autom_resp = _make_fake_response({
+        "data": {"automations": {
+            "edges": [{"node": {"id": "auto_1", "name": "X",
+                                "event_params": {"triggerFieldIds": ["f_orfao"]}}}],
+            "pageInfo": {"hasNextPage": False, "endCursor": None},
+        }}
+    })
+    with patch("urllib.request.urlopen", side_effect=[pipe_resp, autom_resp]):
+        res = server.app.test_client().post(
+            "/api/cron/snapshot",
+            headers={"X-Cron-Token": "secreto"},
+        )
+    outcome = res.get_json()["results"][0]
+    assert outcome["ok"] is True
+    assert outcome.get("quality_findings", 0) >= 1
+
+    qdir = tmp_path / "results" / "quality_scans" / "p1"
+    assert qdir.is_dir()
+    files = list(qdir.glob("*.json"))
+    assert len(files) == 1
 
 
 def test_snapshot_automations_paginacao(tmp_path, monkeypatch):
