@@ -453,6 +453,10 @@ def dashboard_data():
             "phases": [], "snapshot_count": 0,
         },
         "leadtime": _compute_leadtime_safe(),
+        "burnup": _compute_burnup_safe(default_pipe_id) if default_pipe_id else {
+            "available": False, "reason": "Nenhum pipe monitorado.",
+            "pipe_id": "",
+        },
     })
 
 
@@ -780,6 +784,121 @@ def _compute_leadtime_safe():
             "reason": f"Erro computando leadtime: {ex}",
             "pairs": [],
         }
+
+
+# Sprint 4: blueprints sao snapshots marcados como estado-meta da migracao.
+BLUEPRINTS_DIR = os.path.join(os.getcwd(), "snapshots", "blueprints")
+
+
+def _compute_burnup_safe(pipe_id):
+    import dashboard_metrics
+    try:
+        return dashboard_metrics.compute_burnup(AUTO_SNAPSHOTS_DIR, BLUEPRINTS_DIR, pipe_id)
+    except Exception as ex:
+        return {
+            "available": False,
+            "reason": f"Erro computando burnup: {ex}",
+            "pipe_id": pipe_id,
+        }
+
+
+@app.route("/api/dashboard/burnup")
+def dashboard_burnup():
+    """Card Burnup vs Blueprint. Param ?pipe_id=... seleciona pipe; default usa
+    o primeiro pipe enabled em monitored_pipes.json."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        data = _load_monitored_pipes()
+        for p in data.get("pipes", []):
+            if p.get("enabled", True) and p.get("id"):
+                pipe_id = p["id"]
+                break
+    if not pipe_id:
+        return jsonify({
+            "available": False,
+            "reason": "Nenhum pipe monitorado.",
+            "pipe_id": "",
+        })
+    return jsonify(_compute_burnup_safe(pipe_id))
+
+
+@app.route("/api/dashboard/blueprint", methods=["GET"])
+def get_blueprint():
+    """Retorna metadata do blueprint marcado pra um pipe (sem o snapshot
+    completo pra nao engordar a resposta). Param ?pipe_id=... obrigatorio."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    import dashboard_metrics
+    bp = dashboard_metrics.load_blueprint(BLUEPRINTS_DIR, pipe_id)
+    if not bp:
+        return jsonify({"pipe_id": pipe_id, "marked": False})
+    return jsonify({
+        "pipe_id": pipe_id,
+        "marked": True,
+        "marked_at": bp.get("marked_at"),
+        "source_snapshot": bp.get("source_snapshot"),
+        "blueprint_timestamp": bp.get("snapshot", {}).get("metadata", {}).get("timestamp"),
+    })
+
+
+@app.route("/api/dashboard/blueprint", methods=["POST"])
+def set_blueprint():
+    """Marca um snapshot como blueprint do pipe. Body: {pipe_id, snapshot_filename}.
+    Le o arquivo correspondente em snapshots/auto/<pipe>/, copia pra
+    snapshots/blueprints/<pipe>.json com timestamp de marcacao."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    body = request.get_json(silent=True) or {}
+    pipe_id = (body.get("pipe_id") or "").strip()
+    snap_filename = (body.get("snapshot_filename") or "").strip()
+    if not pipe_id or not snap_filename:
+        return jsonify({"error": "pipe_id e snapshot_filename obrigatorios"}), 400
+
+    import re as _re
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    if not _re.match(r"^[a-zA-Z0-9_.-]+$", snap_filename):
+        return jsonify({"error": "snapshot_filename invalido"}), 400
+
+    snap_path = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id, snap_filename)
+    if not os.path.isfile(snap_path):
+        return jsonify({"error": "Snapshot nao encontrado", "path": snap_path}), 404
+
+    try:
+        with open(snap_path, "r", encoding="utf-8") as f:
+            snapshot = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return jsonify({"error": f"Falha lendo snapshot: {ex}"}), 500
+
+    import dashboard_metrics
+    out_path = dashboard_metrics.save_blueprint(BLUEPRINTS_DIR, pipe_id, snapshot, snap_filename)
+    return jsonify({
+        "ok": True,
+        "pipe_id": pipe_id,
+        "source_snapshot": snap_filename,
+        "blueprint_path": out_path,
+    })
+
+
+@app.route("/api/dashboard/blueprint", methods=["DELETE"])
+def delete_blueprint_endpoint():
+    """Remove blueprint marcado pra um pipe. Param ?pipe_id=... obrigatorio."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    import dashboard_metrics
+    removed = dashboard_metrics.delete_blueprint(BLUEPRINTS_DIR, pipe_id)
+    return jsonify({"ok": True, "removed": removed, "pipe_id": pipe_id})
 
 
 @app.route("/api/dashboard/hotspots")

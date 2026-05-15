@@ -285,11 +285,15 @@ def _read_snapshot(path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _safe_id(pipe_id: str) -> str:
+    """Sanitiza pipe_id pra usar como nome de pasta no filesystem."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id or "")[:64] or "unknown"
+
+
 def _list_pipe_snapshots(snapshots_root: str, pipe_id: str) -> List[Tuple[str, Dict[str, Any]]]:
     """Lista snapshots de um pipe ordenados por timestamp (filename) ascendente.
     Retorna lista de (filename, snapshot_dict)."""
-    safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
-    pipe_dir = os.path.join(snapshots_root, safe_id)
+    pipe_dir = os.path.join(snapshots_root, _safe_id(pipe_id))
     if not os.path.isdir(pipe_dir):
         return []
     files = sorted(f for f in os.listdir(pipe_dir) if f.endswith(".json"))
@@ -787,4 +791,171 @@ def compute_leadtime(
         "global_median_lag_days": _median(all_lags),
         "global_mean_lag_days": round(sum(all_lags) / len(all_lags), 2) if all_lags else 0.0,
         "total_promoted_elements": len(all_lags),
+    }
+
+
+# ============================================================
+# Sprint 4 — Burnup vs Blueprint
+# ============================================================
+
+def _blueprint_path(blueprints_root: str, pipe_id: str) -> str:
+    return os.path.join(blueprints_root, f"{_safe_id(pipe_id)}.json")
+
+
+def load_blueprint(blueprints_root: str, pipe_id: str) -> Optional[Dict[str, Any]]:
+    """Le blueprint marcado pra um pipe. Retorna None se nao existe."""
+    path = _blueprint_path(blueprints_root, pipe_id)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
+def save_blueprint(
+    blueprints_root: str,
+    pipe_id: str,
+    snapshot: Dict[str, Any],
+    source_filename: str,
+    marked_at: Optional[str] = None,
+) -> str:
+    """Persiste copia do snapshot como blueprint do pipe.
+    Estrutura: {marked_at, source_snapshot, snapshot}.
+    Retorna path do arquivo gravado."""
+    os.makedirs(blueprints_root, exist_ok=True)
+    payload = {
+        "marked_at": marked_at or _dt.datetime.now().isoformat(),
+        "source_snapshot": source_filename,
+        "snapshot": snapshot,
+    }
+    path = _blueprint_path(blueprints_root, pipe_id)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+    return path
+
+
+def delete_blueprint(blueprints_root: str, pipe_id: str) -> bool:
+    """Remove blueprint do pipe. Retorna True se algo foi apagado."""
+    path = _blueprint_path(blueprints_root, pipe_id)
+    if os.path.exists(path):
+        os.remove(path)
+        return True
+    return False
+
+
+def _coverage(covered_keys: Iterable, blueprint_keys: Iterable) -> Dict[str, Any]:
+    """Calcula cobertura entre 2 sets de chaves."""
+    blueprint_set = set(blueprint_keys)
+    covered_set = set(covered_keys) & blueprint_set
+    total = len(blueprint_set)
+    covered = len(covered_set)
+    pct = round((covered / total) * 100, 1) if total else 100.0
+    missing = sorted(blueprint_set - covered_set)
+    return {
+        "covered": covered,
+        "total": total,
+        "pct": pct,
+        "missing": missing,
+    }
+
+
+def compute_burnup(
+    snapshots_root: str,
+    blueprints_root: str,
+    pipe_id: str,
+) -> Dict[str, Any]:
+    """Compara o snapshot mais recente do pipe contra o blueprint marcado.
+
+    Cobertura = quantos elementos do blueprint ja existem no estado atual,
+    por categoria (phases, phase_fields, start_form_fields). Itens que nao
+    estao no blueprint mas estao no atual NAO penalizam (pode ser feature
+    fora do escopo da migracao).
+    """
+    blueprint = load_blueprint(blueprints_root, pipe_id)
+    if not blueprint:
+        return {
+            "available": False,
+            "reason": "Sem blueprint marcado pra este pipe. Marque um snapshot como blueprint pra ter referencia.",
+            "pipe_id": pipe_id,
+        }
+
+    snaps = _list_pipe_snapshots(snapshots_root, pipe_id)
+    if not snaps:
+        return {
+            "available": False,
+            "reason": "Pipe sem snapshots ainda. Cron precisa coletar pelo menos 1.",
+            "pipe_id": pipe_id,
+        }
+
+    current_filename, current_snap = snaps[-1]
+    current_schema = _extract_pipe_schema(current_snap)
+    blueprint_schema = _extract_pipe_schema(blueprint.get("snapshot", {}))
+
+    cov_phases = _coverage(
+        current_schema["phases"].keys(),
+        blueprint_schema["phases"].keys(),
+    )
+    cov_startform = _coverage(
+        current_schema["start_form"].keys(),
+        blueprint_schema["start_form"].keys(),
+    )
+    # phase_fields key = (phase_id, field_id).
+    bp_pf = {(pid, fid) for pid, p in blueprint_schema["phases"].items() for fid in p["fields"].keys()}
+    cur_pf = {(pid, fid) for pid, p in current_schema["phases"].items() for fid in p["fields"].keys()}
+    cov_pf_raw = _coverage(cur_pf, bp_pf)
+    cov_pf = {
+        **cov_pf_raw,
+        "missing": [f"{pid}.{fid}" for (pid, fid) in cov_pf_raw["missing"]],
+    }
+
+    # Overall: media ponderada por total de itens da categoria.
+    total_all = cov_phases["total"] + cov_startform["total"] + cov_pf["total"]
+    covered_all = cov_phases["covered"] + cov_startform["covered"] + cov_pf["covered"]
+    overall_pct = round((covered_all / total_all) * 100, 1) if total_all else 100.0
+
+    # Hidrata missing phases com nome legivel do blueprint.
+    cov_phases["missing"] = [
+        {"id": pid, "label": blueprint_schema["phases"][pid]["name"]}
+        for pid in cov_phases["missing"]
+    ]
+    cov_startform["missing"] = [
+        {"id": fid, "label": blueprint_schema["start_form"][fid].get("label", fid)}
+        for fid in cov_startform["missing"]
+    ]
+    pf_labels = []
+    for label_id in cov_pf["missing"]:
+        try:
+            pid, fid = label_id.split(".", 1)
+            phase = blueprint_schema["phases"].get(pid, {})
+            field = phase.get("fields", {}).get(fid, {})
+            pf_labels.append({
+                "id": label_id,
+                "label": f"{phase.get('name', pid)} · {field.get('label', fid)}",
+            })
+        except ValueError:
+            pf_labels.append({"id": label_id, "label": label_id})
+    cov_pf["missing"] = pf_labels
+
+    return {
+        "available": True,
+        "pipe_id": pipe_id,
+        "overall_pct": overall_pct,
+        "overall_covered": covered_all,
+        "overall_total": total_all,
+        "by_category": {
+            "phases": cov_phases,
+            "start_form_fields": cov_startform,
+            "phase_fields": cov_pf,
+        },
+        "blueprint": {
+            "marked_at": blueprint.get("marked_at"),
+            "source_snapshot": blueprint.get("source_snapshot"),
+            "blueprint_timestamp": blueprint.get("snapshot", {}).get("metadata", {}).get("timestamp"),
+        },
+        "current": {
+            "filename": current_filename,
+            "timestamp": current_snap.get("metadata", {}).get("timestamp"),
+        },
     }

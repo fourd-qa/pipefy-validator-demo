@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Tuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAPSHOTS_DIR = os.path.join(REPO_ROOT, "snapshots", "auto")
+BLUEPRINTS_DIR = os.path.join(REPO_ROOT, "snapshots", "blueprints")
 CONFIG_DIR = os.path.join(REPO_ROOT, "config")
 MONITORED_PIPES_FILE = os.path.join(CONFIG_DIR, "monitored_pipes.json")
 
@@ -179,6 +180,35 @@ def _build_states() -> List[Dict[str, Any]]:
     return [v1, v2, v3, v4, v5, v6, v7]
 
 
+def _build_blueprint_state() -> Dict[str, Any]:
+    """Estado-meta da migracao (v8 ficticio): representa o que PRD deveria ter
+    no fim da iniciativa de migracao Pega -> Pipefy. Usado pra demonstrar gap
+    no card Burnup. Tem tudo de v7 + items adicionais que ainda nao foram
+    construidos em nenhum ambiente."""
+    states = _build_states()
+    bp = _evolve(states[6], lambda s: None)  # parte de v7
+
+    # Phase nova: Documentacao Final (representa fim do fluxo do cliente).
+    bp["phases"].append(_phase("phase_doc_final", "Documentacao Final", [
+        _field("contrato_assinado", "Contrato assinado (PDF)", "attachment", required=True),
+        _field("data_efetivacao", "Data de efetivacao", "date"),
+    ]))
+
+    # Phase fields novos em phases existentes.
+    for p in bp["phases"]:
+        if p["id"] == "phase_analise":
+            p["fields"].append(_field("decisao_motor", "Decisao do motor de credito", "dropdown"))
+            p["fields"].append(_field("comentario_analista", "Comentario do analista", "long_text"))
+        if p["id"] == "phase_aprovacao":
+            p["fields"].append(_field("checklist_compliance", "Checklist compliance", "checklist_horizontal"))
+
+    # Start form fields novos.
+    bp["start_form_fields"].append(_field("renda_familiar", "Renda familiar declarada", "currency"))
+    bp["start_form_fields"].append(_field("origem_lead", "Origem do lead", "dropdown"))
+
+    return bp
+
+
 # Datas reais (10 dias uteis, pula feriado 2026-05-01 dia do trabalho).
 BUSINESS_DAYS: List[dt.date] = [
     dt.date(2026, 4, 21),  # ter
@@ -275,6 +305,27 @@ def _write_pipe_history(
     return written
 
 
+def _write_blueprint_demo(dry_run: bool) -> None:
+    """Marca um blueprint demo no pipe PRD pra demonstrar gap no card Burnup.
+    Estrutura igual ao endpoint POST /api/dashboard/blueprint persiste."""
+    state = _build_blueprint_state()
+    snapshot = _build_snapshot(PRD_PIPE, dt.date(2026, 5, 5), state)
+    payload = {
+        "marked_at": "2026-05-05T15:00:00",
+        "source_snapshot": "blueprint_meta_demo.json",
+        "snapshot": snapshot,
+    }
+    safe = _safe_id(PRD_PIPE["id"])
+    out_path = os.path.join(BLUEPRINTS_DIR, f"{safe}.json")
+    if dry_run:
+        print(f"[blueprint] DRY: criaria {out_path}")
+        return
+    os.makedirs(BLUEPRINTS_DIR, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+    print(f"[blueprint] {out_path} (state-meta com 1 phase nova + 5 fields novos)")
+
+
 def _ensure_monitored_pipes(skip: bool) -> None:
     """Adiciona os 2 pipes demo a monitored_pipes.json se nao existirem.
     Preserva pipes reais que o usuario tenha adicionado pela UI."""
@@ -323,6 +374,7 @@ def main(argv: List[str] = None) -> int:
     print(f"[hmg] {len(hmg_files)} snapshots em {os.path.dirname(hmg_files[0])}")
     print(f"[prd] {len(prd_files)} snapshots em {os.path.dirname(prd_files[0])}")
 
+    _write_blueprint_demo(dry_run=args.dry_run)
     _ensure_monitored_pipes(skip=args.no_monitored or args.dry_run)
 
     print("[seed] OK. Cenario:")
@@ -331,6 +383,8 @@ def main(argv: List[str] = None) -> int:
     print("  - rename Analise de Credito -> Analise PF -> Analise de Credito (churn)")
     print("  - lead time HMG -> PRD mediano ~3-4 dias uteis (v2..v6)")
     print("  - v7 (rename mais recente) ainda nao chegou em PRD -> aparece como pendente")
+    print("  - blueprint do PRD aponta pra estado-meta com 1 phase + 5 fields a mais")
+    print("  - burnup do PRD deve mostrar cobertura ~75-85% (gap visivel)")
     return 0
 
 

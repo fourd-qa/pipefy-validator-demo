@@ -354,6 +354,49 @@
   .lt-lag.warn{color:#e2bb6c}
   .lt-lag.alert{color:#ee8e8e}
   .lt-pending{color:#dba844;font-style:italic}
+
+  /* Burnup vs Blueprint (Sprint 4) */
+  .burnup-picker{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;flex-wrap:wrap}
+  .burnup-picker select{
+    background:rgba(255,255,255,.02);border:1px solid var(--line);
+    color:var(--ink-2);border-radius:6px;padding:5px 8px;font-size:11.5px;
+    font-family:inherit;min-width:200px;
+  }
+  .burnup-picker .picker-empty{color:var(--muted);font-size:11px;font-style:italic}
+  .burnup-overall{display:flex;align-items:baseline;gap:14px;margin:8px 0 4px}
+  .burnup-overall .pct{font-size:42px;font-weight:600;letter-spacing:-.02em;font-family:var(--mono)}
+  .burnup-overall .pct.lvl-CLEAN  {color:#7dd584}
+  .burnup-overall .pct.lvl-LOW    {color:#dba844}
+  .burnup-overall .pct.lvl-MEDIUM {color:#e08a4f}
+  .burnup-overall .pct.lvl-HIGH   {color:#e56b6b}
+  .burnup-overall .ratio{font-family:var(--mono);color:var(--muted);font-size:12.5px}
+  .burnup-meta{color:var(--muted);font-size:11px;margin-bottom:4px;line-height:1.5}
+  .burnup-cat{margin-top:12px}
+  .burnup-cat-head{display:flex;align-items:center;gap:10px;font-size:12px;cursor:pointer;padding:4px 0}
+  .burnup-cat-head:hover{background:rgba(255,255,255,.02);border-radius:6px}
+  .burnup-cat-name{color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;font-weight:600;min-width:140px}
+  .burnup-cat-bar{flex:1;height:8px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden;position:relative}
+  .burnup-cat-fill{position:absolute;top:0;left:0;height:100%;border-radius:4px;transition:width .3s}
+  .burnup-cat-fill.lvl-CLEAN  {background:#7dd584}
+  .burnup-cat-fill.lvl-LOW    {background:#dba844}
+  .burnup-cat-fill.lvl-MEDIUM {background:#e08a4f}
+  .burnup-cat-fill.lvl-HIGH   {background:#e56b6b}
+  .burnup-cat-pct{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);min-width:64px;text-align:right}
+  .burnup-missing{display:none;margin:6px 0 4px 150px;font-size:11px;color:var(--muted);max-height:180px;overflow-y:auto;padding:6px 10px;background:rgba(255,255,255,.02);border-radius:6px}
+  .burnup-cat.expanded .burnup-missing{display:block}
+  .burnup-missing-item{padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+  .burnup-missing-item:last-child{border-bottom:none}
+  .burnup-actions{display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap}
+  .burnup-empty{padding:14px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:12px;line-height:1.6}
+  .burnup-empty strong{color:var(--ink-2);font-weight:600}
+  .btn-mini{
+    background:rgba(255,255,255,.03);border:1px solid var(--line);
+    color:var(--ink-2);padding:5px 10px;border-radius:6px;
+    font-size:11px;font-family:inherit;cursor:pointer;
+  }
+  .btn-mini:hover{background:rgba(255,255,255,.06)}
+  .btn-mini.danger{color:#e58a8a}
+  .btn-mini.danger:hover{background:rgba(229,107,107,.10)}
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -467,10 +510,18 @@
           </div>
         </div>
 
-        <div class="dash-card col-6 stub-card">
-          <span class="stub-tag">Sprint 4 — após blueprint</span>
-          <span class="stub-title">📊 Burnup vs Blueprint</span>
-          <span>Linha de progresso da migração Pega → Pipefy contra a meta marcada como blueprint.</span>
+        <!-- ======== BURNUP vs BLUEPRINT (Sprint 4) ======== -->
+        <div class="dash-card col-6">
+          <h3>📊 Burnup vs Blueprint</h3>
+          <p class="sub">Progresso do snapshot atual em relação ao estado-meta marcado como blueprint. Cobertura = quantos elementos do blueprint já existem no pipe hoje.</p>
+
+          <div class="burnup-picker" id="burnup-picker">
+            <span class="picker-empty">carregando pipes monitorados...</span>
+          </div>
+
+          <div id="burnup-content">
+            <div class="placeholder-soft">Selecione um pipe acima.</div>
+          </div>
         </div>
 
       </div>
@@ -839,6 +890,7 @@
       renderMonitorStatus();
       renderMonitorTable();
       renderHotspotPicker();
+      renderBurnupPicker();
     }).catch(function(err){ console.error('Erro carregando monitored-pipes', err); });
   }
 
@@ -1048,6 +1100,189 @@
     container.innerHTML = html;
   }
 
+  /* ===================== Burnup (Sprint 4) ===================== */
+  var _selectedBurnupPipeId = null;
+
+  function _burnupLevelFromPct(pct){
+    if(pct >= 90) return 'CLEAN';
+    if(pct >= 70) return 'LOW';
+    if(pct >= 50) return 'MEDIUM';
+    return 'HIGH';
+  }
+
+  function renderBurnupPicker(){
+    var picker = document.getElementById('burnup-picker');
+    if(!picker) return;
+    var pipes = (_monitorState.pipes || []).filter(function(p){ return p.enabled && p.id; });
+    if(!pipes.length){
+      picker.innerHTML = '<span class="picker-empty">Nenhum pipe monitorado. Adicione na seção acima.</span>';
+      return;
+    }
+    if(!_selectedBurnupPipeId || !pipes.some(function(p){ return p.id === _selectedBurnupPipeId; })){
+      _selectedBurnupPipeId = pipes[0].id;
+    }
+    var html = '<label for="burnup-pipe-select">Pipe:</label>'
+             + '<select id="burnup-pipe-select">';
+    pipes.forEach(function(p){
+      var sel = (p.id === _selectedBurnupPipeId) ? ' selected' : '';
+      var label = (p.name || p.id) + (p.env_label ? ' [' + p.env_label + ']' : '');
+      html += '<option value="' + escapeHtml(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+    });
+    html += '</select>';
+    picker.innerHTML = html;
+    var sel = document.getElementById('burnup-pipe-select');
+    if(sel){
+      sel.addEventListener('change', function(){
+        _selectedBurnupPipeId = sel.value;
+        fetchBurnupForSelected();
+      });
+    }
+  }
+
+  function fetchBurnupForSelected(){
+    if(!window.V2Utils || !_selectedBurnupPipeId) return;
+    var container = document.getElementById('burnup-content');
+    if(container){ container.innerHTML = '<div class="placeholder-soft">Carregando...</div>'; }
+    V2Utils.apiFetch('/api/dashboard/burnup?pipe_id=' + encodeURIComponent(_selectedBurnupPipeId)).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(data) renderBurnup(data);
+    }).catch(function(err){
+      console.error('Erro fetch burnup', err);
+    });
+  }
+
+  function _renderBurnupCategory(catKey, catLabel, cat){
+    var pct = cat.pct != null ? cat.pct : 0;
+    var lvl = _burnupLevelFromPct(pct);
+    var html = ''
+      + '<div class="burnup-cat" data-cat="' + catKey + '">'
+      +   '<div class="burnup-cat-head">'
+      +     '<span class="burnup-cat-name">' + escapeHtml(catLabel) + '</span>'
+      +     '<div class="burnup-cat-bar"><div class="burnup-cat-fill lvl-' + lvl + '" style="width:' + pct + '%"></div></div>'
+      +     '<span class="burnup-cat-pct">' + fmtNumber(pct) + '% · ' + cat.covered + '/' + cat.total + '</span>'
+      +   '</div>';
+    if((cat.missing || []).length){
+      html += '<div class="burnup-missing">';
+      cat.missing.forEach(function(m){
+        html += '<div class="burnup-missing-item">' + escapeHtml(m.label || m.id || '') + '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderBurnup(data){
+    var container = document.getElementById('burnup-content');
+    if(!container) return;
+
+    if(!data || data.available === false){
+      var reason = (data && data.reason) || '';
+      var hasMarkButton = reason.indexOf('Sem blueprint marcado') === 0;
+      var html = '<div class="burnup-empty"><strong>'
+        + escapeHtml(reason || 'Sem blueprint marcado.')
+        + '</strong></div>';
+      if(hasMarkButton && _selectedBurnupPipeId){
+        html += '<div class="burnup-actions">'
+              + '<button class="btn-mini" id="btn-mark-blueprint">Marcar snapshot mais recente como blueprint</button>'
+              + '</div>';
+      }
+      container.innerHTML = html;
+      var btn = document.getElementById('btn-mark-blueprint');
+      if(btn){
+        btn.addEventListener('click', markLatestAsBlueprint);
+      }
+      return;
+    }
+
+    var pct = data.overall_pct != null ? data.overall_pct : 0;
+    var lvl = _burnupLevelFromPct(pct);
+    var bp = data.blueprint || {};
+    var cur = data.current || {};
+    var when = bp.marked_at ? new Date(bp.marked_at).toLocaleString('pt-BR') : '—';
+    var bpTs = bp.blueprint_timestamp ? String(bp.blueprint_timestamp).slice(0, 10) : '—';
+    var curTs = cur.timestamp ? String(cur.timestamp).slice(0, 10) : '—';
+
+    var html = ''
+      + '<div class="burnup-overall">'
+      +   '<span class="pct lvl-' + lvl + '">' + fmtNumber(pct) + '%</span>'
+      +   '<span class="ratio">' + data.overall_covered + ' de ' + data.overall_total + ' itens cobertos</span>'
+      + '</div>'
+      + '<div class="burnup-meta">Blueprint marcado em ' + escapeHtml(when)
+      +   ' · snapshot-meta de ' + escapeHtml(bpTs)
+      +   ' · estado atual de ' + escapeHtml(curTs) + '</div>';
+
+    var cats = data.by_category || {};
+    html += _renderBurnupCategory('phases', 'Phases', cats.phases || {pct:0,covered:0,total:0,missing:[]});
+    html += _renderBurnupCategory('phase_fields', 'Phase fields', cats.phase_fields || {pct:0,covered:0,total:0,missing:[]});
+    html += _renderBurnupCategory('start_form_fields', 'Start form', cats.start_form_fields || {pct:0,covered:0,total:0,missing:[]});
+
+    html += '<div class="burnup-actions">'
+         +   '<button class="btn-mini danger" id="btn-remove-blueprint">Remover blueprint</button>'
+         +   '<button class="btn-mini" id="btn-remark-blueprint">Re-marcar como snapshot atual</button>'
+         + '</div>';
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.burnup-cat').forEach(function(row){
+      var head = row.querySelector('.burnup-cat-head');
+      if(head){
+        head.addEventListener('click', function(){
+          row.classList.toggle('expanded');
+        });
+      }
+    });
+    var rm = document.getElementById('btn-remove-blueprint');
+    if(rm){ rm.addEventListener('click', removeBlueprint); }
+    var rem = document.getElementById('btn-remark-blueprint');
+    if(rem){ rem.addEventListener('click', markLatestAsBlueprint); }
+  }
+
+  function _fetchLatestSnapshotFilename(pipeId){
+    return V2Utils.apiFetch('/api/dashboard/auto-snapshots/' + encodeURIComponent(pipeId)).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      var snaps = (data && data.snapshots) || [];
+      return snaps.length ? snaps[0].filename : null;
+    });
+  }
+
+  function markLatestAsBlueprint(){
+    if(!_selectedBurnupPipeId){ alert('Selecione um pipe.'); return; }
+    _fetchLatestSnapshotFilename(_selectedBurnupPipeId).then(function(filename){
+      if(!filename){
+        alert('Pipe ainda não tem snapshots coletados. Cron precisa rodar pelo menos uma vez.');
+        return;
+      }
+      return V2Utils.apiFetch('/api/dashboard/blueprint', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({pipe_id: _selectedBurnupPipeId, snapshot_filename: filename}),
+      }).then(function(res){
+        if(!res.ok) throw new Error('marcação falhou');
+        return res.json();
+      }).then(function(){ fetchBurnupForSelected(); });
+    }).catch(function(err){
+      alert('Erro marcando blueprint: ' + err.message);
+    });
+  }
+
+  function removeBlueprint(){
+    if(!_selectedBurnupPipeId) return;
+    if(!confirm('Remover blueprint deste pipe? A meta da migração será perdida.')) return;
+    V2Utils.apiFetch('/api/dashboard/blueprint?pipe_id=' + encodeURIComponent(_selectedBurnupPipeId), {
+      method: 'DELETE',
+    }).then(function(res){
+      if(!res.ok) throw new Error('remoção falhou');
+      return res.json();
+    }).then(function(){ fetchBurnupForSelected(); }).catch(function(err){
+      alert('Erro removendo blueprint: ' + err.message);
+    });
+  }
+
   function load(){
     if(!window.V2Utils) return;
     V2Utils.apiFetch('/api/dashboard/data').then(function(res){
@@ -1065,8 +1300,12 @@
       if(data.hotspots && data.hotspots.pipe_id){
         _selectedHotspotPipeId = data.hotspots.pipe_id;
       }
+      if(data.burnup && data.burnup.pipe_id){
+        _selectedBurnupPipeId = data.burnup.pipe_id;
+      }
       renderHotspots(data.hotspots);
       renderLeadtime(data.leadtime);
+      renderBurnup(data.burnup);
       loadMonitorConfig();
     }).catch(function(err){
       console.error('Erro carregando dashboard', err);
