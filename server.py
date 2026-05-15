@@ -429,6 +429,16 @@ def index_v2_dashboard():
     return send_from_directory("web/designs", "tela_dashboard.html")
 
 
+@app.route("/v2/security-scan")
+def index_v2_security_scan():
+    """Scanner semantico (Frente 1 do PLANO-VALIDACAO-HMG-PRD).
+    Visivel so pra role 'lideranca' (ou modo dev)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    return send_from_directory("web/designs", "tela_security_scan.html")
+
+
 @app.route("/api/whoami")
 def whoami():
     """Retorna a role do usuário autenticado. Usado pelo frontend pra
@@ -910,6 +920,86 @@ def delete_blueprint_endpoint():
     import dashboard_metrics
     removed = dashboard_metrics.delete_blueprint(BLUEPRINTS_DIR, pipe_id)
     return jsonify({"ok": True, "removed": removed, "pipe_id": pipe_id})
+
+
+# Fase A do PLANO-VALIDACAO-HMG-PRD: scan semantico (equivalente Gitleaks/Snyk).
+SEMANTIC_RULES_PATH = os.path.join(os.getcwd(), "config", "semantic_rules.json")
+
+
+@app.route("/api/security-scan", methods=["POST"])
+def security_scan():
+    """Scan de regras semanticas sobre automations Pipefy.
+
+    Body aceita duas formas:
+    - {"automations": [...], "env_label": "PRD"}: lista de automation nodes no
+      formato do GraphQL (resources/queries/automations_list.graphql). Internamente
+      converte pra targets via extract_targets_from_automations.
+    - {"targets": [...]}: lista de targets ja extraidos (formato semantic_scanner).
+      Util pra testes e clientes que querem scannear qualquer coisa.
+
+    Retorna {findings: [...], summary: {...}, rules_count: N}.
+    Restrito a lideranca.
+    """
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+
+    import semantic_scanner
+    if not os.path.exists(SEMANTIC_RULES_PATH):
+        return jsonify({
+            "error": f"Arquivo de regras nao encontrado: {SEMANTIC_RULES_PATH}",
+        }), 500
+    try:
+        rules = semantic_scanner.load_rules(SEMANTIC_RULES_PATH)
+    except (json.JSONDecodeError, IOError) as ex:
+        return jsonify({"error": f"Falha carregando regras: {ex}"}), 500
+
+    body = request.get_json(silent=True) or {}
+    targets = body.get("targets")
+    if targets is None:
+        automations = body.get("automations") or []
+        if not isinstance(automations, list):
+            return jsonify({"error": "Campo 'automations' deve ser lista"}), 400
+        env_label = body.get("env_label") or None
+        targets = semantic_scanner.extract_targets_from_automations(automations, env_label)
+    elif not isinstance(targets, list):
+        return jsonify({"error": "Campo 'targets' deve ser lista"}), 400
+
+    findings = semantic_scanner.scan_targets(targets, rules)
+    summary = semantic_scanner.summarize_findings(findings)
+    return jsonify({
+        "ok": True,
+        "findings": findings,
+        "summary": summary,
+        "rules_count": len(rules),
+        "targets_count": len(targets),
+    })
+
+
+@app.route("/api/security-scan/rules")
+def security_scan_rules():
+    """Lista as regras configuradas (sem o regex compilado, sem campos internos).
+    Util pra UI mostrar quais regras estao ativas. Restrito a lideranca."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    if not os.path.exists(SEMANTIC_RULES_PATH):
+        return jsonify({"version": "0", "rules": []})
+    try:
+        with open(SEMANTIC_RULES_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return jsonify({"error": f"Falha lendo regras: {ex}"}), 500
+    rules = [
+        {k: v for k, v in r.items() if not k.startswith("_") and k != "pattern"}
+        for r in (data.get("rules") or [])
+    ]
+    return jsonify({
+        "version": data.get("version", "0"),
+        "rules_count": len(rules),
+        "enabled_count": sum(1 for r in rules if r.get("enabled", True)),
+        "rules": rules,
+    })
 
 
 def _send_via_resend(api_key, sender, recipients, subject, html_body):

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Scan · Pipefy Validator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/v2/assets/tela_resultados_v1.css">
+<link rel="stylesheet" href="/v2/assets/v2_theme.css">
+<style>
+  html, body { height: auto !important; overflow: auto !important; }
+  body { overflow-y: scroll !important; }
+  .app { height: auto !important; min-height: 100vh; display: block !important; }
+  .main { grid-column: unset !important; }
+
+  .sec-wrap{padding:28px 24px;max-width:1200px;margin:0 auto}
+  .sec-hero{
+    border:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(229,107,107,.06), rgba(229,107,107,.01));
+    border-radius:14px;
+    padding:22px 24px;
+    margin-bottom:18px;
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
+  }
+  .sec-hero .left{flex:1;min-width:0}
+  .sec-kicker{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .sec-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:4px}
+  .sec-sub{color:var(--muted);font-size:12.5px;margin-top:4px;line-height:1.5}
+  .sec-shadow-banner{
+    background:rgba(218,162,52,.10);
+    border:1px solid rgba(218,162,52,.30);
+    color:#dba844;
+    padding:8px 14px;
+    border-radius:10px;
+    font-size:11.5px;
+    margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+
+  .sec-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+  .sec-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+    background:rgba(255,255,255,.01);
+    grid-column:span 12;
+  }
+  .sec-card.col-6{grid-column:span 6}
+  .sec-card.col-4{grid-column:span 4}
+  .sec-card.col-8{grid-column:span 8}
+  @media(max-width:900px){
+    .sec-card.col-6,.sec-card.col-4,.sec-card.col-8{grid-column:span 12}
+  }
+  .sec-card h3{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--ink-2)}
+  .sec-card .sub{color:var(--muted);font-size:11.5px;margin:0 0 14px}
+
+  .form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .form-row label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .form-row textarea, .form-row input, .form-row select{
+    background:rgba(0,0,0,.20);border:1px solid var(--line);
+    color:var(--ink-2);border-radius:8px;padding:10px 12px;
+    font-family:var(--mono);font-size:12px;line-height:1.45;
+  }
+  .form-row textarea{min-height:160px;resize:vertical}
+  .form-row input, .form-row select{font-family:inherit;font-size:12.5px}
+  .form-row .help{color:var(--muted);font-size:10.5px;line-height:1.4}
+
+  .form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn-scan{
+    background:#7dd584;border:none;color:#0e1620;font-weight:600;
+    padding:10px 18px;border-radius:8px;font-size:12.5px;cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-scan:hover{background:#92e09a}
+  .btn-scan:disabled{opacity:.5;cursor:not-allowed}
+  .btn-ghost{
+    background:transparent;border:1px solid var(--line);color:var(--ink-2);
+    padding:9px 14px;border-radius:8px;font-size:12px;cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-ghost:hover{background:rgba(255,255,255,.04)}
+
+  .summary-kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .summary-kpi{
+    flex:1;min-width:90px;border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;background:rgba(255,255,255,.01);
+  }
+  .summary-kpi .label{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px}
+  .summary-kpi .num{font-size:24px;font-weight:600;font-family:var(--mono);letter-spacing:-.02em}
+  .summary-kpi.high .num{color:#e56b6b}
+  .summary-kpi.med .num{color:#dba844}
+  .summary-kpi.low .num{color:#7dd584}
+  .summary-kpi.total .num{color:var(--ink-2)}
+
+  .findings-list{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+  .finding-row{
+    display:grid;grid-template-columns:70px 130px 1fr;
+    gap:12px;align-items:start;
+    padding:10px 12px;border-radius:8px;
+    border:1px solid var(--line);background:rgba(255,255,255,.01);
+    font-size:12px;
+  }
+  .finding-row .sev{
+    font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;
+    font-weight:600;padding:3px 8px;border-radius:5px;text-align:center;
+    font-family:var(--mono);align-self:start;
+  }
+  .finding-row .sev.high{background:rgba(229,107,107,.14);color:#ee8e8e}
+  .finding-row .sev.med{background:rgba(219,168,68,.14);color:#e2bb6c}
+  .finding-row .sev.low{background:rgba(125,213,132,.12);color:#9adfa1}
+  .finding-row .rule{font-family:var(--mono);font-size:10.5px;color:#9bbde0;align-self:start}
+  .finding-row .body{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .finding-row .msg{color:var(--ink-2);font-weight:500}
+  .finding-row .meta{font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+  .finding-row .snippet{
+    font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    background:rgba(0,0,0,.20);padding:6px 8px;border-radius:5px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    max-width:100%;
+  }
+
+  .empty-state{padding:24px;text-align:center;color:var(--muted);font-size:12.5px}
+  .rules-list{margin-top:10px;display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto}
+  .rule-item{
+    display:flex;gap:8px;align-items:center;
+    padding:6px 10px;border-radius:6px;border:1px solid transparent;
+    font-size:11.5px;
+  }
+  .rule-item:hover{background:rgba(255,255,255,.02)}
+  .rule-item .sev{font-size:9px;padding:2px 6px;border-radius:4px;min-width:44px;text-align:center;font-family:var(--mono);font-weight:600;text-transform:uppercase}
+  .rule-item .sev.high{background:rgba(229,107,107,.14);color:#ee8e8e}
+  .rule-item .sev.med{background:rgba(219,168,68,.14);color:#e2bb6c}
+  .rule-item .sev.low{background:rgba(125,213,132,.12);color:#9adfa1}
+  .rule-item .id{font-family:var(--mono);font-size:10.5px;color:#9bbde0;min-width:200px}
+  .rule-item .desc{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .error-banner{
+    background:rgba(229,107,107,.10);border:1px solid rgba(229,107,107,.30);
+    color:#ee8e8e;padding:10px 14px;border-radius:8px;font-size:12px;
+    margin-bottom:12px;
+  }
+</style>
+<script src="/v2/assets/v2_theme.js" defer></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <header class="topbar">
+    <a href="/v2/configuracao" class="brand" aria-label="Voltar pra home">
+      <div class="brand-mark">P</div>
+      <div class="brand-name">Pipefy Validator <span>/ security scan</span></div>
+    </a>
+    <nav class="crumbs" aria-label="breadcrumb">
+      <a href="/v2/dashboard">Dashboard</a>
+      <span class="sep">›</span>
+      <span class="current">Security scan</span>
+    </nav>
+    <div class="top-right">
+      <a class="icon-btn" href="/v2/docs" data-tip="Documentação"><svg><use href="#i-book"/></svg></a>
+      <a class="icon-btn" href="/v2/help" data-tip="Ajuda"><svg><use href="#i-help"/></svg></a>
+    </div>
+  </header>
+
+  <main class="main" style="grid-column:1 / -1">
+    <div class="sec-wrap">
+
+      <div class="sec-shadow-banner">
+        <span>⚠</span>
+        <span>Fase A do plano L4. Regras editáveis em <code>config/semantic_rules.json</code>.</span>
+      </div>
+
+      <section class="sec-hero">
+        <div class="left">
+          <div class="sec-kicker">Equivalente Gitleaks + Snyk Code</div>
+          <h1 class="sec-title">Security scan de automations</h1>
+          <p class="sec-sub">Procura credenciais hardcoded, URLs HTTP sem TLS, IPs internos e indicadores de ambiente de teste em PRD. Cole abaixo o JSON das automations (formato do GraphQL Pipefy) ou uma lista de targets customizada.</p>
+        </div>
+      </section>
+
+      <div class="sec-grid">
+
+        <!-- ======== FORM ======== -->
+        <div class="sec-card col-8">
+          <h3>📋 Input</h3>
+          <p class="sub">Cole o array de automations retornado pelo <code>automations_list.graphql</code>, ou um payload <code>{"targets": [...]}</code> pra scan customizado.</p>
+
+          <div id="scan-error" class="error-banner" style="display:none"></div>
+
+          <div class="form-row" style="flex-direction:row;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:160px">
+              <label for="env-label">Env label</label>
+              <select id="env-label">
+                <option value="PRD">PRD (produção)</option>
+                <option value="HMG">HMG (homologação)</option>
+                <option value="">(nenhum — regras com env_restrict não disparam)</option>
+              </select>
+              <div class="help">Algumas regras só disparam pra PRD (ex: HTTP sem TLS).</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="json-input">JSON</label>
+            <textarea id="json-input" spellcheck="false" placeholder='[
+  {
+    "id": "auto_1",
+    "name": "Webhook ao aprovar",
+    "action_params": {
+      "url": "https://api.cliente.com/hook",
+      "headers": "{\"Authorization\": \"Bearer abc...\"}",
+      "body": "{\"order_id\": 123}"
+    }
+  }
+]'></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-scan" id="btn-scan">Rodar scan</button>
+            <button class="btn-ghost" id="btn-example">Carregar exemplo</button>
+            <button class="btn-ghost" id="btn-clear">Limpar</button>
+          </div>
+        </div>
+
+        <!-- ======== RULES SIDEBAR ======== -->
+        <div class="sec-card col-4">
+          <h3>📜 Regras ativas</h3>
+          <p class="sub">Editar em <code>config/semantic_rules.json</code>.</p>
+          <div id="rules-content">
+            <div class="empty-state">Carregando...</div>
+          </div>
+        </div>
+
+        <!-- ======== RESULTS ======== -->
+        <div class="sec-card col-12" id="results-card" style="display:none">
+          <h3>🔎 Findings</h3>
+          <div id="results-content"></div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="/v2/assets/v2_utils.js"></script>
+<script>
+(function(){
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];
+    });
+  }
+
+  function showError(msg){
+    var box = document.getElementById('scan-error');
+    box.textContent = msg;
+    box.style.display = 'block';
+  }
+  function clearError(){
+    var box = document.getElementById('scan-error');
+    box.style.display = 'none';
+  }
+
+  function loadRules(){
+    if(!window.V2Utils) return;
+    V2Utils.apiFetch('/api/security-scan/rules').then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(!data) return;
+      renderRules(data);
+    }).catch(function(err){ console.error('Erro carregando regras', err); });
+  }
+
+  function renderRules(data){
+    var container = document.getElementById('rules-content');
+    if(!container) return;
+    var rules = (data.rules || []).filter(function(r){ return r.enabled !== false; });
+    if(!rules.length){
+      container.innerHTML = '<div class="empty-state">Sem regras ativas.</div>';
+      return;
+    }
+    var html = '<div class="rules-list">';
+    rules.forEach(function(r){
+      var sev = r.severity || 'med';
+      html += ''
+        + '<div class="rule-item" title="' + escapeHtml(r.message || '') + '">'
+        +   '<span class="sev ' + sev + '">' + sev + '</span>'
+        +   '<span class="id">' + escapeHtml(r.id || '') + '</span>'
+        +   '<span class="desc">' + escapeHtml(r.message || '') + '</span>'
+        + '</div>';
+    });
+    html += '</div>';
+    html += '<div style="margin-top:10px;font-size:11px;color:var(--muted)">'
+         + (data.enabled_count || rules.length) + ' / ' + (data.rules_count || rules.length) + ' regras ativas'
+         + '</div>';
+    container.innerHTML = html;
+  }
+
+  function getInput(){
+    var raw = document.getElementById('json-input').value.trim();
+    if(!raw){ throw new Error('Cole um JSON antes de rodar o scan.'); }
+    var parsed;
+    try { parsed = JSON.parse(raw); }
+    catch(e){ throw new Error('JSON inválido: ' + e.message); }
+    return parsed;
+  }
+
+  function buildBody(parsed){
+    var envLabel = document.getElementById('env-label').value;
+    if(Array.isArray(parsed)){
+      return {automations: parsed, env_label: envLabel};
+    }
+    if(parsed && typeof parsed === 'object'){
+      var body = {};
+      if(Array.isArray(parsed.automations)){
+        body.automations = parsed.automations;
+        body.env_label = parsed.env_label || envLabel;
+      } else if(Array.isArray(parsed.targets)){
+        body.targets = parsed.targets;
+      } else {
+        throw new Error('JSON deve ser array de automations, ou objeto com "automations" ou "targets".');
+      }
+      return body;
+    }
+    throw new Error('JSON deve ser array ou objeto.');
+  }
+
+  function runScan(){
+    clearError();
+    var btn = document.getElementById('btn-scan');
+    var origLabel = btn.textContent;
+    var body;
+    try {
+      body = buildBody(getInput());
+    } catch(e){
+      showError(e.message);
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Rodando...';
+    V2Utils.apiFetch('/api/security-scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    }).then(function(res){
+      return res.json().then(function(data){
+        return {ok: res.ok, status: res.status, data: data};
+      });
+    }).then(function(r){
+      btn.disabled = false;
+      btn.textContent = origLabel;
+      if(!r.ok){
+        showError((r.data && r.data.error) || ('HTTP ' + r.status));
+        return;
+      }
+      renderResults(r.data);
+    }).catch(function(err){
+      btn.disabled = false;
+      btn.textContent = origLabel;
+      showError('Falha de rede: ' + err.message);
+    });
+  }
+
+  function renderResults(data){
+    var card = document.getElementById('results-card');
+    var container = document.getElementById('results-content');
+    card.style.display = 'block';
+    var s = data.summary || {by_severity:{}, by_category:{}};
+    var findings = data.findings || [];
+
+    var html = ''
+      + '<div class="summary-kpis">'
+      +   '<div class="summary-kpi total"><div class="label">Total findings</div><div class="num">' + (s.total || 0) + '</div></div>'
+      +   '<div class="summary-kpi high"><div class="label">High</div><div class="num">' + (s.by_severity.high || 0) + '</div></div>'
+      +   '<div class="summary-kpi med"><div class="label">Med</div><div class="num">' + (s.by_severity.med || 0) + '</div></div>'
+      +   '<div class="summary-kpi low"><div class="label">Low</div><div class="num">' + (s.by_severity.low || 0) + '</div></div>'
+      + '</div>'
+      + '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">'
+      +   data.targets_count + ' targets escaneados · ' + data.rules_count + ' regras aplicadas'
+      + '</div>';
+
+    if(!findings.length){
+      html += '<div class="empty-state">✓ Nenhum finding. Automations limpas pra essas regras.</div>';
+    } else {
+      html += '<div class="findings-list">';
+      findings.forEach(function(f){
+        html += ''
+          + '<div class="finding-row">'
+          +   '<span class="sev ' + escapeHtml(f.severity) + '">' + escapeHtml(f.severity) + '</span>'
+          +   '<span class="rule">' + escapeHtml(f.rule_id || '') + '</span>'
+          +   '<div class="body">'
+          +     '<span class="msg">' + escapeHtml(f.message || '') + '</span>'
+          +     '<span class="meta">'
+          +       escapeHtml(f.target_kind || '') + ' · '
+          +       escapeHtml(f.target_name || f.target_id || '(sem nome)')
+          +       ' · campo ' + escapeHtml(f.field || '')
+          +       (f.env_label ? ' · ' + escapeHtml(f.env_label) : '')
+          +     '</span>'
+          +     (f.snippet ? '<code class="snippet" title="' + escapeHtml(f.snippet) + '">' + escapeHtml(f.snippet) + '</code>' : '')
+          +   '</div>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+    container.innerHTML = html;
+    card.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+
+  var EXAMPLE = [
+    {
+      "id": "auto_demo_1",
+      "name": "Webhook ao aprovar (com problemas)",
+      "active": true,
+      "action_params": {
+        "url": "http://hmg.api.cliente.com/hook?token=abc123def456",
+        "headers": "Authorization: Bearer ghp_abc123def456ghi789jkl012mnop345qr678\nContent-Type: application/json",
+        "body": "{\"to\": \"qa@cliente.com\", \"api_key\": \"sk_live_xyz789test\"}"
+      }
+    },
+    {
+      "id": "auto_demo_2",
+      "name": "Webhook saudavel",
+      "active": true,
+      "action_params": {
+        "url": "https://api.cliente.com/v1/webhook",
+        "headers": "{\"Content-Type\": \"application/json\"}",
+        "body": "{\"order_id\": 123, \"status\": \"approved\"}"
+      }
+    }
+  ];
+
+  function loadExample(){
+    document.getElementById('json-input').value = JSON.stringify(EXAMPLE, null, 2);
+    document.getElementById('env-label').value = 'PRD';
+    clearError();
+  }
+
+  function clearInput(){
+    document.getElementById('json-input').value = '';
+    document.getElementById('results-card').style.display = 'none';
+    clearError();
+  }
+
+  function init(){
+    document.getElementById('btn-scan').addEventListener('click', runScan);
+    document.getElementById('btn-example').addEventListener('click', loadExample);
+    document.getElementById('btn-clear').addEventListener('click', clearInput);
+    loadRules();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body>
+</html>

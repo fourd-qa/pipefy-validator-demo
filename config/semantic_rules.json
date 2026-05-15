@@ -1,0 +1,90 @@
+{
+  "$comment": "Regras semanticas pra Frente 1 (Fase A) do PLANO-VALIDACAO-HMG-PRD: equivalente Gitleaks + Snyk Code. Cada regra define um padrao a buscar em campos de automation HTTP (url, headers, body, condition values). 'category' agrupa pra UI. 'severity' = high/med/low. 'env_restrict' (opcional) limita a regra a um env_label especifico (ex: PRD pra evitar falso positivo em snapshots de HMG). 'enabled': false desativa sem precisar remover. Editavel via PR.",
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "url_no_tls_in_prd",
+      "category": "url_security",
+      "severity": "high",
+      "fields": ["url"],
+      "pattern": "^\\s*http://",
+      "env_restrict": "PRD",
+      "message": "URL HTTP sem TLS em automation de PRD",
+      "enabled": true
+    },
+    {
+      "id": "url_internal_ip",
+      "category": "url_security",
+      "severity": "high",
+      "fields": ["url"],
+      "pattern": "(?i)://(?:localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|192\\.168\\.|10\\.\\d|172\\.(?:1[6-9]|2\\d|3[01])\\.)",
+      "message": "URL aponta pra localhost/IP interno (nao acessivel do Pipefy)",
+      "enabled": true
+    },
+    {
+      "id": "url_with_test_subdomain_in_prd",
+      "category": "env_mismatch",
+      "severity": "high",
+      "fields": ["url"],
+      "pattern": "(?i)://(?:hmg|staging|qa|test|sandbox|dev)\\.",
+      "env_restrict": "PRD",
+      "message": "URL com subdominio de HMG/QA/test em automation de PRD",
+      "enabled": true
+    },
+    {
+      "id": "token_in_query_string",
+      "category": "secret_leak",
+      "severity": "high",
+      "fields": ["url"],
+      "pattern": "(?i)[?&](?:token|api[_-]?key|secret|password|auth|access[_-]?key)=[A-Za-z0-9._\\-+/=]{4,}",
+      "message": "Credencial em query string da URL (vaza em logs/proxies)",
+      "enabled": true
+    },
+    {
+      "id": "bearer_token_in_headers",
+      "category": "secret_leak",
+      "severity": "high",
+      "fields": ["headers"],
+      "pattern": "(?i)(?:Bearer|Basic)\\s+[A-Za-z0-9+/=._\\-]{20,}",
+      "message": "Token Bearer/Basic hardcoded em headers",
+      "enabled": true
+    },
+    {
+      "id": "credential_in_body",
+      "category": "secret_leak",
+      "severity": "high",
+      "fields": ["body"],
+      "pattern": "(?i)\"(?:api[_-]?key|secret[_-]?key|password|access[_-]?token|client[_-]?secret)\"\\s*:\\s*\"[^\"]{6,}\"",
+      "message": "Credencial hardcoded no body (chave de API, senha, etc)",
+      "enabled": true
+    },
+    {
+      "id": "email_de_teste_in_prd",
+      "category": "env_mismatch",
+      "severity": "med",
+      "fields": ["body", "headers"],
+      "pattern": "(?i)\\b(?:qa|test|teste|hmg|sandbox)@|\\+test@|@(?:example\\.com|mailinator\\.com|tempmail|10minutemail)",
+      "env_restrict": "PRD",
+      "message": "Email de teste/QA em automation de PRD",
+      "enabled": true
+    },
+    {
+      "id": "aws_access_key",
+      "category": "secret_leak",
+      "severity": "high",
+      "fields": ["url", "headers", "body"],
+      "pattern": "AKIA[0-9A-Z]{16}",
+      "message": "AWS Access Key ID hardcoded",
+      "enabled": true
+    },
+    {
+      "id": "github_token",
+      "category": "secret_leak",
+      "severity": "high",
+      "fields": ["url", "headers", "body"],
+      "pattern": "gh[pousr]_[A-Za-z0-9]{36,}",
+      "message": "GitHub token hardcoded",
+      "enabled": true
+    }
+  ]
+}
