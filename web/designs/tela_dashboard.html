@@ -480,6 +480,50 @@
   .qual-finding .check{font-family:var(--mono);font-size:10px;color:#ee8e8e}
   .qual-finding .msg{color:var(--ink-2);margin-top:2px}
   .qual-finding .target{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+
+  /* Smoke card (Fase C do L4) */
+  .smoke-picker{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;flex-wrap:wrap}
+  .smoke-picker select{
+    background:rgba(255,255,255,.02);border:1px solid var(--line);
+    color:var(--ink-2);border-radius:6px;padding:5px 8px;font-size:11.5px;
+    font-family:inherit;min-width:200px;
+  }
+  .smoke-picker .picker-empty{color:var(--muted);font-size:11px;font-style:italic}
+  .smoke-status-row{display:flex;align-items:baseline;gap:10px;margin:8px 0 6px}
+  .smoke-status-pill{
+    display:inline-block;padding:3px 10px;border-radius:8px;font-size:10.5px;
+    font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+  }
+  .smoke-status-pill.ok{background:rgba(125,213,132,.14);color:#9adfa1}
+  .smoke-status-pill.fail{background:rgba(229,107,107,.14);color:#ee8e8e}
+  .smoke-status-pill.dry{background:rgba(155,189,224,.14);color:#9bbde0}
+  .smoke-status-pill.never{background:rgba(255,255,255,.04);color:var(--muted)}
+  .smoke-meta{color:var(--muted);font-size:11px;margin-bottom:10px;line-height:1.4}
+  .smoke-actions{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+  .smoke-actions .btn-mini{
+    background:rgba(255,255,255,.03);border:1px solid var(--line);
+    color:var(--ink-2);padding:6px 12px;border-radius:6px;font-size:11.5px;
+    font-family:inherit;cursor:pointer;
+  }
+  .smoke-actions .btn-mini:hover{background:rgba(255,255,255,.06)}
+  .smoke-actions .btn-mini.primary{background:#7dd584;color:#0e1620;border-color:#7dd584;font-weight:600}
+  .smoke-actions .btn-mini.danger{background:rgba(229,107,107,.10);color:#e58a8a;border-color:rgba(229,107,107,.20)}
+  .smoke-steps{display:flex;flex-direction:column;gap:3px;margin-top:10px}
+  .smoke-step{
+    display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+    padding:6px 10px;border-radius:6px;font-size:11.5px;
+    border:1px solid transparent;
+  }
+  .smoke-step.ok{background:rgba(125,213,132,.04);border-color:rgba(125,213,132,.15)}
+  .smoke-step.fail{background:rgba(229,107,107,.06);border-color:rgba(229,107,107,.20)}
+  .smoke-step .kind{font-family:var(--mono);font-size:10px;color:#9bbde0;text-transform:uppercase;letter-spacing:.06em;font-weight:600;min-width:90px}
+  .smoke-step .lbl{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .smoke-step .timing{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .smoke-error{color:#e58a8a;font-size:11px;font-family:var(--mono);margin-top:4px}
+  .smoke-warning{
+    background:rgba(218,162,52,.08);border:1px solid rgba(218,162,52,.20);
+    color:#e2bb6c;padding:6px 10px;border-radius:6px;font-size:11px;margin:6px 0;
+  }
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -631,6 +675,20 @@
           </div>
 
           <div id="qual-content">
+            <div class="placeholder-soft">Selecione um pipe acima.</div>
+          </div>
+        </div>
+
+        <!-- ======== SMOKE TEST (Fase C do L4) ======== -->
+        <div class="dash-card col-12">
+          <h3>🚀 Smoke Test</h3>
+          <p class="sub">Equivalente Datadog Synthetics: cria card de teste, move pelas phases críticas, deleta no final. Default <strong>dry-run</strong> (não toca no Pipefy). Pra execução real, pipe precisa estar habilitado em <code>config/smoke_rules.json</code> + token de escrita no Render. Veja <code>HANDOFF-SMOKE.md</code>.</p>
+
+          <div class="smoke-picker" id="smoke-picker">
+            <span class="picker-empty">carregando pipes monitorados...</span>
+          </div>
+
+          <div id="smoke-content">
             <div class="placeholder-soft">Selecione um pipe acima.</div>
           </div>
         </div>
@@ -1004,6 +1062,8 @@
       renderBurnupPicker();
       renderSecurPicker();
       renderQualPicker();
+      renderSmokePicker();
+      fetchSmokeLast();
     }).catch(function(err){ console.error('Erro carregando monitored-pipes', err); });
   }
 
@@ -1608,6 +1668,170 @@
     }
 
     container.innerHTML = html;
+  }
+
+  /* ===================== Smoke Test (Fase C do L4) ===================== */
+  var _selectedSmokePipeId = null;
+  var _smokeRulesCache = null;
+
+  function renderSmokePicker(){
+    var picker = document.getElementById('smoke-picker');
+    if(!picker) return;
+    var pipes = (_monitorState.pipes || []).filter(function(p){ return p.enabled && p.id; });
+    if(!pipes.length){
+      picker.innerHTML = '<span class="picker-empty">Nenhum pipe monitorado.</span>';
+      return;
+    }
+    if(!_selectedSmokePipeId || !pipes.some(function(p){ return p.id === _selectedSmokePipeId; })){
+      _selectedSmokePipeId = pipes[0].id;
+    }
+    var html = '<label for="smoke-pipe-select">Pipe:</label>'
+             + '<select id="smoke-pipe-select">';
+    pipes.forEach(function(p){
+      var sel = (p.id === _selectedSmokePipeId) ? ' selected' : '';
+      var label = (p.name || p.id) + (p.env_label ? ' [' + p.env_label + ']' : '');
+      html += '<option value="' + escapeHtml(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+    });
+    html += '</select>';
+    picker.innerHTML = html;
+    var sel = document.getElementById('smoke-pipe-select');
+    if(sel){
+      sel.addEventListener('change', function(){
+        _selectedSmokePipeId = sel.value;
+        fetchSmokeLast();
+      });
+    }
+  }
+
+  function fetchSmokeRules(){
+    if(_smokeRulesCache) return Promise.resolve(_smokeRulesCache);
+    return V2Utils.apiFetch('/api/smoke/rules').then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){ _smokeRulesCache = data; return data; });
+  }
+
+  function fetchSmokeLast(){
+    if(!window.V2Utils || !_selectedSmokePipeId) return;
+    var container = document.getElementById('smoke-content');
+    if(container){ container.innerHTML = '<div class="placeholder-soft">Carregando...</div>'; }
+    Promise.all([
+      V2Utils.apiFetch('/api/smoke/last?pipe_id=' + encodeURIComponent(_selectedSmokePipeId))
+        .then(function(r){ return r.ok ? r.json() : null; }),
+      fetchSmokeRules(),
+    ]).then(function(arr){
+      renderSmoke(arr[0], arr[1]);
+    }).catch(function(err){ console.error('Erro fetch smoke', err); });
+  }
+
+  function renderSmoke(data, rules){
+    var container = document.getElementById('smoke-content');
+    if(!container) return;
+    var pipeCfg = (rules && rules.pipes && _selectedSmokePipeId) ? rules.pipes[_selectedSmokePipeId] : null;
+    var pipeEnabled = !!(pipeCfg && pipeCfg.enabled);
+    var tokenConfigured = !!(rules && rules.token_configured);
+
+    var html = '';
+    if(!pipeEnabled || !tokenConfigured){
+      var msg = !tokenConfigured
+        ? 'Token de escrita (SMOKE_PIPEFY_TOKEN) nao configurado no Render. Execucao real desativada.'
+        : 'Pipe nao habilitado em config/smoke_rules.json. Execucao real desativada.';
+      html += '<div class="smoke-warning">' + escapeHtml(msg) + ' Dry-run continua funcionando.</div>';
+    }
+
+    if(!data || data.available === false){
+      var reason = (data && data.reason) || 'Sem runs ainda.';
+      html += '<div class="placeholder-soft">' + escapeHtml(reason) + '</div>';
+    } else {
+      var last = data.last_run || {};
+      var dryRun = last.dry_run !== false;
+      var ok = !!last.ok;
+      var statusClass = ok ? (dryRun ? 'dry' : 'ok') : 'fail';
+      var statusLabel = ok ? (dryRun ? 'DRY-RUN OK' : 'OK') : 'FALHOU';
+      var when = last.run_timestamp ? new Date(last.run_timestamp).toLocaleString('pt-BR') : '—';
+
+      html += '<div class="smoke-status-row">'
+           +   '<span class="smoke-status-pill ' + statusClass + '">' + statusLabel + '</span>'
+           +   '<span class="smoke-meta">' + escapeHtml(when)
+           +     ' · ' + (last.steps ? last.steps.length : 0) + ' steps'
+           +     ' · ' + (last.elapsed_ms || 0) + ' ms'
+           +     (last.env_label ? ' · ' + escapeHtml(last.env_label) : '')
+           +   '</span>'
+           + '</div>';
+
+      (last.warnings || []).forEach(function(w){
+        html += '<div class="smoke-warning">⚠ ' + escapeHtml(w) + '</div>';
+      });
+
+      if(last.errors && last.errors.length){
+        last.errors.forEach(function(e){
+          html += '<div class="smoke-error">' + escapeHtml(e) + '</div>';
+        });
+      }
+
+      if(last.steps && last.steps.length){
+        html += '<div class="smoke-steps">';
+        last.steps.forEach(function(s){
+          var lbl = s.kind === 'create_card' ? ('Cria card ' + (s.card_name || ''))
+                  : s.kind === 'move_to_phase' ? ('Move pra phase ' + (s.phase_name || s.phase_id || ''))
+                  : s.kind === 'delete_card' ? ('Deleta card ' + (s.card_id || ''))
+                  : s.kind;
+          html += '<div class="smoke-step ' + (s.ok ? 'ok' : 'fail') + '">'
+               +   '<span class="kind">' + escapeHtml(s.kind || '') + '</span>'
+               +   '<span class="lbl">' + escapeHtml(lbl) + (s.error ? ' — ' + escapeHtml(s.error) : '') + '</span>'
+               +   '<span class="timing">' + (s.elapsed_ms || 0) + ' ms</span>'
+               + '</div>';
+        });
+        html += '</div>';
+      }
+    }
+
+    html += '<div class="smoke-actions">'
+         +   '<button class="btn-mini primary" id="btn-smoke-dry">Rodar dry-run</button>';
+    if(pipeEnabled && tokenConfigured){
+      html += '<button class="btn-mini danger" id="btn-smoke-real">Rodar execução real</button>';
+    }
+    html += '</div>';
+
+    container.innerHTML = html;
+
+    var btnDry = document.getElementById('btn-smoke-dry');
+    if(btnDry) btnDry.addEventListener('click', function(){ runSmoke(true); });
+    var btnReal = document.getElementById('btn-smoke-real');
+    if(btnReal) btnReal.addEventListener('click', function(){
+      if(!confirm('Vai criar card de teste de verdade no Pipefy, mover por phases e deletar. Continuar?')) return;
+      runSmoke(false);
+    });
+  }
+
+  function runSmoke(dryRun){
+    if(!_selectedSmokePipeId) return;
+    var container = document.getElementById('smoke-content');
+    if(container){ container.innerHTML = '<div class="placeholder-soft">Rodando ' + (dryRun ? 'dry-run' : 'execução real') + '...</div>'; }
+    V2Utils.apiFetch('/api/smoke/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pipe_id: _selectedSmokePipeId, dry_run: dryRun}),
+    }).then(function(res){
+      return res.json().then(function(data){
+        return {ok: res.ok, status: res.status, data: data};
+      });
+    }).then(function(r){
+      if(!r.ok){
+        var msg = (r.data && r.data.error) ? r.data.error : ('HTTP ' + r.status);
+        container.innerHTML = '<div class="smoke-error">' + escapeHtml(msg) + '</div>'
+                            + '<div class="smoke-actions">'
+                            + '<button class="btn-mini primary" id="btn-smoke-dry">Tentar dry-run</button>'
+                            + '</div>';
+        var b = document.getElementById('btn-smoke-dry');
+        if(b) b.addEventListener('click', function(){ runSmoke(true); });
+        return;
+      }
+      // Recarrega via /last pra pegar a versao persistida + cache de rules.
+      fetchSmokeLast();
+    }).catch(function(err){
+      container.innerHTML = '<div class="smoke-error">Falha de rede: ' + escapeHtml(err.message) + '</div>';
+    });
   }
 
   function load(){

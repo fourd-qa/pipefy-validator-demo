@@ -46,6 +46,13 @@ MONITOR_PIPEFY_TOKEN = os.environ.get("MONITOR_PIPEFY_TOKEN", "").strip()
 MONITOR_PIPEFY_BASE_URL = os.environ.get("MONITOR_PIPEFY_BASE_URL", "https://api.pipefy.com/graphql").strip()
 MONITOR_PIPEFY_ORG_ID = os.environ.get("MONITOR_PIPEFY_ORG_ID", "").strip()
 
+# Fase C: smoke test runner (equivalente Datadog Synthetics).
+# Token separado pq smoke ESCREVE no Pipefy (createCard/moveCardToPhase/deleteCard).
+# Sem isso, /api/smoke/run rejeita execucao real (dry-run continua funcionando).
+SMOKE_PIPEFY_TOKEN = os.environ.get("SMOKE_PIPEFY_TOKEN", "").strip()
+SMOKE_PIPEFY_BASE_URL = os.environ.get("SMOKE_PIPEFY_BASE_URL", "https://api.pipefy.com/graphql").strip()
+SMOKE_ALLOW_PRD = os.environ.get("SMOKE_ALLOW_PRD", "").strip().lower() in ("true", "1", "yes")
+
 # Sprint 4 parte 2: email diario via Resend.
 # RESEND_API_KEY: API key gerada em https://resend.com/api-keys.
 # EMAIL_FROM: remetente (deve estar verificado em Resend, ex: dashboard@seudominio.com).
@@ -592,6 +599,310 @@ def quality_scan_rules():
         "rules_count": len(checks),
         "enabled_count": sum(1 for c in checks if c.get("enabled", True)),
         "checks": checks,
+    })
+
+
+# ============================================================
+# Fase C: smoke test runner (Datadog Synthetics equivalent)
+# ============================================================
+
+
+def _pipefy_smoke_graphql(query, variables):
+    """Igual ao _pipefy_graphql mas usa SMOKE_PIPEFY_TOKEN + SMOKE_PIPEFY_BASE_URL.
+    Isolado pra permitir mock em testes."""
+    import urllib.request
+    import urllib.error
+    body = json.dumps({"query": query, "variables": variables}).encode("utf-8")
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {SMOKE_PIPEFY_TOKEN}",
+    }
+    req = urllib.request.Request(SMOKE_PIPEFY_BASE_URL, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read().decode("utf-8")
+            data = json.loads(body)
+    except urllib.error.HTTPError as ex:
+        return None, f"HTTP {ex.code}"
+    except urllib.error.URLError as ex:
+        return None, f"Network: {ex.reason}"
+    except json.JSONDecodeError:
+        return None, "Resposta nao-JSON"
+    if "errors" in data:
+        errs = data.get("errors") or []
+        msg = errs[0].get("message") if errs else "GraphQL error"
+        return None, f"GraphQL: {msg}"
+    return data.get("data"), None
+
+
+def _pipefy_create_card(pipe_id, card_name, fields_dict):
+    """Cria card via mutation. fields_dict eh {field_id: value}.
+    Retorna (card_id ou None, error_msg ou None)."""
+    fields_attrs = [{"field_id": k, "field_value": v} for k, v in (fields_dict or {}).items()]
+    query = """
+    mutation($input: CreateCardInput!) {
+      createCard(input: $input) {
+        card { id title }
+      }
+    }
+    """
+    variables = {"input": {
+        "pipe_id": pipe_id,
+        "title": card_name,
+        "fields_attributes": fields_attrs,
+    }}
+    data, err = _pipefy_smoke_graphql(query, variables)
+    if err:
+        return None, err
+    card = ((data or {}).get("createCard") or {}).get("card") or {}
+    cid = card.get("id")
+    return (cid, None) if cid else (None, "createCard nao retornou id")
+
+
+def _pipefy_move_card(card_id, destination_phase_id):
+    query = """
+    mutation($input: MoveCardToPhaseInput!) {
+      moveCardToPhase(input: $input) {
+        card { id current_phase { id name } }
+      }
+    }
+    """
+    variables = {"input": {"card_id": card_id, "destination_phase_id": destination_phase_id}}
+    data, err = _pipefy_smoke_graphql(query, variables)
+    if err:
+        return False, err
+    return True, None
+
+
+def _pipefy_delete_card(card_id):
+    query = """
+    mutation($input: DeleteCardInput!) {
+      deleteCard(input: $input) { success }
+    }
+    """
+    variables = {"input": {"id": card_id}}
+    data, err = _pipefy_smoke_graphql(query, variables)
+    if err:
+        return False, err
+    success = ((data or {}).get("deleteCard") or {}).get("success")
+    return (True, None) if success else (False, "deleteCard.success=false")
+
+
+def _load_latest_snapshot(pipe_id):
+    """Le ultimo snapshot do filesystem pra um pipe. Retorna (snapshot_dict, error)."""
+    import re as _re
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    if not os.path.isdir(pipe_dir):
+        return None, "Pipe sem snapshots ainda. Cron precisa rodar pelo menos 1x."
+    files = sorted(f for f in os.listdir(pipe_dir) if f.endswith(".json"))
+    if not files:
+        return None, "Pipe sem snapshots ainda."
+    try:
+        with open(os.path.join(pipe_dir, files[-1]), "r", encoding="utf-8") as f:
+            return json.load(f), None
+    except (json.JSONDecodeError, IOError) as ex:
+        return None, f"Erro lendo snapshot: {ex}"
+
+
+def _smoke_check_authorization(pipe_id, pipe_cfg, env_label, dry_run):
+    """Valida se a execucao pode prosseguir. Retorna None se OK, ou tupla
+    (msg, http_code) se bloqueado."""
+    if dry_run:
+        return None
+    if not pipe_cfg.get("enabled"):
+        return ("Pipe nao habilitado em config/smoke_rules.json. "
+                "Adicione 'enabled: true' pra autorizar execucao real.", 403)
+    if not SMOKE_PIPEFY_TOKEN:
+        return ("SMOKE_PIPEFY_TOKEN nao configurado no Render. "
+                "Veja HANDOFF-SMOKE.md secao 'Setup operacional'.", 503)
+    if env_label and env_label.upper() == "PRD":
+        if not (pipe_cfg.get("allow_prd") and SMOKE_ALLOW_PRD):
+            return ("Pipe eh PRD mas allow_prd nao esta ativo em ambos: "
+                    "config/smoke_rules.json (allow_prd: true) E env SMOKE_ALLOW_PRD=true. "
+                    "Gate duplo proposital. Veja HANDOFF-SMOKE.md.", 403)
+    return None
+
+
+@app.route("/api/smoke/dry-run", methods=["POST"])
+def smoke_dry_run():
+    """Simula smoke sem chamar Pipefy. Sempre seguro de chamar.
+    Body: {pipe_id}. Restrito a lideranca."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    body = request.get_json(silent=True) or {}
+    pipe_id = (body.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+
+    import smoke_runner
+    rules = smoke_runner.load_rules(SMOKE_RULES_PATH)
+    pipe_cfg = smoke_runner.resolve_pipe_config(rules, pipe_id)
+    snapshot, snap_err = _load_latest_snapshot(pipe_id)
+    if snap_err:
+        return jsonify({"error": snap_err, "pipe_id": pipe_id}), 404
+    plan = smoke_runner.build_smoke_plan(pipe_id, snapshot, pipe_cfg)
+    result = smoke_runner.simulate_smoke(plan)
+    result["pipe_id"] = pipe_id
+    result["plan"] = plan
+    result["pipe_cfg_resolved"] = pipe_cfg
+    return jsonify(result)
+
+
+@app.route("/api/smoke/run", methods=["POST"])
+def smoke_run():
+    """Executa smoke. Por seguranca, default 'dry_run=true' aqui tambem —
+    cliente precisa passar dry_run=false explicitamente.
+
+    Body: {pipe_id, dry_run? (default true)}. Restrito a lideranca.
+    Gate adicional: pipe precisa ter enabled=true em smoke_rules.json.
+    Pra PRD, allow_prd precisa estar true em config E env SMOKE_ALLOW_PRD=true."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    body = request.get_json(silent=True) or {}
+    pipe_id = (body.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    dry_run = bool(body.get("dry_run", True))
+
+    import smoke_runner
+    rules = smoke_runner.load_rules(SMOKE_RULES_PATH)
+    pipe_cfg = smoke_runner.resolve_pipe_config(rules, pipe_id)
+    snapshot, snap_err = _load_latest_snapshot(pipe_id)
+    if snap_err:
+        return jsonify({"error": snap_err, "pipe_id": pipe_id}), 404
+    env_label = (snapshot.get("metadata") or {}).get("env_label", "")
+
+    auth_err = _smoke_check_authorization(pipe_id, pipe_cfg, env_label, dry_run)
+    if auth_err:
+        msg, code = auth_err
+        return jsonify({"error": msg, "pipe_id": pipe_id}), code
+
+    plan = smoke_runner.build_smoke_plan(pipe_id, snapshot, pipe_cfg)
+    if dry_run:
+        result = smoke_runner.simulate_smoke(plan)
+    else:
+        # Limpa hits de webhook anteriores pro pipe.
+        _SMOKE_WEBHOOK_HITS[pipe_id] = []
+        result = smoke_runner.execute_smoke(
+            plan,
+            create_card_fn=_pipefy_create_card,
+            move_card_fn=_pipefy_move_card,
+            delete_card_fn=_pipefy_delete_card,
+        )
+        result["webhook_hits"] = list(_SMOKE_WEBHOOK_HITS.get(pipe_id, []))
+
+    result["pipe_id"] = pipe_id
+    result["plan"] = plan
+    result["env_label"] = env_label
+
+    # Persiste run no historico (ate dry-run conta).
+    try:
+        smoke_runner.persist_smoke_run(SMOKE_HISTORY_DIR, pipe_id, dict(result))
+    except Exception:
+        pass
+
+    return jsonify(result)
+
+
+@app.route("/api/smoke/webhook/<run_id>", methods=["POST"])
+def smoke_webhook_listener(run_id):
+    """Endpoint publico (sem auth Basic) pra Pipefy enviar webhook quando
+    o smoke roda. Captura body do hit, armazena em memoria pra associar
+    com o run em execucao. run_id eh o pipe_id (1 smoke por pipe por vez).
+
+    Esse endpoint NAO valida autenticidade — Pipefy nao assina webhooks por
+    default. Mitigacao: hits sao so usados pra confirmar que automation
+    disparou, nao pra autorizar acao. URL com pipe_id obscura ja eh um
+    minimo de protecao."""
+    payload = request.get_json(silent=True) or {}
+    pipe_id = (run_id or "").strip()
+    if not pipe_id:
+        return jsonify({"ok": False, "error": "run_id invalido"}), 400
+    hit = {
+        "received_at": datetime_now_iso(),
+        "payload_preview": json.dumps(payload, ensure_ascii=False)[:400],
+        "event": payload.get("event") or payload.get("action"),
+    }
+    _SMOKE_WEBHOOK_HITS.setdefault(pipe_id, []).append(hit)
+    # Limita a 50 hits por pipe pra nao crescer infinito.
+    if len(_SMOKE_WEBHOOK_HITS[pipe_id]) > 50:
+        _SMOKE_WEBHOOK_HITS[pipe_id] = _SMOKE_WEBHOOK_HITS[pipe_id][-50:]
+    return jsonify({"ok": True, "hits": len(_SMOKE_WEBHOOK_HITS[pipe_id])})
+
+
+@app.route("/api/smoke/history")
+def smoke_history():
+    """Lista runs persistidas pra um pipe. ?pipe_id obrigatorio, ?limit=10."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    try:
+        limit = int(request.args.get("limit", "10"))
+    except ValueError:
+        limit = 10
+    import smoke_runner
+    runs = smoke_runner.list_smoke_runs(SMOKE_HISTORY_DIR, pipe_id, limit=limit)
+    return jsonify({"pipe_id": pipe_id, "runs": runs, "count": len(runs)})
+
+
+@app.route("/api/smoke/last")
+def smoke_last():
+    """Retorna so a ultima run pro card no dashboard. ?pipe_id opcional
+    (default = primeiro pipe enabled em monitored_pipes)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        for p in (_load_monitored_pipes().get("pipes") or []):
+            if p.get("enabled", True) and p.get("id"):
+                pipe_id = p["id"]
+                break
+    if not pipe_id:
+        return jsonify({"available": False, "reason": "Nenhum pipe monitorado.", "pipe_id": ""})
+    import smoke_runner
+    runs = smoke_runner.list_smoke_runs(SMOKE_HISTORY_DIR, pipe_id, limit=1)
+    if not runs:
+        return jsonify({"available": False, "reason": "Sem runs ainda. Rode um dry-run.",
+                        "pipe_id": pipe_id})
+    last = runs[-1]
+    return jsonify({
+        "available": True,
+        "pipe_id": pipe_id,
+        "last_run": last,
+    })
+
+
+@app.route("/api/smoke/rules")
+def smoke_rules_listing():
+    """Lista config de smoke rules (gated lideranca)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    import smoke_runner
+    rules = smoke_runner.load_rules(SMOKE_RULES_PATH)
+    # Sumariza pra UI (nao expoe valores sensiveis de start_form).
+    pipes_summary = {}
+    for pid, cfg in (rules.get("pipes") or {}).items():
+        pipes_summary[pid] = {
+            "enabled": bool(cfg.get("enabled", False)),
+            "allow_prd": bool(cfg.get("allow_prd", False)),
+            "has_start_form_values": bool(cfg.get("start_form_values")),
+            "phases_to_cover": cfg.get("phases_to_cover"),
+        }
+    return jsonify({
+        "version": rules.get("version", "0"),
+        "default_card_name_prefix": rules.get("default_card_name_prefix"),
+        "allow_prd_global": rules.get("allow_prd_global", False),
+        "token_configured": bool(SMOKE_PIPEFY_TOKEN),
+        "allow_prd_env": SMOKE_ALLOW_PRD,
+        "pipes": pipes_summary,
     })
 
 
@@ -1237,6 +1548,12 @@ SECURITY_HISTORY_DIR = os.path.join(os.getcwd(), "results", "security_scans")
 # Fase B: quality scanner (equivalente SonarQube).
 QUALITY_RULES_PATH = os.path.join(os.getcwd(), "config", "quality_rules.json")
 QUALITY_HISTORY_DIR = os.path.join(os.getcwd(), "results", "quality_scans")
+
+# Fase C: smoke runner (equivalente Datadog Synthetics).
+SMOKE_RULES_PATH = os.path.join(os.getcwd(), "config", "smoke_rules.json")
+SMOKE_HISTORY_DIR = os.path.join(os.getcwd(), "results", "smoke_runs")
+# Hits de webhook recebidos no run em execucao. Limpa ao iniciar nova run.
+_SMOKE_WEBHOOK_HITS: dict = {}
 
 
 def _run_and_persist_scan(pipe, snapshot, snapshot_filename):

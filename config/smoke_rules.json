@@ -1,0 +1,8 @@
+{
+  "$comment": "Regras de smoke test pra Frente 3 (Fase C) do PLANO-VALIDACAO-HMG-PRD: equivalente Datadog Synthetics aplicado a Pipefy. Smoke ESCREVE no Pipefy (cria card, move por phases, deleta). Pra ativar execucao real, edite 'pipes' com pipe_id whitelistado + enabled=true. Pipes PRD exigem allow_prd=true explicito (gate adicional). DRY-RUN nao precisa de whitelist e nunca chama Pipefy. Veja HANDOFF-SMOKE.md pra passo a passo de setup manual.",
+  "version": "1.0",
+  "default_card_name_prefix": "[SMOKE-TEST]",
+  "default_phases_match": "^(Triagem|An[áa]lise|Aprova[çc][ãa]o|Conclu[íi]do|Documenta)",
+  "allow_prd_global": false,
+  "pipes": {}
+}
