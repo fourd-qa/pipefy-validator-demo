@@ -46,6 +46,17 @@ MONITOR_PIPEFY_TOKEN = os.environ.get("MONITOR_PIPEFY_TOKEN", "").strip()
 MONITOR_PIPEFY_BASE_URL = os.environ.get("MONITOR_PIPEFY_BASE_URL", "https://api.pipefy.com/graphql").strip()
 MONITOR_PIPEFY_ORG_ID = os.environ.get("MONITOR_PIPEFY_ORG_ID", "").strip()
 
+# Sprint 4 parte 2: email diario via Resend.
+# RESEND_API_KEY: API key gerada em https://resend.com/api-keys.
+# EMAIL_FROM: remetente (deve estar verificado em Resend, ex: dashboard@seudominio.com).
+# EMAIL_TO: lista de destinatarios separados por virgula.
+# DASHBOARD_URL: URL publica do dashboard (link no rodape do email).
+# Todos vazios = endpoint /api/cron/daily-email fica desativado.
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "").strip()
+EMAIL_TO = os.environ.get("EMAIL_TO", "").strip()
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "").strip()
+
 # Token default (opcional, pra UX do demo público).
 # Se setado, frontend pré-popula o modal de onboarding com essas credenciais.
 # IMPORTANTE: usar PAT de uma org dedicada ao demo, com user view-only.
@@ -899,6 +910,108 @@ def delete_blueprint_endpoint():
     import dashboard_metrics
     removed = dashboard_metrics.delete_blueprint(BLUEPRINTS_DIR, pipe_id)
     return jsonify({"ok": True, "removed": removed, "pipe_id": pipe_id})
+
+
+def _send_via_resend(api_key, sender, recipients, subject, html_body):
+    """Envia 1 email transacional via Resend API. Retorna dict
+    {ok, status, body, error?}. Isolado pra ser facil de monkeypatchar em testes."""
+    import urllib.request
+    import urllib.error
+    payload = json.dumps({
+        "from": sender,
+        "to": recipients,
+        "subject": subject,
+        "html": html_body,
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read().decode("utf-8")
+            return {"ok": True, "status": resp.getcode(), "body": body}
+    except urllib.error.HTTPError as ex:
+        body = ""
+        try:
+            body = ex.read().decode("utf-8")
+        except Exception:
+            pass
+        return {"ok": False, "status": ex.code, "body": body, "error": f"HTTP {ex.code}"}
+    except urllib.error.URLError as ex:
+        return {"ok": False, "status": 0, "body": "", "error": f"Network: {ex.reason}"}
+
+
+@app.route("/api/cron/daily-email", methods=["POST"])
+def cron_daily_email():
+    """Endpoint disparado por cron externo pra enviar resumo diario por email.
+
+    Auth: header X-Cron-Token deve casar com env CRON_SNAPSHOT_TOKEN
+    (mesmo token do /api/cron/snapshot pra simplificar setup operacional).
+
+    Pre-requisitos: RESEND_API_KEY, EMAIL_FROM e EMAIL_TO setados.
+    EMAIL_TO aceita lista separada por virgula.
+
+    Comportamento:
+    - Valida token + config
+    - Monta digest com build_daily_digest (KPIs + alertas)
+    - Renderiza HTML
+    - Envia via Resend
+    - Retorna sumario (sem o HTML inteiro pra nao engordar a resposta)
+    """
+    if not CRON_SNAPSHOT_TOKEN:
+        return jsonify({"error": "Cron desabilitado (CRON_SNAPSHOT_TOKEN nao setado)"}), 503
+    if request.headers.get("X-Cron-Token", "").strip() != CRON_SNAPSHOT_TOKEN:
+        return jsonify({"error": "Token invalido"}), 401
+
+    recipients = [r.strip() for r in EMAIL_TO.split(",") if r.strip()]
+    if not RESEND_API_KEY or not EMAIL_FROM or not recipients:
+        return jsonify({
+            "error": "Email desabilitado (RESEND_API_KEY, EMAIL_FROM ou EMAIL_TO faltando)",
+            "ok": False,
+        }), 503
+
+    import daily_digest
+    monitored = _load_monitored_pipes().get("pipes", []) or []
+    digest = daily_digest.build_daily_digest(
+        validations_path=os.path.join("results", "validations.json"),
+        weights_path=_weights_path(),
+        snapshots_root=AUTO_SNAPSHOTS_DIR,
+        blueprints_root=BLUEPRINTS_DIR,
+        monitored=monitored,
+    )
+    html_body = daily_digest.render_email_html(digest, dashboard_url=DASHBOARD_URL or None)
+    subject = f"Pipefy Validator - Resumo de {digest.get('date', '')}"
+
+    send_result = _send_via_resend(
+        api_key=RESEND_API_KEY,
+        sender=EMAIL_FROM,
+        recipients=recipients,
+        subject=subject,
+        html_body=html_body,
+    )
+
+    return jsonify({
+        "ok": send_result.get("ok", False),
+        "status": send_result.get("status"),
+        "sent_to": recipients,
+        "subject": subject,
+        "digest_summary": {
+            "date": digest.get("date"),
+            "alert_count": len(digest.get("alerts", [])),
+            "monitored_pipes_count": digest.get("monitored_pipes_count"),
+            "kpis_available": {
+                k: digest.get("kpis", {}).get(k, {}).get("available", False)
+                for k in ("velocity", "debt", "leadtime", "burnup")
+            },
+        },
+        "error": send_result.get("error"),
+    }), (200 if send_result.get("ok") else 502)
 
 
 @app.route("/api/dashboard/hotspots")

@@ -1,0 +1,50 @@
+name: Daily Email
+
+# Cron disparado uma vez por dia util pra enviar o resumo executivo por email
+# (Sprint 4 parte 2 do Dashboard de Produtividade).
+#
+# Pre-requisitos no GitHub Actions secrets:
+# - APP_URL: URL do Render (ex: https://pipefy-validator-demo.onrender.com)
+# - CRON_TOKEN: mesmo valor que CRON_SNAPSHOT_TOKEN no Render
+#
+# Pre-requisitos no Render env vars:
+# - RESEND_API_KEY: API key gerada em https://resend.com/api-keys
+# - EMAIL_FROM: remetente verificado em Resend (ex: dashboard@seudominio.com)
+# - EMAIL_TO: destinatarios separados por virgula (ex: lider@x.com,gerente@x.com)
+# - DASHBOARD_URL (opcional): link clicavel no rodape do email
+#
+# Schedule: 11h UTC = 8h BRT, dias uteis. Bate logo cedo pra que o lider tenha
+# os 4 KPIs (Velocity, Debt, Lead Time, Burnup %) + alertas antes de comecar
+# o dia.
+
+on:
+  schedule:
+    - cron: "0 11 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  trigger-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily-email endpoint
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "::error::APP_URL secret nao configurado"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_TOKEN }}" ]; then
+            echo "::error::CRON_TOKEN secret nao configurado"
+            exit 1
+          fi
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "X-Cron-Token: ${{ secrets.CRON_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.APP_URL }}/api/cron/daily-email")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n -1)
+          echo "HTTP $http_code"
+          echo "$body" | head -c 2000
+          if [ "$http_code" -ge 400 ]; then
+            echo "::error::Daily email falhou com HTTP $http_code"
+            exit 1
+          fi

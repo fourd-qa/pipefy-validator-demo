@@ -1,16 +1,16 @@
 # Handoff — Dashboard de Produtividade
 
 Documento pra retomar o trabalho num chat novo sem perder contexto.
-Última atualização: 2026-05-15, fim de sessão. Sprints 1, 2, 3 e 4 (parte Burnup) entregues.
+Última atualização: 2026-05-15, fim de sessão. Sprints 1, 2, 3 e 4 (Burnup + email) entregues.
 
 ---
 
 ## TL;DR
 
-- **Onde estamos**: Sprints 1, 2, 3 e a parte Burnup da Sprint 4 do `PLANO-DASHBOARD-PRODUTIVIDADE.md` no ar. Falta da Sprint 4: email diário via Resend.
+- **Onde estamos**: Sprints 1, 2, 3 e 4 completas do `PLANO-DASHBOARD-PRODUTIVIDADE.md`. Dashboard inteiro no ar.
 - **Repositório**: `fourd-qa/pipefy-validator-demo` (público), branch `main`.
 - **Deploy**: Render free tier. URL `https://pipefy-validator-demo.onrender.com`.
-- **Testes**: 260 pytest + 49 vitest verdes (Sprint 4 adicionou 34 pytest novos).
+- **Testes**: 279 pytest + 49 vitest verdes (Sprint 4 adicionou 53 pytest no total: 34 Burnup + 19 email).
 - **Login**: `lideranca / lideranca` vê o dashboard. `demo / <APP_PASSWORD>` continua usando o validador normal sem ver o dashboard.
 - **Massa demo**: `scripts/seed_dashboard_snapshots.py` gera 20 snapshots fictícios (10/pipe × 2 pipes HMG/PRD) + 1 blueprint demo no PRD com gap ~75-85% pra Sprint 4 mostrar progresso offline.
 
@@ -101,7 +101,33 @@ Documento pra retomar o trabalho num chat novo sem perder contexto.
 
 **Testes**: `tests/python/test_dashboard_sprint4.py` (34 casos: load/save/delete blueprint, compute_burnup com vários cenários, endpoints com gating + 400/404 + path traversal + fluxo end-to-end + integração `/api/dashboard/data`).
 
-**Pendência da Sprint 4**: email diário via Resend (`POST /api/cron/daily-email` + template HTML + GitHub Actions cron) — ver seção 5 abaixo.
+### 1.6 Sprint 4 parte 2 — Email diário via Resend
+
+**Engine** (`daily_digest.py`, módulo novo):
+- `build_daily_digest(...)`: agrega `velocity`, `debt`, `leadtime`, `burnup` (do primeiro pipe enabled com blueprint) e `hotspots` (do primeiro pipe enabled). Gera lista de alertas (máx 10) por threshold:
+  - Debt HIGH → alerta `debt_high`
+  - Lag >= 5 dias úteis em par HMG/PRD → `leadtime_slow`
+  - Hot spot nível HIGH/MEDIUM → `hotspot`
+  - Burnup < 60% → `burnup_low`
+- `render_email_html(digest, dashboard_url=None)`: HTML com CSS 100% inline (compat email clients), 4 cards de KPI horizontais, lista de alertas com bullet colorida, escape XSS.
+
+**Endpoint**:
+- `POST /api/cron/daily-email` (auth `X-Cron-Token` — mesmo token do `/api/cron/snapshot` pra simplificar setup).
+- Pré-requisitos: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TO` (lista por vírgula). `DASHBOARD_URL` opcional.
+- Retorna 503 se cron desabilitado, 401 se token errado, 503 se config Resend faltando, 502 se Resend retornou erro, 200 se enviou.
+
+**Cron externo**: `.github/workflows/daily-email.yml`
+- Schedule `0 11 * * 1-5` (8h BRT, dias úteis) — chega antes do líder começar o expediente.
+- Manual via `workflow_dispatch`.
+- Reusa os secrets `APP_URL` e `CRON_TOKEN` do cron-snapshot.
+
+**Helper de envio**: `_send_via_resend(api_key, sender, recipients, subject, html_body)` em `server.py` usa `urllib.request` (sem dependency nova). Isolado pra ser fácil de monkeypatchar nos testes.
+
+**Testes**: `tests/python/test_dashboard_sprint4_email.py` (19 casos: build_digest com vários cenários de alerta, render HTML com 4 KPIs + XSS escape + dashboard URL opcional, endpoint com gating + 503/401/502 + happy path mockando Resend).
+
+**Setup operacional pra ativar**:
+- Render env vars: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TO` (e opcionalmente `DASHBOARD_URL`).
+- GitHub Actions secrets: já vêm prontos se cron-snapshot tá configurado (mesmas vars).
 
 ### 1.3 Sprint 2 — Cron + Pipes Monitorados (commit `728d3a2`)
 
@@ -222,19 +248,15 @@ pipefy-validator-demo/
 
 ---
 
-## 5. Próximos passos: parte restante da Sprint 4 (email diário)
+## 5. Próximos passos
 
-**Burnup** ✅ entregue (ver seção 1.5).
+**Sprint 4 inteira** ✅ entregue (Burnup seção 1.5 + email diário seção 1.6).
 
-**Email diário** (pendente)
-- Provider sugerido: **Resend** (free tier 100 emails/dia, API JSON simples).
-- Env vars: `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TO` (lista).
-- Endpoint `POST /api/cron/daily-email` (mesmo padrão de auth do cron snapshot, com `X-Cron-Token`).
-- GitHub Actions cron `0 18 * * 1-5` chama o endpoint.
-- Template HTML enxuto: 4 KPI cards (Velocity, Debt, Lead Time, Burnup %) + alertas (hot spots novos, churn detectado, queda no Burnup).
-- Testes mockando Resend API.
+**Próxima sessão** — escolha aberta:
 
-**Estimativa**: 8-10h.
+1. **Setup operacional dos 5 secrets/envs** (seção 2) pra destravar cron real coletando snapshots reais e email diário usando dados reais. Sem código, só configuração no Render + GitHub.
+2. **Iniciar Fase A do `PLANO-VALIDACAO-HMG-PRD.md`** (Frente 1 equivalente Gitleaks/Snyk: secret scanning + URL HMG em PRD). Próximo nível de validação (L4).
+3. **Polir o que ficou solto**: persistência de `monitored_pipes.json` e `snapshots/blueprints/` no Render free tier (decisão pendente da seção 3.2), ou pegar a pendência herdada do flake de esterilização (memory).
 
 ---
 
@@ -303,11 +325,11 @@ Aí o Claude novo lê os 2 arquivos, atualiza memória se precisar, e continua.
 
 ## 10. Status final desta sessão
 
-- Sprints 1, 2, 3 e Burnup da Sprint 4 entregues. Sprints 1 e 2 em produção; Sprints 3 e 4 já no `main` mas rodam offline com massa demo até o cron real começar a coletar.
-- 260 pytest verdes, 49 vitest verdes.
-- Sprint 4 adicionou: `dashboard_metrics.py` (load/save/delete_blueprint + compute_burnup), 4 endpoints (`/api/dashboard/burnup` + GET/POST/DELETE `/api/dashboard/blueprint`), card Burnup completo na UI, 34 pytest, blueprint demo determinístico no seed.
-- Pendência operacional: os 5 secrets/envs da seção 2 continuam pendentes. Quando configurados, o cron vai sobrescrever a massa demo com snapshots reais — o engine aceita os dois formatos.
+- Sprints 1, 2, 3 e 4 completas. Sprints 1 e 2 em produção; Sprints 3 e 4 já no `main` mas rodam offline com massa demo até o cron real começar a coletar.
+- 279 pytest verdes, 49 vitest verdes.
+- Sprint 4 entregou: `dashboard_metrics.py` (load/save/delete_blueprint + compute_burnup), 4 endpoints de blueprint/burnup, card Burnup completo na UI, `daily_digest.py` (build_daily_digest + render_email_html), endpoint `/api/cron/daily-email`, workflow `daily-email.yml`, 53 pytest novos (34 Burnup + 19 email), blueprint demo determinístico no seed.
+- Pendência operacional: os 5 secrets/envs da seção 2 continuam pendentes. Quando configurados, o cron vai sobrescrever a massa demo com snapshots reais — o engine aceita os dois formatos. Pra email, falta também adicionar `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_TO` no Render.
 - Decisão pendente herdada: persistência do `monitored_pipes.json` no Render free tier (seção 3.2).
 - Decisão nova: persistência do `snapshots/blueprints/` no Render free tier — mesmo problema do `monitored_pipes.json`, mas blueprints são raros (1 marcação por iniciativa de migração). Aceitável re-marcar após hibernação.
 
-Próxima sessão: parte restante da Sprint 4 (email diário Resend).
+Próxima sessão: ver seção 5.
