@@ -397,6 +397,56 @@
   .btn-mini:hover{background:rgba(255,255,255,.06)}
   .btn-mini.danger{color:#e58a8a}
   .btn-mini.danger:hover{background:rgba(229,107,107,.10)}
+
+  /* Security card (Fase A do L4) */
+  .secur-picker{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;flex-wrap:wrap}
+  .secur-picker select{
+    background:rgba(255,255,255,.02);border:1px solid var(--line);
+    color:var(--ink-2);border-radius:6px;padding:5px 8px;font-size:11.5px;
+    font-family:inherit;min-width:200px;
+  }
+  .secur-picker .picker-empty{color:var(--muted);font-size:11px;font-style:italic}
+  .secur-overall{display:flex;align-items:baseline;gap:14px;margin:8px 0 4px}
+  .secur-overall .num{font-size:42px;font-weight:600;letter-spacing:-.02em;font-family:var(--mono)}
+  .secur-overall .num.clean{color:#7dd584}
+  .secur-overall .num.warn{color:#dba844}
+  .secur-overall .num.bad{color:#e56b6b}
+  .secur-overall .label{color:var(--muted);font-size:12px}
+  .secur-sev-row{display:flex;gap:10px;margin:8px 0 14px;flex-wrap:wrap}
+  .secur-sev{
+    flex:1;min-width:80px;
+    border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;background:rgba(255,255,255,.01);
+  }
+  .secur-sev .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:2px}
+  .secur-sev .n{font-size:18px;font-weight:600;font-family:var(--mono)}
+  .secur-sev.high .n{color:#e56b6b}
+  .secur-sev.med  .n{color:#dba844}
+  .secur-sev.low  .n{color:#7dd584}
+  .secur-meta{color:var(--muted);font-size:10.5px;margin-bottom:8px;line-height:1.4}
+  .secur-section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin:14px 0 6px}
+  .secur-rule-list{display:flex;flex-direction:column;gap:4px}
+  .secur-rule-row{
+    display:flex;align-items:center;gap:10px;
+    padding:6px 10px;border-radius:6px;font-size:11.5px;
+    border:1px solid transparent;
+  }
+  .secur-rule-row:hover{background:rgba(255,255,255,.02)}
+  .secur-rule-row .id{font-family:var(--mono);font-size:10.5px;color:#9bbde0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .secur-rule-row .n{font-family:var(--mono);font-size:11px;color:var(--ink-2);min-width:32px;text-align:right}
+  .secur-finding{
+    padding:7px 10px;border-radius:6px;font-size:11px;
+    border:1px solid rgba(229,107,107,.15);background:rgba(229,107,107,.04);
+    margin-bottom:4px;
+  }
+  .secur-finding .rule{font-family:var(--mono);font-size:10px;color:#ee8e8e}
+  .secur-finding .msg{color:var(--ink-2);margin-top:2px}
+  .secur-finding .target{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+  .secur-link{
+    display:inline-block;margin-top:10px;font-size:11px;
+    color:#7aa6d8;text-decoration:none;font-family:inherit;
+  }
+  .secur-link:hover{text-decoration:underline}
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -520,6 +570,20 @@
           </div>
 
           <div id="burnup-content">
+            <div class="placeholder-soft">Selecione um pipe acima.</div>
+          </div>
+        </div>
+
+        <!-- ======== SECURITY SCAN (Fase A do L4) ======== -->
+        <div class="dash-card col-6">
+          <h3>🔐 Security Scan</h3>
+          <p class="sub">Findings de segurança no último snapshot do cron. Procura credenciais hardcoded, URLs HTTP sem TLS, indicadores de ambiente de teste em PRD.</p>
+
+          <div class="secur-picker" id="secur-picker">
+            <span class="picker-empty">carregando pipes monitorados...</span>
+          </div>
+
+          <div id="secur-content">
             <div class="placeholder-soft">Selecione um pipe acima.</div>
           </div>
         </div>
@@ -891,6 +955,7 @@
       renderMonitorTable();
       renderHotspotPicker();
       renderBurnupPicker();
+      renderSecurPicker();
     }).catch(function(err){ console.error('Erro carregando monitored-pipes', err); });
   }
 
@@ -1283,6 +1348,112 @@
     });
   }
 
+  /* ===================== Security Scan (Fase A do L4) ===================== */
+  var _selectedSecurPipeId = null;
+
+  function renderSecurPicker(){
+    var picker = document.getElementById('secur-picker');
+    if(!picker) return;
+    var pipes = (_monitorState.pipes || []).filter(function(p){ return p.enabled && p.id; });
+    if(!pipes.length){
+      picker.innerHTML = '<span class="picker-empty">Nenhum pipe monitorado.</span>';
+      return;
+    }
+    if(!_selectedSecurPipeId || !pipes.some(function(p){ return p.id === _selectedSecurPipeId; })){
+      _selectedSecurPipeId = pipes[0].id;
+    }
+    var html = '<label for="secur-pipe-select">Pipe:</label>'
+             + '<select id="secur-pipe-select">';
+    pipes.forEach(function(p){
+      var sel = (p.id === _selectedSecurPipeId) ? ' selected' : '';
+      var label = (p.name || p.id) + (p.env_label ? ' [' + p.env_label + ']' : '');
+      html += '<option value="' + escapeHtml(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+    });
+    html += '</select>';
+    picker.innerHTML = html;
+    var sel = document.getElementById('secur-pipe-select');
+    if(sel){
+      sel.addEventListener('change', function(){
+        _selectedSecurPipeId = sel.value;
+        fetchSecurForSelected();
+      });
+    }
+  }
+
+  function fetchSecurForSelected(){
+    if(!window.V2Utils || !_selectedSecurPipeId) return;
+    var container = document.getElementById('secur-content');
+    if(container){ container.innerHTML = '<div class="placeholder-soft">Carregando...</div>'; }
+    V2Utils.apiFetch('/api/dashboard/security?pipe_id=' + encodeURIComponent(_selectedSecurPipeId)).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(data) renderSecurity(data);
+    }).catch(function(err){ console.error('Erro fetch security', err); });
+  }
+
+  function renderSecurity(data){
+    var container = document.getElementById('secur-content');
+    if(!container) return;
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">'
+        + escapeHtml((data && data.reason) || 'Sem dados de scan.')
+        + '</div>';
+      return;
+    }
+    var total = data.total || 0;
+    var sev = data.by_severity || {high:0, med:0, low:0};
+    var lvlClass = sev.high > 0 ? 'bad' : (sev.med > 0 ? 'warn' : 'clean');
+    var when = data.snapshot_timestamp ? new Date(data.snapshot_timestamp).toLocaleString('pt-BR') : '—';
+    var autom = data.automations_collected ? 'automations OK' : 'sem automations (configurar MONITOR_PIPEFY_ORG_ID)';
+
+    var html = ''
+      + '<div class="secur-overall">'
+      +   '<span class="num ' + lvlClass + '">' + total + '</span>'
+      +   '<span class="label">findings · ' + (data.targets_count||0) + ' targets · ' + (data.rules_count||0) + ' regras</span>'
+      + '</div>'
+      + '<div class="secur-meta">Snapshot ' + escapeHtml(when) + ' · ' + escapeHtml(autom)
+      +   (data.env_label ? ' · ' + escapeHtml(data.env_label) : '') + '</div>'
+      + '<div class="secur-sev-row">'
+      +   '<div class="secur-sev high"><div class="lbl">High</div><div class="n">' + (sev.high||0) + '</div></div>'
+      +   '<div class="secur-sev med"><div class="lbl">Med</div><div class="n">' + (sev.med||0) + '</div></div>'
+      +   '<div class="secur-sev low"><div class="lbl">Low</div><div class="n">' + (sev.low||0) + '</div></div>'
+      + '</div>';
+
+    var topRules = data.top_rules || [];
+    if(topRules.length){
+      html += '<div class="secur-section-title">Regras mais disparadas</div>';
+      html += '<div class="secur-rule-list">';
+      topRules.forEach(function(r){
+        html += ''
+          + '<div class="secur-rule-row">'
+          +   '<span class="id">' + escapeHtml(r.rule_id || '') + '</span>'
+          +   '<span class="n">' + (r.count || 0) + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+
+    var topHigh = data.top_findings_high || [];
+    if(topHigh.length){
+      html += '<div class="secur-section-title">Findings high (top 5)</div>';
+      topHigh.forEach(function(f){
+        html += ''
+          + '<div class="secur-finding">'
+          +   '<div class="rule">' + escapeHtml(f.rule_id || '') + '</div>'
+          +   '<div class="msg">' + escapeHtml(f.message || '') + '</div>'
+          +   '<div class="target">'
+          +     escapeHtml(f.target_name || '(sem nome)') + ' · campo ' + escapeHtml(f.field || '')
+          +   '</div>'
+          + '</div>';
+      });
+    }
+
+    html += '<a class="secur-link" href="/v2/security-scan">Abrir scanner detalhado →</a>';
+
+    container.innerHTML = html;
+  }
+
   function load(){
     if(!window.V2Utils) return;
     V2Utils.apiFetch('/api/dashboard/data').then(function(res){
@@ -1303,9 +1474,13 @@
       if(data.burnup && data.burnup.pipe_id){
         _selectedBurnupPipeId = data.burnup.pipe_id;
       }
+      if(data.security && data.security.pipe_id){
+        _selectedSecurPipeId = data.security.pipe_id;
+      }
       renderHotspots(data.hotspots);
       renderLeadtime(data.leadtime);
       renderBurnup(data.burnup);
+      renderSecurity(data.security);
       loadMonitorConfig();
     }).catch(function(err){
       console.error('Erro carregando dashboard', err);

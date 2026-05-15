@@ -2,17 +2,17 @@
 
 Documento canônico da Frente 1 do `PLANO-VALIDACAO-HMG-PRD.md`: equivalente Gitleaks + Snyk Code aplicado a automations Pipefy.
 
-Última atualização: 2026-05-15 (Pendência 1 resolvida).
+Última atualização: 2026-05-15 (Pendências 1, 2, 3 e 4 resolvidas — Fase A 100%).
 
 ---
 
 ## TL;DR
 
 - **O que é**: scanner de regras semânticas sobre URLs, headers e body de automation HTTP. Procura credenciais hardcoded, URLs HTTP sem TLS, IPs internos, indicadores de ambiente de teste em PRD.
-- **Onde está**: `/v2/security-scan` (UI manual), `POST /api/security-scan` (engine), `GET /api/security-scan/auto?pipe_id=...` (scan auto sobre último snapshot do cron), `config/semantic_rules.json` (regras).
+- **Onde está**: card "Security" em `/v2/dashboard` (visão executiva), `/v2/security-scan` (UI manual), endpoints `/api/dashboard/security`, `/api/security-scan/auto`, `/api/security-scan/history`, `/api/security-scan`, `/api/security-scan/rules`. Regras em `config/semantic_rules.json`. Histórico em `results/security_scans/<pipe>/<ts>.json`.
 - **Login**: restrito a `lideranca`.
-- **Testes**: 55 pytest verdes (`tests/python/test_semantic_scanner.py` + integração).
-- **Estado**: integrado ao cron de snapshots (snapshot v1.1 inclui automations) e ao email diário (findings high viram alertas). UI manual continua disponível.
+- **Testes**: 68 pytest verdes (`tests/python/test_semantic_scanner.py` + integração).
+- **Estado**: Fase A completa. Cron coleta snapshot v1.1 com automations + roda scan + persiste histórico. Dashboard tem card live. Email diário injeta alertas high. Trend disponível via endpoint.
 
 ---
 
@@ -138,11 +138,31 @@ Snapshot novo é `tool_version: "1.1"` com `data.automations[*]` no formato Grap
 
 `/api/cron/daily-email` já passa `SEMANTIC_RULES_PATH` automaticamente — não exige setup extra.
 
-### Pendência 3: histórico de scans
-Hoje cada scan é stateless. Pra evoluir pra L5 (drift de segurança), os findings precisariam ser persistidos com timestamp pra mostrar evolução. Diretório candidato: `results/security_scans/<pipe>/<timestamp>.json`.
+### ~~Pendência 3: histórico de scans~~ ✅ resolvida
 
-### Pendência 4: card de Security no dashboard
-A info do scan já chega pelo `/api/security-scan/auto`, mas o `/v2/dashboard` ainda não tem card. Próximo passo de UI: novo card "Security" mostrando contagem high/med/low + lista de regras mais disparadas, atualizado automaticamente do snapshot mais recente.
+A cada execução do cron, `_run_and_persist_scan` roda scan sobre o snapshot recém-coletado e grava em `results/security_scans/<safe_pipe_id>/<ts>.json`. Retenção mantém últimas 50 runs por pipe.
+
+`semantic_scanner.compute_security_trend(history_root, pipe_id, limit=10)` computa:
+- série temporal de contagens por severity
+- delta entre as 2 últimas runs (`{total, by_severity}`)
+- `new_findings` (apareceram só na última, comparados por `rule_id + target_id`)
+- `resolved_findings` (estavam na anterior, sumiram na última)
+- `latest_summary`
+
+Endpoint: `GET /api/security-scan/history?pipe_id=...&limit=10`.
+
+### ~~Pendência 4: card de Security no dashboard~~ ✅ resolvida
+
+Novo card "🔐 Security Scan" em `/v2/dashboard` (`col-6`, ao lado do Burnup):
+- KPI total findings com cor por severidade dominante (verde/amarelo/vermelho)
+- Breakdown em 3 sub-KPIs (high/med/low)
+- Top 5 regras mais disparadas
+- Top 5 findings high com `rule_id`, `target_name`, `field`, `message`
+- Link "Abrir scanner detalhado" pra `/v2/security-scan`
+- Picker próprio pra trocar entre pipes monitorados
+- Mostra warning quando snapshot foi coletado sem automations (`MONITOR_PIPEFY_ORG_ID` não setado)
+
+Backend: `_compute_security_safe(pipe_id)` em `server.py` faz o scan live (sem persistir — persistência é só no cron). Integrado em `/api/dashboard/data` e exposto também via `/api/dashboard/security?pipe_id=...`.
 
 ### Próximos níveis do PLANO-VALIDACAO-HMG-PRD
 - **Frente 2 (Fase B): SonarQube equivalent** — quality scanner: field criado e não usado, automation com condition que nunca pode ser true, naming convention. Reusa o pattern desta Frente 1.

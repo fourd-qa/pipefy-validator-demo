@@ -15,7 +15,9 @@ Cada finding eh um dict com:
 """
 from __future__ import annotations
 
+import datetime as _dt
 import json
+import os as _os
 import re
 from typing import Any, Dict, List, Optional
 
@@ -204,4 +206,155 @@ def summarize_findings(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         "by_severity": by_severity,
         "by_category": by_category,
         "by_rule": by_rule,
+    }
+
+
+# ============================================================
+# Pendencia 3 — historico de scans pra trend
+# ============================================================
+
+_SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_-]")
+
+
+def _safe_pipe_id(pipe_id: str) -> str:
+    return _SAFE_ID_RE.sub("_", pipe_id or "")[:64] or "unknown"
+
+
+def persist_scan_run(
+    history_root: str,
+    pipe_id: str,
+    run_data: Dict[str, Any],
+    retention: int = 50,
+) -> str:
+    """Salva uma execucao do scan em history_root/<safe_pipe_id>/<ts>.json
+    e aplica retencao mantendo so as `retention` runs mais recentes.
+
+    run_data tipico: {snapshot_filename, env_label, summary, findings, rules_count}.
+    Funcao adiciona 'run_timestamp' e 'pipe_id' antes de salvar.
+
+    Retorna path do arquivo gravado. Raise se nao conseguir escrever
+    (chamador decide se trata)."""
+    safe_id = _safe_pipe_id(pipe_id)
+    pipe_dir = _os.path.join(history_root, safe_id)
+    _os.makedirs(pipe_dir, exist_ok=True)
+    now = _dt.datetime.now()
+    payload = {
+        "run_timestamp": now.isoformat(),
+        "pipe_id": pipe_id,
+        **run_data,
+    }
+    filename = now.strftime("%Y%m%d_%H%M%S") + ".json"
+    path = _os.path.join(pipe_dir, filename)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
+
+    # Retencao: mantem N mais recentes (por nome de arquivo, ordem cronologica).
+    if retention > 0:
+        files = sorted(f for f in _os.listdir(pipe_dir) if f.endswith(".json"))
+        excess = len(files) - retention
+        for i in range(excess):
+            try:
+                _os.remove(_os.path.join(pipe_dir, files[i]))
+            except OSError:
+                pass
+
+    return path
+
+
+def list_scan_runs(
+    history_root: str,
+    pipe_id: str,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    """Lista as `limit` runs mais recentes do pipe. Retorna lista ordenada
+    cronologicamente (mais antiga primeiro pra facilitar plot de trend)."""
+    safe_id = _safe_pipe_id(pipe_id)
+    pipe_dir = _os.path.join(history_root, safe_id)
+    if not _os.path.isdir(pipe_dir):
+        return []
+    files = sorted(f for f in _os.listdir(pipe_dir) if f.endswith(".json"))
+    if limit > 0:
+        files = files[-limit:]
+    out: List[Dict[str, Any]] = []
+    for f in files:
+        try:
+            with open(_os.path.join(pipe_dir, f), "r", encoding="utf-8") as fh:
+                out.append(json.load(fh))
+        except (json.JSONDecodeError, IOError):
+            continue
+    return out
+
+
+def compute_security_trend(
+    history_root: str,
+    pipe_id: str,
+    limit: int = 10,
+) -> Dict[str, Any]:
+    """Computa trend simples a partir do histórico: serie temporal de
+    contagens por severity + delta vs run anterior + findings novos.
+
+    'Findings novos' = rule_id + target_id na ultima run que nao aparece
+    na penultima. 'Findings resolvidos' = inverso. Permite mostrar
+    "voce ja tinha X, corrigiu Y, surgiu Z" pra UI.
+    """
+    runs = list_scan_runs(history_root, pipe_id, limit=limit)
+    if not runs:
+        return {
+            "available": False,
+            "reason": "Sem historico de scans pra este pipe ainda.",
+            "pipe_id": pipe_id,
+            "series": [],
+        }
+
+    series = [
+        {
+            "timestamp": r.get("run_timestamp"),
+            "total": (r.get("summary") or {}).get("total", 0),
+            "by_severity": (r.get("summary") or {}).get("by_severity", {}),
+        }
+        for r in runs
+    ]
+
+    delta = None
+    new_findings: List[Dict[str, Any]] = []
+    resolved_findings: List[Dict[str, Any]] = []
+    if len(runs) >= 2:
+        prev = runs[-2]
+        curr = runs[-1]
+        delta = {
+            "total": ((curr.get("summary") or {}).get("total", 0)
+                      - (prev.get("summary") or {}).get("total", 0)),
+            "by_severity": {
+                sev: ((curr.get("summary") or {}).get("by_severity", {}).get(sev, 0)
+                      - (prev.get("summary") or {}).get("by_severity", {}).get(sev, 0))
+                for sev in ("high", "med", "low")
+            },
+        }
+        prev_keys = {(f.get("rule_id"), f.get("target_id")) for f in (prev.get("findings") or [])}
+        curr_keys = {(f.get("rule_id"), f.get("target_id")) for f in (curr.get("findings") or [])}
+        for f in curr.get("findings") or []:
+            if (f.get("rule_id"), f.get("target_id")) not in prev_keys:
+                new_findings.append({
+                    "rule_id": f.get("rule_id"),
+                    "severity": f.get("severity"),
+                    "target_name": f.get("target_name"),
+                    "message": f.get("message"),
+                })
+        for f in prev.get("findings") or []:
+            if (f.get("rule_id"), f.get("target_id")) not in curr_keys:
+                resolved_findings.append({
+                    "rule_id": f.get("rule_id"),
+                    "severity": f.get("severity"),
+                    "target_name": f.get("target_name"),
+                })
+
+    return {
+        "available": True,
+        "pipe_id": pipe_id,
+        "runs_count": len(runs),
+        "series": series,
+        "delta_last_vs_prev": delta,
+        "new_findings": new_findings[:10],
+        "resolved_findings": resolved_findings[:10],
+        "latest_summary": (runs[-1].get("summary") if runs else None),
     }

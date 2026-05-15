@@ -623,6 +623,209 @@ def test_endpoint_auto_gated_demo(tmp_path, monkeypatch):
     assert res.status_code == 403
 
 
+# ============== Pendencia 3: historico de scans ==============
+
+def test_persist_scan_run_cria_arquivo(tmp_path, scanner_module):
+    run_data = {
+        "snapshot_filename": "x.json",
+        "env_label": "PRD",
+        "summary": {"total": 2, "by_severity": {"high": 1, "med": 1, "low": 0}},
+        "findings": [
+            {"rule_id": "r1", "target_id": "a1", "severity": "high"},
+            {"rule_id": "r2", "target_id": "a2", "severity": "med"},
+        ],
+    }
+    path = scanner_module.persist_scan_run(str(tmp_path), "p1", run_data)
+    assert os.path.isfile(path)
+    with open(path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    assert payload["pipe_id"] == "p1"
+    assert "run_timestamp" in payload
+    assert payload["summary"]["total"] == 2
+
+
+def test_persist_scan_run_retencao(tmp_path, scanner_module):
+    """retention=3 mantem so as 3 ultimas runs."""
+    import datetime as dt
+    for i in range(5):
+        # Forca filenames diferentes via sleep nao funciona em testes;
+        # usa timestamp manual escrito direto.
+        pipe_dir = tmp_path / "p1"
+        pipe_dir.mkdir(parents=True, exist_ok=True)
+        ts_name = f"2026010{i+1}_120000.json"
+        (pipe_dir / ts_name).write_text(json.dumps({"summary": {"total": i}}), encoding="utf-8")
+
+    # Agora chama persist_scan_run que vai criar +1 e aplicar retencao=3.
+    scanner_module.persist_scan_run(str(tmp_path), "p1", {"summary": {"total": 99}}, retention=3)
+    files = sorted((tmp_path / "p1").glob("*.json"))
+    assert len(files) == 3
+
+
+def test_list_scan_runs_ordenado_ascendente(tmp_path, scanner_module):
+    pipe_dir = tmp_path / "p1"
+    pipe_dir.mkdir(parents=True)
+    for i, ts in enumerate(["20260101_100000", "20260102_100000", "20260103_100000"]):
+        (pipe_dir / f"{ts}.json").write_text(
+            json.dumps({"run_timestamp": f"day-{i}", "summary": {"total": i}}),
+            encoding="utf-8",
+        )
+    runs = scanner_module.list_scan_runs(str(tmp_path), "p1")
+    assert len(runs) == 3
+    assert runs[0]["run_timestamp"] == "day-0"
+    assert runs[2]["run_timestamp"] == "day-2"
+
+
+def test_list_scan_runs_limit(tmp_path, scanner_module):
+    pipe_dir = tmp_path / "p1"
+    pipe_dir.mkdir(parents=True)
+    for ts in ["20260101_100000", "20260102_100000", "20260103_100000"]:
+        (pipe_dir / f"{ts}.json").write_text(json.dumps({"run_timestamp": ts}), encoding="utf-8")
+    runs = scanner_module.list_scan_runs(str(tmp_path), "p1", limit=2)
+    assert len(runs) == 2
+    # limit pega as MAIS RECENTES.
+    assert runs[0]["run_timestamp"] == "20260102_100000"
+
+
+def test_compute_security_trend_sem_historico(tmp_path, scanner_module):
+    trend = scanner_module.compute_security_trend(str(tmp_path), "p1")
+    assert trend["available"] is False
+    assert "Sem historico" in trend["reason"]
+
+
+def test_compute_security_trend_calcula_delta_e_diffs(tmp_path, scanner_module):
+    pipe_dir = tmp_path / "p1"
+    pipe_dir.mkdir(parents=True)
+    run1 = {
+        "run_timestamp": "2026-01-01T10:00",
+        "summary": {"total": 2, "by_severity": {"high": 2, "med": 0, "low": 0}},
+        "findings": [
+            {"rule_id": "r1", "target_id": "a1", "severity": "high", "target_name": "X", "message": "m1"},
+            {"rule_id": "r2", "target_id": "a2", "severity": "high", "target_name": "Y", "message": "m2"},
+        ],
+    }
+    run2 = {
+        "run_timestamp": "2026-01-02T10:00",
+        "summary": {"total": 2, "by_severity": {"high": 1, "med": 1, "low": 0}},
+        "findings": [
+            {"rule_id": "r1", "target_id": "a1", "severity": "high", "target_name": "X", "message": "m1"},
+            {"rule_id": "r3", "target_id": "a3", "severity": "med", "target_name": "Z", "message": "m3"},
+        ],
+    }
+    (pipe_dir / "20260101_100000.json").write_text(json.dumps(run1), encoding="utf-8")
+    (pipe_dir / "20260102_100000.json").write_text(json.dumps(run2), encoding="utf-8")
+
+    trend = scanner_module.compute_security_trend(str(tmp_path), "p1")
+    assert trend["available"] is True
+    assert trend["runs_count"] == 2
+    assert trend["delta_last_vs_prev"]["total"] == 0
+    assert trend["delta_last_vs_prev"]["by_severity"]["high"] == -1
+    assert trend["delta_last_vs_prev"]["by_severity"]["med"] == 1
+    new_ids = [f["rule_id"] for f in trend["new_findings"]]
+    resolved_ids = [f["rule_id"] for f in trend["resolved_findings"]]
+    assert "r3" in new_ids
+    assert "r2" in resolved_ids
+
+
+# ============== Endpoint /api/security-scan/history ==============
+
+def test_endpoint_history_400_sem_pipe_id(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    res = server.app.test_client().get(
+        "/api/security-scan/history",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 400
+
+
+def test_endpoint_history_sem_historico(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    res = server.app.test_client().get(
+        "/api/security-scan/history?pipe_id=novato",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 200
+    assert res.get_json()["available"] is False
+
+
+def test_endpoint_history_gated_demo(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={"APP_PASSWORD": "demosecret"})
+    res = server.app.test_client().get(
+        "/api/security-scan/history?pipe_id=x",
+        headers={"Authorization": _basic("demo", "demosecret")},
+    )
+    assert res.status_code == 403
+
+
+# ============== Pendencia 4: /api/dashboard/security + integracao /data ==============
+
+def test_endpoint_dashboard_security_sem_pipes(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    res = server.app.test_client().get(
+        "/api/dashboard/security",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 200
+    assert res.get_json()["available"] is False
+
+
+def test_endpoint_dashboard_security_com_snapshot(tmp_path, monkeypatch):
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    (tmp_path / "config" / "monitored_pipes.json").write_text(json.dumps({
+        "version": "1.0",
+        "pipes": [{"id": "p1", "name": "Mesa PRD", "env_label": "PRD", "enabled": True}],
+    }), encoding="utf-8")
+    _write_snapshot_with_automations(tmp_path, "p1", "PRD", [
+        {"id": "a1", "name": "Webhook", "action_params": {"url": "http://api.x.com"}},
+    ])
+    res = server.app.test_client().get(
+        "/api/dashboard/security",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["available"] is True
+    assert body["pipe_id"] == "p1"
+    assert body["total"] >= 1
+    assert "by_severity" in body
+    assert "top_rules" in body
+    assert "top_findings_high" in body
+
+
+def test_dashboard_data_inclui_security(tmp_path, monkeypatch):
+    """/api/dashboard/data deve trazer bloco security agregado."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "APP_PASSWORD": "demosecret",
+        "LIDERANCA_PASSWORD": "ldsecret",
+    })
+    (tmp_path / "config" / "monitored_pipes.json").write_text(json.dumps({
+        "version": "1.0",
+        "pipes": [{"id": "p1", "name": "Mesa PRD", "env_label": "PRD", "enabled": True}],
+    }), encoding="utf-8")
+    _write_snapshot_with_automations(tmp_path, "p1", "PRD", [
+        {"id": "a1", "name": "Webhook", "action_params": {"url": "http://api.x.com"}},
+    ])
+    res = server.app.test_client().get(
+        "/api/dashboard/data",
+        headers={"Authorization": _basic("lideranca", "ldsecret")},
+    )
+    assert res.status_code == 200
+    body = res.get_json()
+    assert "security" in body
+    assert body["security"]["available"] is True
+
+
 def test_v2_security_scan_html_lideranca_recebe_pagina(tmp_path, monkeypatch):
     """Lideranca pega a pagina HTML servida do web/designs."""
     server = _reload_server(tmp_path, monkeypatch, env={

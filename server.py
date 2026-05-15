@@ -478,7 +478,92 @@ def dashboard_data():
             "available": False, "reason": "Nenhum pipe monitorado.",
             "pipe_id": "",
         },
+        "security": _compute_security_safe(default_pipe_id) if default_pipe_id else {
+            "available": False, "reason": "Nenhum pipe monitorado.",
+            "pipe_id": "",
+        },
     })
+
+
+def _compute_security_safe(pipe_id):
+    """Wrapper que roda scan no ultimo snapshot do pipe (live, sem persistir
+    nada — a persistencia acontece no cron). Pendencia 4 da Fase A: dashboard
+    consome este shape pra card 'Security'."""
+    try:
+        import semantic_scanner
+    except Exception as ex:
+        return {"available": False, "reason": f"Erro: {ex}", "pipe_id": pipe_id}
+    if not os.path.exists(SEMANTIC_RULES_PATH):
+        return {"available": False, "reason": "Sem arquivo de regras.", "pipe_id": pipe_id}
+
+    import re as _re
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    if not os.path.isdir(pipe_dir):
+        return {"available": False, "reason": "Pipe sem snapshots ainda.", "pipe_id": pipe_id}
+    files = sorted(f for f in os.listdir(pipe_dir) if f.endswith(".json"))
+    if not files:
+        return {"available": False, "reason": "Pipe sem snapshots ainda.", "pipe_id": pipe_id}
+    try:
+        with open(os.path.join(pipe_dir, files[-1]), "r", encoding="utf-8") as f:
+            snapshot = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return {"available": False, "reason": f"Erro lendo snapshot: {ex}", "pipe_id": pipe_id}
+
+    env_label = None
+    for p in (_load_monitored_pipes().get("pipes") or []):
+        if p.get("id") == pipe_id:
+            env_label = p.get("env_label") or None
+            break
+    if not env_label:
+        env_label = (snapshot.get("metadata") or {}).get("env_label") or None
+
+    rules = semantic_scanner.load_rules(SEMANTIC_RULES_PATH)
+    targets = semantic_scanner.extract_targets_from_snapshot(snapshot, env_label=env_label)
+    findings = semantic_scanner.scan_targets(targets, rules)
+    summary = semantic_scanner.summarize_findings(findings)
+
+    # Top 5 rules mais frequentes pra UI.
+    top_rules = sorted(summary["by_rule"].items(), key=lambda kv: -kv[1])[:5]
+    top_findings_high = [
+        {"rule_id": f["rule_id"], "target_name": f.get("target_name"),
+         "field": f.get("field"), "message": f.get("message")}
+        for f in findings if f.get("severity") == "high"
+    ][:5]
+
+    return {
+        "available": True,
+        "pipe_id": pipe_id,
+        "env_label": env_label,
+        "snapshot_filename": files[-1],
+        "snapshot_timestamp": (snapshot.get("metadata") or {}).get("timestamp"),
+        "automations_collected": (snapshot.get("metadata") or {}).get("automations_collected", False),
+        "total": summary["total"],
+        "by_severity": summary["by_severity"],
+        "top_rules": [{"rule_id": rid, "count": c} for rid, c in top_rules],
+        "top_findings_high": top_findings_high,
+        "rules_count": len(rules),
+        "targets_count": len(targets),
+    }
+
+
+@app.route("/api/dashboard/security")
+def dashboard_security():
+    """Endpoint dedicado pro card Security do dashboard. Mesmo shape de
+    _compute_security_safe. ?pipe_id=... opcional (default: primeiro pipe
+    enabled em monitored_pipes)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        for p in (_load_monitored_pipes().get("pipes") or []):
+            if p.get("enabled", True) and p.get("id"):
+                pipe_id = p["id"]
+                break
+    if not pipe_id:
+        return jsonify({"available": False, "reason": "Nenhum pipe monitorado.", "pipe_id": ""})
+    return jsonify(_compute_security_safe(pipe_id))
 
 
 @app.route("/api/dashboard/velocity")
@@ -786,6 +871,13 @@ def _fetch_and_save_pipe_snapshot(pipe):
         outcome["automations_warning"] = autom_err.get("error", "falha coletando automations")
     elif not repo_id or not MONITOR_PIPEFY_ORG_ID:
         outcome["automations_warning"] = "repo_id ou MONITOR_PIPEFY_ORG_ID ausente; automations vazias"
+
+    # Pendencia 3 da Fase A: roda scan + persiste no historico pra trend.
+    snapshot_filename = os.path.basename(out_path)
+    security_summary = _run_and_persist_scan(pipe, snapshot, snapshot_filename)
+    if security_summary is not None:
+        outcome["security_findings"] = security_summary.get("total", 0)
+
     return outcome
 
 
@@ -1004,6 +1096,36 @@ def delete_blueprint_endpoint():
 
 # Fase A do PLANO-VALIDACAO-HMG-PRD: scan semantico (equivalente Gitleaks/Snyk).
 SEMANTIC_RULES_PATH = os.path.join(os.getcwd(), "config", "semantic_rules.json")
+SECURITY_HISTORY_DIR = os.path.join(os.getcwd(), "results", "security_scans")
+
+
+def _run_and_persist_scan(pipe, snapshot, snapshot_filename):
+    """Roda scan semantico no snapshot recem coletado e persiste a run em
+    results/security_scans/<pipe>/<ts>.json. Resiliente: erros aqui nao
+    invalidam o snapshot. Retorna dict com summary ou None se nao rodou."""
+    if not os.path.exists(SEMANTIC_RULES_PATH):
+        return None
+    try:
+        import semantic_scanner
+        rules = semantic_scanner.load_rules(SEMANTIC_RULES_PATH)
+        if not rules:
+            return None
+        env_label = pipe.get("env_label") or (snapshot.get("metadata") or {}).get("env_label")
+        targets = semantic_scanner.extract_targets_from_snapshot(snapshot, env_label=env_label)
+        findings = semantic_scanner.scan_targets(targets, rules)
+        summary = semantic_scanner.summarize_findings(findings)
+        run_data = {
+            "snapshot_filename": snapshot_filename,
+            "env_label": env_label,
+            "summary": summary,
+            "findings": findings,
+            "rules_count": len(rules),
+            "targets_count": len(targets),
+        }
+        semantic_scanner.persist_scan_run(SECURITY_HISTORY_DIR, pipe.get("id", ""), run_data)
+        return summary
+    except Exception:
+        return None
 
 
 @app.route("/api/security-scan", methods=["POST"])
@@ -1128,6 +1250,30 @@ def security_scan_auto():
         "rules_count": len(rules),
         "targets_count": len(targets),
     })
+
+
+@app.route("/api/security-scan/history")
+def security_scan_history():
+    """Retorna trend de scans pra um pipe: serie temporal de contagens
+    + delta entre as 2 ultimas runs + lista de findings novos/resolvidos.
+
+    Param ?pipe_id=... obrigatorio. ?limit=N (default 10).
+
+    Resultado consumido pelo card 'Security' do dashboard pra mostrar
+    progresso ao longo do tempo (Pendencia 3 da Fase A)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    try:
+        limit = int(request.args.get("limit", "10"))
+    except ValueError:
+        limit = 10
+    import semantic_scanner
+    trend = semantic_scanner.compute_security_trend(SECURITY_HISTORY_DIR, pipe_id, limit=limit)
+    return jsonify(trend)
 
 
 @app.route("/api/security-scan/rules")
