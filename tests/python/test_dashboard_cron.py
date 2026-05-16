@@ -358,7 +358,7 @@ def test_snapshot_inclui_automations_quando_org_id_configurado(tmp_path, monkeyp
     # Arquivo persistido tem data.automations
     files = list((tmp_path / "snapshots" / "auto" / "p1").glob("*.json"))
     saved = json.loads(files[0].read_text(encoding="utf-8"))
-    assert saved["metadata"]["tool_version"] == "1.2"
+    assert saved["metadata"]["tool_version"] == "1.3"
     assert saved["data"]["automations"][0]["id"] == "auto_1"
 
 
@@ -464,6 +464,41 @@ def test_snapshot_persiste_security_run_no_historico(tmp_path, monkeypatch):
     run = json.loads(files[0].read_text(encoding="utf-8"))
     assert run["pipe_id"] == "p1"
     assert run["summary"]["total"] >= 1
+
+
+def test_snapshot_persiste_coverage_run_no_historico(tmp_path, monkeypatch):
+    """Fase D: cron tambem persiste coverage scan em results/coverage_scans/."""
+    server = _reload_server(tmp_path, monkeypatch, env={
+        "CRON_SNAPSHOT_TOKEN": "secreto",
+        "MONITOR_PIPEFY_TOKEN": "Bearer xxx",
+    })
+    src = REPO_ROOT / "config" / "coverage_rules.json"
+    (tmp_path / "config" / "coverage_rules.json").write_text(
+        src.read_text(encoding="utf-8"), encoding="utf-8",
+    )
+    server.app.test_client().post(
+        "/api/dashboard/monitored-pipes",
+        json={"pipes": [{"id": "p1", "name": "P1", "enabled": True}]},
+    )
+    pipe_resp = _make_fake_response({
+        "data": {"pipe": {"id": "p1", "name": "P1",
+                          "phases": [{"id": "ph_orfa", "name": "Orfa"}],
+                          "start_form_fields": []}}
+    })
+    with patch("urllib.request.urlopen", return_value=pipe_resp):
+        res = server.app.test_client().post(
+            "/api/cron/snapshot",
+            headers={"X-Cron-Token": "secreto"},
+        )
+    outcome = res.get_json()["results"][0]
+    assert outcome["ok"] is True
+    # Phase orfa + sem SLA + sem description -> coverage encontra findings
+    assert outcome.get("coverage_findings", 0) >= 1
+
+    cdir = tmp_path / "results" / "coverage_scans" / "p1"
+    assert cdir.is_dir()
+    files = list(cdir.glob("*.json"))
+    assert len(files) == 1
 
 
 def test_snapshot_persiste_quality_run_no_historico(tmp_path, monkeypatch):

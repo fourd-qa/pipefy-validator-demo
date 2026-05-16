@@ -1,0 +1,8 @@
+{
+  "$comment": "Regras do coverage scanner (Fase D do PLANO-VALIDACAO-HMG-PRD). Cobre blast radius (cards reais por phase) + cobertura básica (orfãs, sem SLA, sem description). SLA detalhado, permissões, email templates e integrações ficam pra Fase D parte 2.",
+  "version": "1.0",
+  "heavy_phase_threshold": 50,
+  "require_description_for_fields": true,
+  "require_sla_for_phases": true,
+  "flag_orphan_phases": true
+}

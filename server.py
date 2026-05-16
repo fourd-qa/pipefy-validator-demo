@@ -493,6 +493,10 @@ def dashboard_data():
             "available": False, "reason": "Nenhum pipe monitorado.",
             "pipe_id": "",
         },
+        "coverage": _compute_coverage_safe(default_pipe_id) if default_pipe_id else {
+            "available": False, "reason": "Nenhum pipe monitorado.",
+            "pipe_id": "",
+        },
     })
 
 
@@ -545,6 +549,98 @@ def _compute_quality_safe(pipe_id):
         "top_findings_high": top_findings_high,
         "rules_count": len(rules),
     }
+
+
+# ============================================================
+# Fase D: coverage endpoints (blast radius + cobertura)
+# ============================================================
+
+
+def _compute_coverage_safe(pipe_id):
+    """Wrapper que roda coverage scan no ultimo snapshot do pipe (live, sem
+    persistir). Card 'Coverage' do dashboard consome este shape."""
+    try:
+        import coverage_scanner
+    except Exception as ex:
+        return {"available": False, "reason": f"Erro: {ex}", "pipe_id": pipe_id}
+
+    import re as _re
+    safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
+    pipe_dir = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id)
+    if not os.path.isdir(pipe_dir):
+        return {"available": False, "reason": "Pipe sem snapshots ainda.", "pipe_id": pipe_id}
+    files = sorted(f for f in os.listdir(pipe_dir) if f.endswith(".json"))
+    if not files:
+        return {"available": False, "reason": "Pipe sem snapshots ainda.", "pipe_id": pipe_id}
+    try:
+        with open(os.path.join(pipe_dir, files[-1]), "r", encoding="utf-8") as f:
+            snapshot = json.load(f)
+    except (json.JSONDecodeError, IOError) as ex:
+        return {"available": False, "reason": f"Erro lendo snapshot: {ex}", "pipe_id": pipe_id}
+
+    rules = coverage_scanner.load_rules(COVERAGE_RULES_PATH)
+    result = coverage_scanner.scan_pipe_coverage(snapshot, rules)
+    return {
+        "available": True,
+        "pipe_id": pipe_id,
+        "snapshot_filename": files[-1],
+        "snapshot_timestamp": (snapshot.get("metadata") or {}).get("timestamp"),
+        "snapshot_version": (snapshot.get("metadata") or {}).get("tool_version"),
+        "summary": result["summary"],
+        "blast_radius": result["blast_radius"],
+        "top_findings_high": [
+            f for f in result["findings"] if f.get("severity") == "high"
+        ][:5],
+        "findings_total": len(result["findings"]),
+    }
+
+
+@app.route("/api/dashboard/coverage")
+def dashboard_coverage():
+    """Endpoint dedicado pro card Coverage do dashboard."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        for p in (_load_monitored_pipes().get("pipes") or []):
+            if p.get("enabled", True) and p.get("id"):
+                pipe_id = p["id"]
+                break
+    if not pipe_id:
+        return jsonify({"available": False, "reason": "Nenhum pipe monitorado.", "pipe_id": ""})
+    return jsonify(_compute_coverage_safe(pipe_id))
+
+
+@app.route("/api/coverage/auto")
+def coverage_auto():
+    """Coverage scan ad-hoc sobre ultimo snapshot do pipe.
+    Param ?pipe_id=... obrigatorio."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    return jsonify(_compute_coverage_safe(pipe_id))
+
+
+@app.route("/api/coverage/history")
+def coverage_history():
+    """Lista runs persistidas de coverage. ?pipe_id obrigatorio, ?limit=10."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
+    pipe_id = (request.args.get("pipe_id") or "").strip()
+    if not pipe_id:
+        return jsonify({"error": "pipe_id obrigatorio"}), 400
+    try:
+        limit = int(request.args.get("limit", "10"))
+    except ValueError:
+        limit = 10
+    import coverage_scanner
+    runs = coverage_scanner.list_scan_runs(COVERAGE_HISTORY_DIR, pipe_id, limit=limit)
+    return jsonify({"pipe_id": pipe_id, "runs": runs, "count": len(runs)})
 
 
 @app.route("/api/dashboard/quality")
@@ -1268,9 +1364,12 @@ def _fetch_and_save_pipe_snapshot(pipe):
         phases {
           id
           name
-          fields { id label type required }
+          description
+          expiration_time_by_card
+          cards_count
+          fields { id label type required description }
         }
-        start_form_fields { id label type required }
+        start_form_fields { id label type required description }
         labels { id name color }
       }
     }
@@ -1292,7 +1391,7 @@ def _fetch_and_save_pipe_snapshot(pipe):
             "pipe_name": pipe_name,
             "env_label": pipe.get("env_label", ""),
             "source": "cron_auto",
-            "tool_version": "1.2",  # bump: agora inclui phase fields tambem (Fase B)
+            "tool_version": "1.3",  # bump: agora inclui description, expiration_time_by_card, cards_count em phases (Fase D)
             "automations_collected": autom_err is None and (repo_id and MONITOR_PIPEFY_ORG_ID),
         },
         "data": data_block,
@@ -1324,6 +1423,11 @@ def _fetch_and_save_pipe_snapshot(pipe):
     quality_summary = _run_and_persist_quality_scan(pipe, snapshot, snapshot_filename)
     if quality_summary is not None:
         outcome["quality_findings"] = quality_summary.get("total", 0)
+
+    # Fase D: roda coverage scan (blast radius + cobertura) + persiste.
+    coverage_summary = _run_and_persist_coverage_scan(pipe, snapshot, snapshot_filename)
+    if coverage_summary is not None:
+        outcome["coverage_findings"] = coverage_summary.get("total_findings", 0)
 
     return outcome
 
@@ -1555,6 +1659,10 @@ SMOKE_HISTORY_DIR = os.path.join(os.getcwd(), "results", "smoke_runs")
 # Hits de webhook recebidos no run em execucao. Limpa ao iniciar nova run.
 _SMOKE_WEBHOOK_HITS: dict = {}
 
+# Fase D: coverage scanner (blast radius + cobertura).
+COVERAGE_RULES_PATH = os.path.join(os.getcwd(), "config", "coverage_rules.json")
+COVERAGE_HISTORY_DIR = os.path.join(os.getcwd(), "results", "coverage_scans")
+
 
 def _run_and_persist_scan(pipe, snapshot, snapshot_filename):
     """Roda scan semantico no snapshot recem coletado e persiste a run em
@@ -1605,6 +1713,24 @@ def _run_and_persist_quality_scan(pipe, snapshot, snapshot_filename):
         }
         quality_scanner.persist_scan_run(QUALITY_HISTORY_DIR, pipe.get("id", ""), run_data)
         return summary
+    except Exception:
+        return None
+
+
+def _run_and_persist_coverage_scan(pipe, snapshot, snapshot_filename):
+    """Fase D: coverage + blast radius. Resiliente."""
+    try:
+        import coverage_scanner
+        rules = coverage_scanner.load_rules(COVERAGE_RULES_PATH)
+        result = coverage_scanner.scan_pipe_coverage(snapshot, rules)
+        run_data = {
+            "snapshot_filename": snapshot_filename,
+            "summary": result["summary"],
+            "findings": result["findings"],
+            "blast_radius": result["blast_radius"],
+        }
+        coverage_scanner.persist_scan_run(COVERAGE_HISTORY_DIR, pipe.get("id", ""), run_data)
+        return result["summary"]
     except Exception:
         return None
 

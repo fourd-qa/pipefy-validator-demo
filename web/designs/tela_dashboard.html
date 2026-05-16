@@ -524,6 +524,47 @@
     background:rgba(218,162,52,.08);border:1px solid rgba(218,162,52,.20);
     color:#e2bb6c;padding:6px 10px;border-radius:6px;font-size:11px;margin:6px 0;
   }
+
+  /* Coverage card (Fase D do L4) */
+  .cov-picker{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;flex-wrap:wrap}
+  .cov-picker select{
+    background:rgba(255,255,255,.02);border:1px solid var(--line);
+    color:var(--ink-2);border-radius:6px;padding:5px 8px;font-size:11.5px;
+    font-family:inherit;min-width:200px;
+  }
+  .cov-picker .picker-empty{color:var(--muted);font-size:11px;font-style:italic}
+  .cov-summary{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 12px}
+  .cov-stat{
+    flex:1;min-width:90px;border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;background:rgba(255,255,255,.01);
+  }
+  .cov-stat .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:4px}
+  .cov-stat .val{font-size:22px;font-weight:600;font-family:var(--mono);letter-spacing:-.02em;color:var(--ink-2)}
+  .cov-stat.findings .val{color:#e58a8a}
+  .cov-stat.findings.clean .val{color:#7dd584}
+  .cov-meta{color:var(--muted);font-size:10.5px;margin-bottom:8px;line-height:1.4}
+  .cov-section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin:14px 0 6px}
+  .cov-heavy-list{display:flex;flex-direction:column;gap:4px}
+  .cov-heavy-row{
+    display:grid;grid-template-columns:1fr 80px 80px;gap:10px;align-items:center;
+    padding:7px 10px;border-radius:6px;font-size:11.5px;
+    border:1px solid var(--line);background:rgba(255,255,255,.01);
+  }
+  .cov-heavy-row .name{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cov-heavy-row .cards{font-family:var(--mono);font-size:11px;color:#dba844;text-align:right}
+  .cov-heavy-row .cards.none{color:var(--muted)}
+  .cov-heavy-row .autos{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-align:right}
+  .cov-finding{
+    padding:7px 10px;border-radius:6px;font-size:11px;
+    border:1px solid rgba(229,107,107,.15);background:rgba(229,107,107,.04);
+    margin-bottom:4px;
+  }
+  .cov-finding .check{font-family:var(--mono);font-size:10px;color:#ee8e8e}
+  .cov-finding .msg{color:var(--ink-2);margin-top:2px}
+  .cov-warning{
+    background:rgba(218,162,52,.08);border:1px solid rgba(218,162,52,.20);
+    color:#e2bb6c;padding:6px 10px;border-radius:6px;font-size:11px;margin:6px 0;
+  }
 </style>
 <script src="/v2/assets/v2_theme.js" defer></script>
 </head>
@@ -675,6 +716,20 @@
           </div>
 
           <div id="qual-content">
+            <div class="placeholder-soft">Selecione um pipe acima.</div>
+          </div>
+        </div>
+
+        <!-- ======== COVERAGE / BLAST RADIUS (Fase D do L4) ======== -->
+        <div class="dash-card col-12">
+          <h3>🎯 Coverage + Blast Radius</h3>
+          <p class="sub">Quantos cards reais estão em cada phase (= custo de mudar). Phases órfãs, sem SLA, sem description. Documentação dos fields. Detalhes em <code>HANDOFF-COVERAGE.md</code>.</p>
+
+          <div class="cov-picker" id="cov-picker">
+            <span class="picker-empty">carregando pipes monitorados...</span>
+          </div>
+
+          <div id="cov-content">
             <div class="placeholder-soft">Selecione um pipe acima.</div>
           </div>
         </div>
@@ -1062,6 +1117,7 @@
       renderBurnupPicker();
       renderSecurPicker();
       renderQualPicker();
+      renderCovPicker();
       renderSmokePicker();
       fetchSmokeLast();
     }).catch(function(err){ console.error('Erro carregando monitored-pipes', err); });
@@ -1670,6 +1726,113 @@
     container.innerHTML = html;
   }
 
+  /* ===================== Coverage (Fase D do L4) ===================== */
+  var _selectedCovPipeId = null;
+
+  function renderCovPicker(){
+    var picker = document.getElementById('cov-picker');
+    if(!picker) return;
+    var pipes = (_monitorState.pipes || []).filter(function(p){ return p.enabled && p.id; });
+    if(!pipes.length){
+      picker.innerHTML = '<span class="picker-empty">Nenhum pipe monitorado.</span>';
+      return;
+    }
+    if(!_selectedCovPipeId || !pipes.some(function(p){ return p.id === _selectedCovPipeId; })){
+      _selectedCovPipeId = pipes[0].id;
+    }
+    var html = '<label for="cov-pipe-select">Pipe:</label>'
+             + '<select id="cov-pipe-select">';
+    pipes.forEach(function(p){
+      var sel = (p.id === _selectedCovPipeId) ? ' selected' : '';
+      var label = (p.name || p.id) + (p.env_label ? ' [' + p.env_label + ']' : '');
+      html += '<option value="' + escapeHtml(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+    });
+    html += '</select>';
+    picker.innerHTML = html;
+    var sel = document.getElementById('cov-pipe-select');
+    if(sel){
+      sel.addEventListener('change', function(){
+        _selectedCovPipeId = sel.value;
+        fetchCovForSelected();
+      });
+    }
+  }
+
+  function fetchCovForSelected(){
+    if(!window.V2Utils || !_selectedCovPipeId) return;
+    var container = document.getElementById('cov-content');
+    if(container){ container.innerHTML = '<div class="placeholder-soft">Carregando...</div>'; }
+    V2Utils.apiFetch('/api/dashboard/coverage?pipe_id=' + encodeURIComponent(_selectedCovPipeId)).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(data){
+      if(data) renderCoverage(data);
+    }).catch(function(err){ console.error('Erro fetch coverage', err); });
+  }
+
+  function renderCoverage(data){
+    var container = document.getElementById('cov-content');
+    if(!container) return;
+    if(!data || data.available === false){
+      container.innerHTML = '<div class="placeholder-soft">'
+        + escapeHtml((data && data.reason) || 'Sem dados de coverage.')
+        + '</div>';
+      return;
+    }
+    var s = data.summary || {};
+    var sev = s.by_severity || {high:0, med:0, low:0};
+    var ver = data.snapshot_version || '?';
+    var when = data.snapshot_timestamp ? new Date(data.snapshot_timestamp).toLocaleString('pt-BR') : '—';
+    var versionNote = (ver < '1.3')
+      ? 'snapshot v' + ver + ' (sem cards_count / SLA / description — coverage parcial)'
+      : 'snapshot v' + ver + ' (completo)';
+
+    var totalFindings = s.total_findings || 0;
+    var hasHigh = (sev.high || 0) > 0;
+    var findingsClass = totalFindings === 0 ? 'clean' : '';
+
+    var html = '<div class="cov-meta">' + escapeHtml(when) + ' · ' + escapeHtml(versionNote) + '</div>'
+      + '<div class="cov-summary">'
+      +   '<div class="cov-stat"><div class="lbl">Phases</div><div class="val">' + (s.phases_total || 0) + '</div></div>'
+      +   '<div class="cov-stat"><div class="lbl">Cards (todas phases)</div><div class="val">' + (s.cards_total || 0) + '</div></div>'
+      +   '<div class="cov-stat findings ' + findingsClass + '"><div class="lbl">Findings</div><div class="val">' + totalFindings + '</div></div>'
+      + '</div>';
+
+    if(hasHigh){
+      html += '<div class="cov-warning">⚠ ' + sev.high + ' high · ' + (sev.med||0) + ' med · ' + (sev.low||0) + ' low</div>';
+    }
+
+    var heavy = (data.blast_radius || []).slice(0, 5);
+    if(heavy.length){
+      html += '<div class="cov-section-title">Top phases por blast radius</div>';
+      html += '<div class="cov-heavy-list">';
+      heavy.forEach(function(p){
+        var cardsText = (p.cards_count === null || p.cards_count === undefined)
+          ? '—' : p.cards_count + ' cards';
+        var cardsClass = (p.cards_count === null || p.cards_count === undefined) ? 'none' : '';
+        html += '<div class="cov-heavy-row">'
+             +   '<span class="name">' + escapeHtml(p.phase_name || p.phase_id) + '</span>'
+             +   '<span class="cards ' + cardsClass + '">' + escapeHtml(cardsText) + '</span>'
+             +   '<span class="autos">' + (p.automations_total || 0) + ' autos</span>'
+             + '</div>';
+      });
+      html += '</div>';
+    }
+
+    var topHigh = data.top_findings_high || [];
+    if(topHigh.length){
+      html += '<div class="cov-section-title">Findings high (top 5)</div>';
+      topHigh.forEach(function(f){
+        html += '<div class="cov-finding">'
+             +   '<div class="check">' + escapeHtml(f.check_id || '') + '</div>'
+             +   '<div class="msg">' + escapeHtml(f.message || '') + '</div>'
+             + '</div>';
+      });
+    }
+
+    container.innerHTML = html;
+  }
+
   /* ===================== Smoke Test (Fase C do L4) ===================== */
   var _selectedSmokePipeId = null;
   var _smokeRulesCache = null;
@@ -1860,11 +2023,15 @@
       if(data.quality && data.quality.pipe_id){
         _selectedQualPipeId = data.quality.pipe_id;
       }
+      if(data.coverage && data.coverage.pipe_id){
+        _selectedCovPipeId = data.coverage.pipe_id;
+      }
       renderHotspots(data.hotspots);
       renderLeadtime(data.leadtime);
       renderBurnup(data.burnup);
       renderSecurity(data.security);
       renderQuality(data.quality);
+      renderCoverage(data.coverage);
       loadMonitorConfig();
     }).catch(function(err){
       console.error('Erro carregando dashboard', err);
