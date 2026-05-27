@@ -117,18 +117,33 @@
          pipes: [{name, uuid, repo_id}], remember: bool }
      ===================================================================== */
   var VAULT_KEY = 'pv-vault-v1';
+  var VAULT_VERSION = 1;
 
   function _readStore(store){
     try {
       var raw = store.getItem(VAULT_KEY);
       if(!raw) return [];
-      var arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
+      var parsed = JSON.parse(raw);
+      // Backwards compat: schema v0 era array direto. Aceitar pra leitura,
+      // sera regravado em formato versionado no proximo _writeStore.
+      if(Array.isArray(parsed)) return parsed;
+      // Schema versionado: { version: N, envs: [...] }.
+      if(parsed && typeof parsed === 'object' && Array.isArray(parsed.envs)){
+        // Se parsed.version eh maior que VAULT_VERSION (downgrade do app),
+        // descarta pra evitar quebrar com chaves novas que o codigo atual nao
+        // entende. Pratica conservadora; usuario vai precisar relogar envs.
+        if(typeof parsed.version === 'number' && parsed.version > VAULT_VERSION) return [];
+        return parsed.envs;
+      }
+      return [];
     } catch(_) { return []; }
   }
 
   function _writeStore(store, list){
-    try { store.setItem(VAULT_KEY, JSON.stringify(list || [])); } catch(_) {}
+    try {
+      var payload = { version: VAULT_VERSION, envs: list || [] };
+      store.setItem(VAULT_KEY, JSON.stringify(payload));
+    } catch(_) {}
   }
 
   /** Retorna lista mesclada de envs: localStorage (persistentes) + sessionStorage (efêmeros). */

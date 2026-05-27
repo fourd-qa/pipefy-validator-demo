@@ -2356,10 +2356,18 @@ async function executeRun(){
   }
 }
 
-/* Adiciona listener NOVO que faz a ação real, sem mexer no runPulse existente */
+/* Adiciona listener NOVO que faz a ação real, sem mexer no runPulse existente.
+   _runScheduled flag previne double-fire de executeRun quando usuario clica 2x
+   rapido dentro da janela de 120ms (executeRun eh async; ate setar btnRun.disabled
+   na linha 2304 da pra agendar uma segunda chamada). */
+let _runScheduled = false;
 btnRun.addEventListener('click', () => {
-  if(btnRun.disabled) return;
-  setTimeout(executeRun, 120);
+  if(btnRun.disabled || _runScheduled) return;
+  _runScheduled = true;
+  setTimeout(() => {
+    _runScheduled = false;
+    executeRun();
+  }, 120);
 });
 
 /* ============================================================

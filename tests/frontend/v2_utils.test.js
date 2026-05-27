@@ -214,12 +214,19 @@ describe('vault', () => {
     expect(vaultList()).toEqual([]);
   });
 
+  // Aceita schema v0 (array direto) e schema versionado { version, envs }.
+  // Vault foi versionado pra detectar downgrade e deixar espaco pra migracoes.
+  function _unwrap(raw){
+    if(Array.isArray(raw)) return raw;
+    if(raw && Array.isArray(raw.envs)) return raw.envs;
+    return [];
+  }
   function _readPersisted(){
-    try { return JSON.parse(window.localStorage.getItem(VAULT_KEY) || '[]'); }
+    try { return _unwrap(JSON.parse(window.localStorage.getItem(VAULT_KEY) || '[]')); }
     catch(_) { return []; }
   }
   function _readEphemeral(){
-    try { return JSON.parse(window.sessionStorage.getItem(VAULT_KEY) || '[]'); }
+    try { return _unwrap(JSON.parse(window.sessionStorage.getItem(VAULT_KEY) || '[]')); }
     catch(_) { return []; }
   }
 

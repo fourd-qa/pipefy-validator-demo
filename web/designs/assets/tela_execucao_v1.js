@@ -248,8 +248,14 @@
   ];
   let streamIdx = 0;
   let lineCount = seedLogs.length;
-  setInterval(() => {
-    if(realRunDetected) return;  // mock desativa quando run real detectada
+  // Mantemos o handle pra poder clearInterval quando a run real for detectada
+  // (pollStatus seta realRunDetected=true) ou quando a tela for descarregada.
+  // Antes ficava rodando infinitamente, queimando CPU mesmo apos early-return.
+  const mockStreamHandle = setInterval(() => {
+    if(realRunDetected){
+      clearInterval(mockStreamHandle);
+      return;
+    }
     if (log.children.length > 80){
       // trim oldest
       for (let i = 0; i < 20; i++) log.removeChild(log.firstChild);
@@ -265,6 +271,7 @@
     elLogCount.textContent = lineCount;
     log.scrollTop = log.scrollHeight;
   }, 420);
+  window.addEventListener('beforeunload', () => clearInterval(mockStreamHandle), { once: true });
 
   /* -------- CANCEL POPOVER -------- */
   const btnCancel = document.getElementById('btn-cancel');
@@ -280,9 +287,13 @@
   yesBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     pop.classList.remove('open');
-    // Cancel real: chama o backend pra matar o subprocess do Robot
+    // Cancel real: chama o backend pra matar o subprocess do Robot.
+    // AbortSignal.timeout evita travar a UI se o backend nao responder; o
+    // usuario ainda pode navegar via redirect no catch.
     try {
-      const res = await (window.V2Utils ? window.V2Utils.apiFetch : fetch)('/api/run/cancel', { method: 'POST' });
+      const cancelOpts = { method: 'POST' };
+      try { cancelOpts.signal = AbortSignal.timeout(8000); } catch(_){ /* browsers antigos */ }
+      const res = await (window.V2Utils ? window.V2Utils.apiFetch : fetch)('/api/run/cancel', cancelOpts);
       const body = await res.json().catch(() => ({}));
       console.log('[v2] cancel:', res.status, body);
       if(res.ok){
@@ -319,11 +330,22 @@
      ETAPA 5: POLLING /api/status — run real substitui o mock
      ============================================================ */
 
+  // Contador de falhas consecutivas pra backoff exponencial + cap.
+  // Antes pollStatus se auto-agendava forever em erro de rede sem backoff
+  // (sempre 500ms) nem limite, mantendo a tela viva ate o backend voltar.
+  let _pollFailures = 0;
+  const _POLL_BASE_MS = 500;
+  const _POLL_MAX_MS = 10000;
+  const _POLL_FAIL_CAP = 20;
+  let _pollStopped = false;
+
   async function pollStatus(){
+    if(_pollStopped) return;
     try {
       const res = await (window.V2Utils ? window.V2Utils.apiFetch : fetch)('/api/status');
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
+      _pollFailures = 0;  // sucesso reseta o backoff
 
       const hasRun = data.running || data.elapsed != null || data.finished;
 
@@ -384,10 +406,21 @@
         return;
       }
     } catch(e) {
-      console.warn('[v2] poll falhou:', e.message);
+      _pollFailures++;
+      console.warn('[v2] poll falhou (' + _pollFailures + '/' + _POLL_FAIL_CAP + '):', e.message);
+      if(_pollFailures >= _POLL_FAIL_CAP){
+        _pollStopped = true;
+        console.error('[v2] poll desistiu apos ' + _POLL_FAIL_CAP + ' falhas consecutivas');
+        if(elRunStatus) elRunStatus.textContent = 'CONEXAO PERDIDA';
+        return;
+      }
     }
-    setTimeout(pollStatus, 500);
+    // Backoff exponencial em erro: 500ms, 1s, 2s, 4s, ate _POLL_MAX_MS.
+    // Em sucesso (_pollFailures=0), volta ao baseline de 500ms.
+    const delay = Math.min(_POLL_BASE_MS * Math.pow(2, _pollFailures), _POLL_MAX_MS);
+    setTimeout(pollStatus, delay);
   }
+  window.addEventListener('beforeunload', () => { _pollStopped = true; }, { once: true });
 
   /* Renderiza a lista de steps na sidebar esquerda baseada no progress.json.
      Reconstroi os N slots (total) com status done/running/pending. */
