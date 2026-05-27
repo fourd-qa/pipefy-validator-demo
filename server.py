@@ -416,6 +416,32 @@ _state = {
     "cancelled": False,       # True quando o usuário cancelou via /api/run/cancel
 }
 
+# Lock global pra acesso ao _state. Antes, duas requests simultaneas em /api/run
+# podiam ambas passar pelo guard "if not _state['running']" antes de qualquer
+# uma setar running=True, abrindo 2 subprocess Robot escrevendo no MESMO
+# config/active.robot e misturando tokens entre runs. Lock + helpers de
+# reserve/release atomic resolvem isso.
+_RUN_LOCK = threading.Lock()
+
+
+def _try_reserve_run_slot():
+    """Tenta reservar o slot global de run. Atomico via _RUN_LOCK.
+
+    Retorna True se conseguiu (caller pode prosseguir com setup + spawn da
+    thread). Retorna False se ja tem run em execucao."""
+    with _RUN_LOCK:
+        if _state["running"]:
+            return False
+        _state["running"] = True
+        return True
+
+
+def _release_run_slot():
+    """Libera o slot reservado. Usar em paths de erro ANTES de spawnar a thread
+    (em paths happy, _run() libera no finally)."""
+    with _RUN_LOCK:
+        _state["running"] = False
+
 
 @app.route("/")
 def index():
@@ -2439,7 +2465,9 @@ def _sterilize_active_robots():
 @app.route("/api/run", methods=["POST"])
 def run_validation():
     """Inicia a validação. Credenciais vêm no body do request (client-side)."""
-    if _state["running"]:
+    # Reserva atomica do slot de run global. Se ja tem run em execucao,
+    # rejeita imediato sem tocar em config/active.robot.
+    if not _try_reserve_run_slot():
         return jsonify({"error": "Já existe uma validação em execução"}), 409
 
     raw = request.get_json(silent=True)
@@ -2455,11 +2483,13 @@ def run_validation():
     if mode == "ipaas":
         ipaas_creds = _extract_ipaas_creds(data)
         if not ipaas_creds:
+            _release_run_slot()
             return jsonify({"error": "Credenciais iPaaS obrigatórias: token + base_url"}), 400
     elif mode == "cross":
         src_creds = _extract_pipefy_creds(data, prefix="src_")
         dst_creds = _extract_pipefy_creds(data, prefix="dst_")
         if not src_creds or not dst_creds:
+            _release_run_slot()
             return jsonify({"error": "Cross-env precisa src_token+src_base_url e dst_token+dst_base_url"}), 400
     elif mode == "healthcheck":
         # Healthcheck pode rodar sem token (testa só camadas internas)
@@ -2468,6 +2498,7 @@ def run_validation():
         # single, snapshot, batch
         creds = _extract_pipefy_creds(data)
         if not creds:
+            _release_run_slot()
             return jsonify({"error": "Credenciais Pipefy obrigatórias: token + base_url"}), 400
 
     # Limpa resultados anteriores
@@ -2571,7 +2602,8 @@ def run_validation():
     # config virou metadata opcional (frontend manda label só pra trace)
     config = (data.get("config") or "").strip()
 
-    _state["running"] = True
+    # _state["running"] ja foi setado por _try_reserve_run_slot() la em cima.
+    # Aqui populamos o resto da metadata da run.
     _state["finished"] = False
     _state["exit_code"] = None
     _state["started_at"] = time.time()
@@ -2694,18 +2726,25 @@ def run_validation():
 def cancel_run():
     """Mata o subprocess do Robot em curso. Marca _state["cancelled"]=True
     pra o frontend distinguir cancel manual de falha real."""
-    proc = _state.get("process")
-    if not _state.get("running") or not proc:
-        return jsonify({"ok": False, "error": "Nenhuma run em execução"}), 404
-    try:
+    # Snapshot atomico de proc e running sob lock pra evitar race com _run()
+    # finalizando entre a leitura de running e a leitura de process.
+    with _RUN_LOCK:
+        proc = _state.get("process")
+        running = _state.get("running")
+        run_id = _state.get("run_id")
+        if not running or not proc:
+            return jsonify({"ok": False, "error": "Nenhuma run em execução"}), 404
         _state["cancelled"] = True
+    # Terminate fora do lock pra nao bloquear outras requests (status, etc.)
+    # enquanto o subprocess esta morrendo. _run() finally libera o slot.
+    try:
         proc.terminate()
         # Dá 2s pro processo encerrar limpo, depois mata forçado
         try:
             proc.wait(timeout=2)
         except subprocess.TimeoutExpired:
             proc.kill()
-        return jsonify({"ok": True, "run_id": _state.get("run_id")})
+        return jsonify({"ok": True, "run_id": run_id})
     except Exception as ex:
         return jsonify({"ok": False, "error": str(ex)}), 500
 
