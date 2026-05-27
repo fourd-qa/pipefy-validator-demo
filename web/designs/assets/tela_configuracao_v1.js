@@ -1619,9 +1619,9 @@ function populateSnapshotDropdown(snaps){
     const isSel = i === 0; // primeiro selecionado por default
     const ago = fmtTimestamp(s.timestamp);
     const short = s.name.replace(/\.json$/, '');
-    return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${s.file}" data-pipe="${s.pipe_name || ''}">`
-         + `<span class="opt-name">${short}</span>`
-         + `<span class="opt-sub">${ago} · ${s.automacoes} auto${s.size_kb ? ' · ' + s.size_kb + 'KB' : ''}</span>`
+    return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${escapeHtmlInline(s.file)}" data-pipe="${escapeHtmlInline(s.pipe_name || '')}">`
+         + `<span class="opt-name">${escapeHtmlInline(short)}</span>`
+         + `<span class="opt-sub">${escapeHtmlInline(ago)} · ${escapeHtmlInline(String(s.automacoes ?? ''))} auto${s.size_kb ? ' · ' + escapeHtmlInline(String(s.size_kb)) + 'KB' : ''}</span>`
          + `</button>`;
   }).join('');
   if(list.length > 0){
@@ -1680,7 +1680,7 @@ function populateIpaasEnvDropdown(){
     } else {
       callout.style.display = '';
       if(calloutText){
-        const pendingNames = pending.map(e => '<b>' + e.id + '</b>').join(', ');
+        const pendingNames = pending.map(e => '<b>' + escapeHtmlInline(e.id) + '</b>').join(', ');
         calloutText.innerHTML = 'Validação iPaaS requer credenciais Activepieces. ' + pendingNames + ' ainda não configurado — abra <a href="#" class="link-manage-cta" style="color:var(--accent);text-decoration:none">Gerenciar ambientes</a> para adicionar.';
         // Wire o link dinâmico
         const cta = calloutText.querySelector('.link-manage-cta');
@@ -1708,9 +1708,9 @@ function populateIpaasEnvDropdown(){
     const tagClass = hasToken ? '' : 'pending';
     const tagStyle = hasToken ? 'background:rgba(108,194,108,.08);border-color:rgba(108,194,108,.22);color:var(--green)' : '';
     const tagText = hasToken ? 'ok' : 'Pendente';
-    return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${env.id}">`
+    return `<button class="dd-opt${isSel ? ' sel' : ''}" data-val="${escapeHtmlInline(env.id)}">`
          + `<span class="env-tag ${tagClass}" style="${tagStyle}">${tagText}</span>`
-         + `<span class="opt-name">${env.name}</span>`
+         + `<span class="opt-name">${escapeHtmlInline(env.name)}</span>`
          + `<span class="opt-sub">${authType}</span>`
          + `</button>`;
   }).join('');
@@ -1817,15 +1817,15 @@ function renderBatchList(){
     const dstEnv = p.uuid_origem === p.uuid_destino ? 'mesmo ambiente' : (p.env_destino || 'destino');
     const statusClass = p.uuid_origem === p.uuid_destino ? 'ok' : 'pending';
     const statusText = p.uuid_origem === p.uuid_destino ? 'self-check' : 'pendente';
-    return `<button class="batch-row sel" data-batch="${id}" data-uuid-origem="${p.uuid_origem}" data-uuid-destino="${p.uuid_destino}">`
+    return `<button class="batch-row sel" data-batch="${id}" data-uuid-origem="${escapeHtmlInline(p.uuid_origem)}" data-uuid-destino="${escapeHtmlInline(p.uuid_destino)}">`
          + `<span class="check"></span>`
          + `<span class="br-flow">`
-         + `  <span class="env-pill">${srcEnv}</span>`
+         + `  <span class="env-pill">${escapeHtmlInline(srcEnv)}</span>`
          + `  <span class="arrow"><svg><use href="#i-arrow-right"/></svg></span>`
-         + `  <span class="env-pill dest">${dstEnv}</span>`
-         + `  <span class="pipe-name">${p.nome}</span>`
+         + `  <span class="env-pill dest">${escapeHtmlInline(dstEnv)}</span>`
+         + `  <span class="pipe-name">${escapeHtmlInline(p.nome)}</span>`
          + `</span>`
-         + `<span class="br-count"><b>${p.repo_origem || '?'}</b> repo</span>`
+         + `<span class="br-count"><b>${escapeHtmlInline(p.repo_origem || '?')}</b> repo</span>`
          + `<span class="br-status ${statusClass}"><span class="d"></span>${statusText}</span>`
          + `</button>`;
   }).join('');
@@ -1879,11 +1879,11 @@ function populateEnvModal(){
       const authLabel = env.auth_mode === 'cookie' ? 'Cookie+CSRF' : 'Bearer';
       // Prefere has_token do endpoint sanitizado; fallback pra checagem do token se presente
       const hasToken = env.has_token !== undefined ? env.has_token : (env.token && !env.token.startsWith('<') && env.token.length > 10);
-      return `<div class="env-row" data-env-id="${env.id}">`
-           + `<div class="env-mark">${initials}</div>`
+      return `<div class="env-row" data-env-id="${escapeHtmlInline(env.id)}">`
+           + `<div class="env-mark">${escapeHtmlInline(initials)}</div>`
            + `<div class="env-info">`
-           + `  <div class="env-name">${env.name}</div>`
-           + `  <div class="env-url">${env.base_url || ''} · ${authLabel}</div>`
+           + `  <div class="env-name">${escapeHtmlInline(env.name)}</div>`
+           + `  <div class="env-url">${escapeHtmlInline(env.base_url || '')} · ${authLabel}</div>`
            + `</div>`
            + `<div class="env-auth${hasToken ? '' : ' pending'}">${(env.pipes || []).length} pipes</div>`
            + `<div class="env-actions">`
@@ -1921,13 +1921,13 @@ function populateEnvModal(){
   ipaasPane.innerHTML = ipaasList.map(env => {
     const initials = (env.name || '??').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const hasToken = env.has_token !== undefined ? env.has_token : (env.token && !env.token.startsWith('<') && env.token.length > 10);
-    return `<div class="env-row" data-env-id="${env.id}">`
-         + `<div class="env-mark">${initials}</div>`
+    return `<div class="env-row" data-env-id="${escapeHtmlInline(env.id)}">`
+         + `<div class="env-mark">${escapeHtmlInline(initials)}</div>`
          + `<div class="env-info">`
-         + `  <div class="env-name">${env.name}</div>`
-         + `  <div class="env-url">${env.base_url || ''} · ${hasToken ? 'JWT' : 'não configurado'}</div>`
+         + `  <div class="env-name">${escapeHtmlInline(env.name)}</div>`
+         + `  <div class="env-url">${escapeHtmlInline(env.base_url || '')} · ${hasToken ? 'JWT' : 'não configurado'}</div>`
          + `</div>`
-         + `<div class="env-auth${hasToken ? '' : ' pending'}">${env.desc || ''}</div>`
+         + `<div class="env-auth${hasToken ? '' : ' pending'}">${escapeHtmlInline(env.desc || '')}</div>`
          + `<div class="env-actions">`
          + `  <button class="icon-btn" data-tip="Editar" data-env-action="edit"><svg><use href="#i-edit"/></svg></button>`
          + `  <button class="icon-btn danger" data-tip="Remover" data-env-action="delete-ipaas"><svg><use href="#i-trash"/></svg></button>`
@@ -2925,7 +2925,7 @@ function showOnboardingModal(){
       });
       const body = await res.json().catch(() => ({}));
       if(!res.ok){
-        setStatus('<b>Falha:</b> ' + (body.error || ('HTTP ' + res.status)));
+        setStatus('<b>Falha:</b> ' + escapeHtmlInline(body.error || ('HTTP ' + res.status)));
         testBtn.disabled = false;
         testBtn.textContent = orig;
         return;
@@ -2935,7 +2935,7 @@ function showOnboardingModal(){
       const orgName = body.org_name || '?';
       const count = body.count || 0;
       setStatus(
-        `<b>Conectado.</b> Org <b>${orgName}</b> · <b>${count}</b> pipe(s) prontos pra importar.`,
+        `<b>Conectado.</b> Org <b>${escapeHtmlInline(orgName)}</b> · <b>${escapeHtmlInline(String(count))}</b> pipe(s) prontos pra importar.`,
         '#6fd17a', 'rgba(108,194,108,.08)', 'rgba(108,194,108,.22)'
       );
       // Esconde Test, transforma Conectar em "Salvar e importar N pipes"
@@ -2943,7 +2943,7 @@ function showOnboardingModal(){
       saveBtn.textContent = `Salvar e importar ${count} pipe${count === 1 ? '' : 's'}`;
       saveBtn.dataset.importPipes = '1';
     } catch(err2){
-      setStatus('<b>Falha de rede:</b> ' + err2.message);
+      setStatus('<b>Falha de rede:</b> ' + escapeHtmlInline(err2.message));
       testBtn.disabled = false;
       testBtn.textContent = orig;
     }

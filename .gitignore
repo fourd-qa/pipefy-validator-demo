@@ -13,6 +13,7 @@ tmp/
 
 # Backups locais
 *.bak
+*.bak-*
 
 # IDE / OS
 .vscode/
