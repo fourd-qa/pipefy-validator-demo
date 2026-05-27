@@ -136,9 +136,13 @@ def test_blast_radius_pesa_automations(coverage_module):
 # ============== compute_phase_coverage ==============
 
 def test_coverage_detecta_orphan_phase(coverage_module):
+    """Orphan = phase sem automation IN, exceto a primeira do pipe.
+    Primeira phase recebe cards via start_form (criacao manual), nao via
+    automation. Flaggar ela seria falso positivo garantido."""
     phases = [
-        {"id": "ph_orfa", "name": "Orfã"},  # sem automation entrando
-        {"id": "ph_ok", "name": "OK"},
+        {"id": "ph_inicial", "name": "Inicial"},  # primeira: NUNCA orphan
+        {"id": "ph_ok", "name": "OK"},            # tem automation entrando
+        {"id": "ph_orfa", "name": "Orfã"},        # sem automation entrando: orphan
     ]
     automations = [{"id": "a1", "action_params": {"to_phase_id": "ph_ok"}}]
     findings = coverage_module.compute_phase_coverage(
@@ -148,6 +152,19 @@ def test_coverage_detecta_orphan_phase(coverage_module):
     orphans = [f for f in findings if f["check_id"] == "orphan_phase"]
     assert len(orphans) == 1
     assert orphans[0]["phase_id"] == "ph_orfa"
+
+
+def test_coverage_nao_flagga_primeira_phase_como_orphan(coverage_module):
+    """Regressao: bug antes flaggava primeira phase como orphan em todo pipe."""
+    phases = [
+        {"id": "ph_inicial", "name": "Inicial"},  # primeira, sem automation IN
+    ]
+    findings = coverage_module.compute_phase_coverage(
+        _snapshot(phases=phases, automations=[]),
+        {"flag_orphan_phases": True, "require_sla_for_phases": False},
+    )
+    orphans = [f for f in findings if f["check_id"] == "orphan_phase"]
+    assert orphans == []
 
 
 def test_coverage_detecta_phase_sem_sla(coverage_module):

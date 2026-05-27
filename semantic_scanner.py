@@ -28,9 +28,15 @@ _SEVERITY_RANK = {"high": 3, "med": 2, "low": 1}
 
 def load_rules(rules_path: str) -> List[Dict[str, Any]]:
     """Carrega config/semantic_rules.json e compila os regex pra atributo
-    '_compiled'. Filtra regras com enabled=false."""
-    with open(rules_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    '_compiled'. Filtra regras com enabled=false.
+
+    Retorna [] se arquivo nao existe ou esta corrompido (consistente com
+    coverage/smoke scanners; antes derrubava o caller)."""
+    try:
+        with open(rules_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (FileNotFoundError, IOError, json.JSONDecodeError):
+        return []
     out: List[Dict[str, Any]] = []
     for rule in data.get("rules", []) or []:
         if not rule.get("enabled", True):
@@ -247,14 +253,17 @@ def persist_scan_run(
         "pipe_id": pipe_id,
         **run_data,
     }
-    filename = now.strftime("%Y%m%d_%H%M%S") + ".json"
+    # Microsegundos evitam colisao quando 2 runs no mesmo segundo.
+    filename = now.strftime("%Y%m%d_%H%M%S_%f") + ".json"
     path = _os.path.join(pipe_dir, filename)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False)
 
     # Retencao: mantem N mais recentes (por nome de arquivo, ordem cronologica).
+    # Filtra apenas filenames no padrao timestamp pra nao apagar arquivos manuais.
     if retention > 0:
-        files = sorted(f for f in _os.listdir(pipe_dir) if f.endswith(".json"))
+        _SCAN_FNAME_RE = re.compile(r"^\d{8}_\d{6}(?:_\d+)?\.json$")
+        files = sorted(f for f in _os.listdir(pipe_dir) if _SCAN_FNAME_RE.match(f))
         excess = len(files) - retention
         for i in range(excess):
             try:

@@ -25,9 +25,13 @@ _SEVERITY_RANK = {"high": 3, "med": 2, "low": 1}
 
 def load_rules(rules_path: str) -> List[Dict[str, Any]]:
     """Carrega config/quality_rules.json. Filtra disabled. Compila label_regex
-    nos params se a check tiver."""
-    with open(rules_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    nos params se a check tiver. Retorna [] se arquivo nao existe ou esta
+    corrompido (consistente com coverage/smoke scanners; antes derrubava o caller)."""
+    try:
+        with open(rules_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (FileNotFoundError, IOError, json.JSONDecodeError):
+        return []
     out: List[Dict[str, Any]] = []
     for check in data.get("checks", []) or []:
         if not check.get("enabled", True):
@@ -194,6 +198,14 @@ _UUID_RE = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
 
 
 def _looks_like_id(value, min_length):
+    """Heuristica pra detectar 'magic ID' em condition.value.
+
+    Pipefy phase/connector IDs sao UUIDs ou numericos curtos (~9 digitos).
+    Versao anterior flaggava qualquer string numerica >= min_length, gerando
+    falso positivo em CPF (11 digitos), CNPJ (14), telefone, codigo de barras.
+    Excluir tamanhos tipicos de documento BR reduz falso positivo sem perder
+    UUIDs ou IDs numericos legitimos.
+    """
     if not isinstance(value, str):
         return False
     s = value.strip()
@@ -201,7 +213,10 @@ def _looks_like_id(value, min_length):
         return False
     if _UUID_RE.match(s):
         return True
-    if s.isdigit() and len(s) >= min_length:
+    # ID numerico: precisa ser >= min_length E nao parecer CPF (11) ou CNPJ (14).
+    # Esses tamanhos sao quase sempre documentos validos comparados em condition,
+    # nao referencias a pipe/phase/connector.
+    if s.isdigit() and len(s) >= min_length and len(s) not in (11, 14):
         return True
     return False
 
@@ -272,13 +287,18 @@ def scan_pipe_quality(
     automations = ((snapshot.get("data") or {}).get("automations")) or []
 
     findings: List[Dict[str, Any]] = []
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
     for check in rules or []:
         fn = _CHECK_FUNCTIONS.get(check["id"])
         if fn is None:
             continue
         try:
             findings.extend(fn(check, automations, schema))
-        except Exception:
+        except Exception as ex:
+            # Antes era `except: continue` cego; checks quebrados ficavam
+            # silenciosos e usuario via "0 findings" falso. Agora loga.
+            _log.warning("check %s falhou: %s", check.get("id", "?"), ex)
             continue
 
     findings.sort(key=lambda f: (
@@ -337,12 +357,16 @@ def persist_scan_run(
         "pipe_id": pipe_id,
         **run_data,
     }
-    filename = now.strftime("%Y%m%d_%H%M%S") + ".json"
+    # Microsegundos evitam colisao quando 2 runs no mesmo segundo.
+    filename = now.strftime("%Y%m%d_%H%M%S_%f") + ".json"
     path = _os.path.join(pipe_dir, filename)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False)
     if retention > 0:
-        files = sorted(f for f in _os.listdir(pipe_dir) if f.endswith(".json"))
+        # Filtra apenas filenames no padrao timestamp pra nao apagar arquivos
+        # manuais (summary.json, etc).
+        _SCAN_FNAME_RE = _re.compile(r"^\d{8}_\d{6}(?:_\d+)?\.json$")
+        files = sorted(f for f in _os.listdir(pipe_dir) if _SCAN_FNAME_RE.match(f))
         excess = len(files) - retention
         for i in range(excess):
             try:

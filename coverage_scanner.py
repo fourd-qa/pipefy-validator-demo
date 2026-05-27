@@ -154,14 +154,18 @@ def compute_phase_coverage(
     auto_refs = _automation_phase_references(automations)
 
     findings: List[Dict[str, Any]] = []
-    for ph in phases:
+    for idx, ph in enumerate(phases):
         pid = ph.get("id")
         if not pid:
             continue
         name = ph.get("name", "")
         refs = auto_refs.get(pid, {"ins": set(), "outs": set()})
 
-        if flag_orphan and len(refs["ins"]) == 0:
+        # orphan_phase: pular a primeira phase do pipe.
+        # Pipefy entrega phases em ordem; a primeira recebe cards via start_form
+        # (criacao manual), nao via automation. Sinalizar ela como orfa eh falso
+        # positivo garantido em todo pipe.
+        if flag_orphan and idx > 0 and len(refs["ins"]) == 0:
             findings.append({
                 "check_id": "orphan_phase",
                 "category": "consistency",
@@ -311,12 +315,17 @@ def persist_scan_run(
         "pipe_id": pipe_id,
         **run_data,
     }
-    filename = now.strftime("%Y%m%d_%H%M%S") + ".json"
+    # Inclui microsegundos no filename pra evitar colisao quando 2 runs ocorrem
+    # no mesmo segundo (cron paralelo + trigger manual, por exemplo).
+    filename = now.strftime("%Y%m%d_%H%M%S_%f") + ".json"
     path = _os.path.join(pipe_dir, filename)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False)
     if retention > 0:
-        files = sorted(f for f in _os.listdir(pipe_dir) if f.endswith(".json"))
+        # Filtra apenas filenames no padrao YYYYMMDD_HHMMSS[_microsec].json
+        # pra retencao nao apagar arquivos manuais (summary.json, etc).
+        _SCAN_FNAME_RE = _re.compile(r"^\d{8}_\d{6}(?:_\d+)?\.json$")
+        files = sorted(f for f in _os.listdir(pipe_dir) if _SCAN_FNAME_RE.match(f))
         excess = len(files) - retention
         for i in range(excess):
             try:

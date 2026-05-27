@@ -227,14 +227,21 @@ def execute_smoke(
         errors.append(f"delete_card: {err} (CARD ORFAO id={card_id} pode ter sobrado em PRD!)")
 
     elapsed_ms = int((_time.time() - started_at) * 1000)
+    # Plano sem phases pra mover = configuracao ruim, smoke nao executou
+    # movimento real. Versao anterior retornava ok=true (so create+delete)
+    # indistinguivel de smoke verdadeiro.
+    has_moves = bool(plan.get("phases"))
+    warnings = list(plan.get("warnings", []))
+    if not has_moves:
+        warnings.append("Plano sem phases pra cobrir, smoke nao executou nenhum moveCardToPhase")
     return {
-        "ok": all(s["ok"] for s in steps),
+        "ok": all(s["ok"] for s in steps) and has_moves,
         "dry_run": False,
         "card_id": card_id,
         "steps": steps,
         "elapsed_ms": elapsed_ms,
         "errors": errors,
-        "warnings": plan.get("warnings", []),
+        "warnings": warnings,
     }
 
 
@@ -253,12 +260,16 @@ def persist_smoke_run(
         "pipe_id": pipe_id,
         **run_data,
     }
-    filename = now.strftime("%Y%m%d_%H%M%S") + ".json"
+    # Microsegundos evitam colisao quando 2 runs no mesmo segundo.
+    filename = now.strftime("%Y%m%d_%H%M%S_%f") + ".json"
     path = _os.path.join(pipe_dir, filename)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False)
     if retention > 0:
-        files = sorted(f for f in _os.listdir(pipe_dir) if f.endswith(".json"))
+        # Filtra apenas filenames no padrao timestamp pra nao apagar arquivos manuais.
+        import re as _re_local
+        _SMOKE_FNAME_RE = _re_local.compile(r"^\d{8}_\d{6}(?:_\d+)?\.json$")
+        files = sorted(f for f in _os.listdir(pipe_dir) if _SMOKE_FNAME_RE.match(f))
         excess = len(files) - retention
         for i in range(excess):
             try:
