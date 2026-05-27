@@ -2286,39 +2286,86 @@ def list_batch():
     return jsonify({"pipes": []})
 
 
+# Cache de metadata por path, invalidado quando mtime muda. Reduz I/O em
+# chamadas repetidas de /api/snapshots (polling do frontend abre o dropdown
+# varias vezes). Cap simples FIFO pra evitar crescimento ilimitado.
+_SNAPSHOT_META_CACHE = {}
+_SNAPSHOT_META_CACHE_MAX = 500
+
+
+def _read_snapshot_meta(path):
+    """Le metadata leve de um snapshot JSON, com cache invalidado por mtime.
+    Retorna dict com pipe_name, total_auto, total_flows, ts ou None se ilegivel."""
+    try:
+        mtime = os.stat(path).st_mtime_ns
+    except OSError:
+        return None
+    cached = _SNAPSHOT_META_CACHE.get(path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (IOError, OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    meta = {
+        "pipe_name": (data.get("pipe", {}) or {}).get("name", "") or data.get("label", "") or "",
+        "total_auto": len(data.get("automations", []) or []),
+        "total_flows": data.get("total_flows", 0) or 0,
+        "ts": (data.get("metadata", {}) or {}).get("timestamp", "") or data.get("timestamp", "") or "",
+    }
+    if len(_SNAPSHOT_META_CACHE) >= _SNAPSHOT_META_CACHE_MAX:
+        # FIFO simples: dropa as 100 mais antigas (dict preserva ordem em Py3.7+).
+        for k in list(_SNAPSHOT_META_CACHE.keys())[:100]:
+            del _SNAPSHOT_META_CACHE[k]
+    _SNAPSHOT_META_CACHE[path] = (mtime, meta)
+    return meta
+
+
 @app.route("/api/snapshots")
 def list_snapshots():
-    """Lista snapshots disponíveis no volume."""
+    """Lista snapshots disponíveis no volume.
+
+    Sort por mtime em vez de nome alfabetico (mais robusto a nomenclatura
+    manual). Query param ?limit=N (default 200, max 1000) limita resultado
+    pra evitar listar pasta enorme. Metadata cacheada por mtime."""
     snap_dir = os.path.join(os.getcwd(), "snapshots")
+    if not os.path.isdir(snap_dir):
+        return jsonify([])
+    try:
+        limit = int(request.args.get("limit", "200"))
+    except (TypeError, ValueError):
+        limit = 200
+    limit = max(1, min(limit, 1000))
+
+    paths = glob.glob(os.path.join(snap_dir, "*.json"))
+    def _safe_mtime(p):
+        try:
+            return os.path.getmtime(p)
+        except OSError:
+            return 0
+    paths.sort(key=_safe_mtime, reverse=True)
+    paths = paths[:limit]
+
     snaps = []
-    if os.path.isdir(snap_dir):
-        for f in sorted(glob.glob(os.path.join(snap_dir, "*.json")), reverse=True):
-            name = os.path.basename(f)
+    for f in paths:
+        name = os.path.basename(f)
+        try:
             size = os.path.getsize(f)
-            # Tenta extrair metadata
-            try:
-                with open(f) as fh:
-                    data = json.load(fh)
-                pipe_name = data.get("pipe", {}).get("name", "") or data.get("label", "")
-                total_auto = len(data.get("automations", []))
-                total_flows = data.get("total_flows", 0)
-                ts = data.get("metadata", {}).get("timestamp", "") or data.get("timestamp", "")
-            except Exception:
-                pipe_name = ""
-                total_auto = 0
-                total_flows = 0
-                ts = ""
-            is_ipaas = "ipaas" in name.lower() or total_flows > 0
-            snaps.append({
-                "file": f"snapshots/{name}",
-                "name": name,
-                "pipe_name": pipe_name,
-                "automacoes": total_auto,
-                "total_flows": total_flows,
-                "timestamp": ts,
-                "size_kb": round(size / 1024, 1),
-                "is_ipaas": is_ipaas,
-            })
+        except OSError:
+            size = 0
+        meta = _read_snapshot_meta(f) or {"pipe_name": "", "total_auto": 0, "total_flows": 0, "ts": ""}
+        is_ipaas = "ipaas" in name.lower() or (meta["total_flows"] or 0) > 0
+        snaps.append({
+            "file": f"snapshots/{name}",
+            "name": name,
+            "pipe_name": meta["pipe_name"],
+            "automacoes": meta["total_auto"],
+            "total_flows": meta["total_flows"],
+            "timestamp": meta["ts"],
+            "size_kb": round(size / 1024, 1),
+            "is_ipaas": is_ipaas,
+        })
     return jsonify(snaps)
 
 

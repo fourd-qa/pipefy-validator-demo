@@ -293,17 +293,29 @@ def _safe_id(pipe_id: str) -> str:
 
 
 def _list_pipe_snapshots(snapshots_root: str, pipe_id: str) -> List[Tuple[str, Dict[str, Any]]]:
-    """Lista snapshots de um pipe ordenados por timestamp (filename) ascendente.
-    Retorna lista de (filename, snapshot_dict)."""
+    """Lista snapshots de um pipe ordenados ascendente.
+
+    Ordem preferida: metadata.timestamp parseado quando disponivel (robusto a
+    nomenclatura nao padronizada). Fallback: nome do arquivo. Antes assumia
+    sempre YYYYMMDD_HHMMSS no filename e quebrava cronologia se algum arquivo
+    fugia do padrao."""
     pipe_dir = os.path.join(snapshots_root, _safe_id(pipe_id))
     if not os.path.isdir(pipe_dir):
         return []
-    files = sorted(f for f in os.listdir(pipe_dir) if f.endswith(".json"))
+    files = [f for f in os.listdir(pipe_dir) if f.endswith(".json")]
     out: List[Tuple[str, Dict[str, Any]]] = []
     for f in files:
         snap = _read_snapshot(os.path.join(pipe_dir, f))
         if snap is not None:
             out.append((f, snap))
+    def _sort_key(entry):
+        ts = _ts_of(entry[1])
+        # Tupla (kind, value): 0 pra snapshots com timestamp valido, 1 pra
+        # fallback por nome (vao depois). Garante ordem total estavel.
+        if ts is not None:
+            return (0, ts, entry[0])
+        return (1, _dt.datetime.min, entry[0])
+    out.sort(key=_sort_key)
     return out
 
 
@@ -583,13 +595,26 @@ def _pair_monitored_pipes(monitored: List[Dict[str, Any]]) -> List[Dict[str, Any
 
 
 def _ts_of(snapshot: Dict[str, Any]) -> Optional[_dt.datetime]:
+    """Parseia metadata.timestamp pra datetime naive.
+
+    Aceita formatos com sufixo Z (UTC) e offset explicito (+HH:MM).
+    Normaliza pra UTC naive antes de retornar — antes podia retornar mix
+    aware/naive que levantava TypeError em comparacoes
+    (_business_days_between, sort). Snapshots sem timezone ficam naive como
+    antes (sem suposicao implicita de fuso, mantem compat historica)."""
     ts = snapshot.get("metadata", {}).get("timestamp")
     if not ts:
         return None
+    s = str(ts).strip()
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
     try:
-        return _dt.datetime.fromisoformat(ts)
+        dt = _dt.datetime.fromisoformat(s)
     except ValueError:
         return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(_dt.timezone.utc).replace(tzinfo=None)
+    return dt
 
 
 def _first_appearance_index(
