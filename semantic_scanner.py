@@ -68,11 +68,15 @@ def _snippet(text: str, match: re.Match, ctx: int = 40) -> str:
         snippet = "..." + snippet
     if end < len(text):
         snippet = snippet + "..."
-    # Mascara secret no snippet (mantem so primeiros 4 chars do match).
+    # Mascara secret no snippet. Sempre mascara, mesmo secrets curtos
+    # (versao anterior so mascarava se len > 8, vazando matches pequenos).
+    # str.replace sem count substitui TODAS as ocorrencias literais.
     matched = match.group(0)
-    if len(matched) > 8:
+    if len(matched) > 4:
         masked = matched[:4] + "***"
-        snippet = snippet.replace(matched, masked)
+    else:
+        masked = "***"
+    snippet = snippet.replace(matched, masked)
     return snippet
 
 

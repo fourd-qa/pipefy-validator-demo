@@ -7,6 +7,7 @@ no body de /api/run. Backend nunca persiste credenciais. Cada run gera um .robot
 descartável em tmp/<run_id>/ e remove no fim.
 """
 import base64
+import hmac
 import json
 import os
 import shutil
@@ -103,7 +104,13 @@ def _check_basic_auth():
         user, _, pw = decoded.partition(":")
     except Exception:
         return _auth_challenge()
-    role = _valid_credentials().get((user, pw))
+    # Lookup timing-safe: compara cada credencial valida com hmac.compare_digest
+    # pra nao vazar comprimento/conteudo via timing de dict lookup.
+    role = None
+    for (valid_user, valid_pw), valid_role in _valid_credentials().items():
+        if hmac.compare_digest(valid_user, user) and hmac.compare_digest(valid_pw, pw):
+            role = valid_role
+            break
     if not role:
         return _auth_challenge()
     g.role = role
@@ -118,11 +125,22 @@ def _current_role():
 
 
 def _require_lideranca():
-    """Retorna Response 403 se a role atual não pode ver o dashboard.
-    Em modo dev (auth off, role='open'), libera."""
+    """Retorna Response 403 se a role atual nao pode ver o dashboard.
+    Em modo dev (auth off, role='open'), libera APENAS em loopback ou quando
+    ALLOW_OPEN_DASHBOARD=1 esta setado. Render sem APP_PASSWORD nao expoe mais
+    dashboard publicamente."""
     role = _current_role()
-    if role in ("open", "lideranca"):
+    if role == "lideranca":
         return None
+    if role == "open":
+        if os.environ.get("ALLOW_OPEN_DASHBOARD", "").strip().lower() in ("1", "true", "yes"):
+            return None
+        remote = (request.remote_addr or "").strip()
+        if remote in ("127.0.0.1", "::1", ""):
+            return None
+        return jsonify({
+            "error": "Dashboard requer APP_PASSWORD (login lideranca) ou ALLOW_OPEN_DASHBOARD=1 quando acessado fora de loopback."
+        }), 403
     return jsonify({"error": "Acesso restrito ao Dashboard"}), 403
 
 
@@ -230,6 +248,16 @@ def _escape_robot_value(s):
     return str(s or "").replace("\r", " ").replace("\n", " ").strip()
 
 
+def _normalize_verify_ssl(v):
+    """Aceita bool ou string e retorna 'true'/'false' literal pra Robot.
+    Bug historico: bool('false') eh True em Python, entao string 'false' vinda
+    do JSON do frontend virava 'true'. Aqui normaliza explicitamente."""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    s = str(v or "").strip().lower()
+    return "true" if s in ("true", "1", "yes", "y") else "false"
+
+
 def _extract_pipefy_creds(data, prefix=""):
     """Extrai credenciais Pipefy do body. prefix='' pra single/snapshot/batch,
     'src_'/'dst_' pra cross. Retorna dict ou None se token vazio."""
@@ -248,7 +276,7 @@ def _extract_pipefy_creds(data, prefix=""):
         "base_url": _escape_robot_value(base_url),
         "org_id": _escape_robot_value(org_id),
         "auth_mode": _escape_robot_value(auth_mode),
-        "verify_ssl": "true" if verify_ssl else "false",
+        "verify_ssl": _normalize_verify_ssl(verify_ssl),
         "session_cookie": _escape_robot_value(session_cookie),
         "csrf_token": _escape_robot_value(csrf_token),
     }
@@ -266,7 +294,7 @@ def _extract_ipaas_creds(data):
         "token": _normalize_token(token_raw),
         "base_url": _escape_robot_value(base_url),
         "project_id": _escape_robot_value(project_id),
-        "verify_ssl": "true" if verify_ssl else "false",
+        "verify_ssl": _normalize_verify_ssl(verify_ssl),
     }
 
 
@@ -922,6 +950,12 @@ def smoke_webhook_listener(run_id):
         "payload_preview": json.dumps(payload, ensure_ascii=False)[:400],
         "event": payload.get("event") or payload.get("action"),
     }
+    # Cap em numero de pipe_ids distintos pra prevenir DoS de memoria.
+    # Dict em Python 3.7+ preserva ordem de insercao; FIFO simples.
+    _SMOKE_MAX_PIPE_IDS = 200
+    if pipe_id not in _SMOKE_WEBHOOK_HITS and len(_SMOKE_WEBHOOK_HITS) >= _SMOKE_MAX_PIPE_IDS:
+        oldest_key = next(iter(_SMOKE_WEBHOOK_HITS))
+        del _SMOKE_WEBHOOK_HITS[oldest_key]
     _SMOKE_WEBHOOK_HITS.setdefault(pipe_id, []).append(hit)
     # Limita a 50 hits por pipe pra nao crescer infinito.
     if len(_SMOKE_WEBHOOK_HITS[pipe_id]) > 50:
@@ -1226,7 +1260,7 @@ def cron_snapshot():
     """
     if not CRON_SNAPSHOT_TOKEN:
         return jsonify({"error": "Cron desabilitado (CRON_SNAPSHOT_TOKEN nao setado)"}), 503
-    if request.headers.get("X-Cron-Token", "").strip() != CRON_SNAPSHOT_TOKEN:
+    if not hmac.compare_digest(request.headers.get("X-Cron-Token", "").strip(), CRON_SNAPSHOT_TOKEN):
         return jsonify({"error": "Token invalido"}), 401
     if not MONITOR_PIPEFY_TOKEN:
         return jsonify({"error": "Token Pipefy nao configurado (MONITOR_PIPEFY_TOKEN)"}), 503
@@ -1608,10 +1642,21 @@ def set_blueprint():
 
     import re as _re
     safe_id = _re.sub(r"[^a-zA-Z0-9_-]", "_", pipe_id)[:64] or "unknown"
-    if not _re.match(r"^[a-zA-Z0-9_.-]+$", snap_filename):
+    # Defesa em camadas contra path traversal: regex restritivo + rejeicao
+    # explicita de '..' + comparacao realpath.
+    if (
+        not _re.match(r"^[a-zA-Z0-9_.-]+$", snap_filename)
+        or ".." in snap_filename
+        or snap_filename.startswith(".")
+        or "/" in snap_filename
+        or "\\" in snap_filename
+    ):
         return jsonify({"error": "snapshot_filename invalido"}), 400
 
-    snap_path = os.path.join(AUTO_SNAPSHOTS_DIR, safe_id, snap_filename)
+    snap_dir = os.path.realpath(os.path.join(AUTO_SNAPSHOTS_DIR, safe_id))
+    snap_path = os.path.realpath(os.path.join(snap_dir, snap_filename))
+    if not (snap_path == snap_dir or snap_path.startswith(snap_dir + os.sep)):
+        return jsonify({"error": "snapshot_filename fora do diretorio permitido"}), 400
     if not os.path.isfile(snap_path):
         return jsonify({"error": "Snapshot nao encontrado", "path": snap_path}), 404
 
@@ -1963,7 +2008,7 @@ def cron_daily_email():
     """
     if not CRON_SNAPSHOT_TOKEN:
         return jsonify({"error": "Cron desabilitado (CRON_SNAPSHOT_TOKEN nao setado)"}), 503
-    if request.headers.get("X-Cron-Token", "").strip() != CRON_SNAPSHOT_TOKEN:
+    if not hmac.compare_digest(request.headers.get("X-Cron-Token", "").strip(), CRON_SNAPSHOT_TOKEN):
         return jsonify({"error": "Token invalido"}), 401
 
     recipients = [r.strip() for r in EMAIL_TO.split(",") if r.strip()]
@@ -2057,7 +2102,12 @@ def v2_assets(filename):
 
 @app.route("/reports/<path:filename>")
 def serve_report(filename):
-    """Serve arquivos de relatório do Robot Framework (log.html, report.html)."""
+    """Serve arquivos de relatório do Robot Framework (log.html, report.html).
+    Restrito a role lideranca (ou loopback em modo dev) porque output.xml e
+    validations.json podem conter trechos de payload com token em trace."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
     return send_from_directory(RESULTS_DIR, filename)
 
 
@@ -2068,7 +2118,11 @@ PROPOSALS_DIR = os.path.join(os.getcwd(), "proposals")
 @app.route("/proposals")
 def proposals_index():
     """Lista as iterações de design disponíveis em proposals/.
-    Cada subdiretório vira um card com seus arquivos HTML pra comparar com o V2 atual."""
+    Cada subdiretório vira um card com seus arquivos HTML pra comparar com o V2 atual.
+    Restrito a role lideranca (ou loopback em modo dev)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
     iterations = []
     if os.path.isdir(PROPOSALS_DIR):
         for entry in sorted(os.listdir(PROPOSALS_DIR), reverse=True):
@@ -2146,7 +2200,11 @@ def proposals_index():
 
 @app.route("/proposals/<path:filename>")
 def serve_proposal(filename):
-    """Serve arquivos da pasta proposals/ (HTML, imagens, MD)."""
+    """Serve arquivos da pasta proposals/ (HTML, imagens, MD).
+    Restrito a role lideranca (ou loopback em modo dev)."""
+    gate = _require_lideranca()
+    if gate is not None:
+        return gate
     return send_from_directory(PROPOSALS_DIR, filename)
 
 
