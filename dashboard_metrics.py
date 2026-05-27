@@ -59,7 +59,9 @@ def score_divergencia(divergencia: str, weights: Dict[str, Any]) -> Dict[str, An
 
     return {
         "prefix": prefix,
-        "weight": float(entry.get("weight", 0)),
+        # entry["weight"] pode existir como null no JSON. `... or 0` cobre
+        # None E 0 explicito (identidade), antes float(None) levantava TypeError.
+        "weight": float(entry.get("weight") or 0),
         "bucket": entry.get("bucket", "structure"),
         "label": entry.get("label", "Generica"),
         "text": divergencia,
@@ -425,12 +427,13 @@ def _weight_for_kind(kind: str, weights: Dict[str, Any]) -> Tuple[float, str, st
     prefix = _HOTSPOT_KIND_TO_PREFIX.get(kind)
     if not prefix:
         d = weights.get("default_weight", {})
-        return (float(d.get("weight", 2)), d.get("bucket", "structure"), d.get("label", "Mudanca generica"))
+        return (float(d.get("weight") or 2), d.get("bucket", "structure"), d.get("label", "Mudanca generica"))
     entry = (weights.get("divergencia_prefix_weights") or {}).get(prefix)
     if not entry:
         d = weights.get("default_weight", {})
-        return (float(d.get("weight", 2)), d.get("bucket", "structure"), d.get("label", "Mudanca generica"))
-    return (float(entry.get("weight", 0)), entry.get("bucket", "structure"), entry.get("label", kind))
+        return (float(d.get("weight") or 2), d.get("bucket", "structure"), d.get("label", "Mudanca generica"))
+    # `or 0` cobre weight: null e weight ausente sem levantar TypeError.
+    return (float(entry.get("weight") or 0), entry.get("bucket", "structure"), entry.get("label", kind))
 
 
 def _classify_hotspot_level(score: float) -> str:

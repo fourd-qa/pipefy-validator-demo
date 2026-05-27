@@ -29,6 +29,16 @@ def _safe_int(x: Any) -> int:
         return 0
 
 
+def _safe_float(x: Any) -> float:
+    """Como _safe_int mas preserva fracao. Usar pra lag_days que pode vir como
+    float (ex.: 4.9d uteis). Antes o codigo usava `(x or 0)` com >= 5 direto,
+    que pode dar TypeError se x for string com formato nao numerico."""
+    try:
+        return float(x or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _security_scan_pipes(
     monitored: List[Dict[str, Any]],
     snapshots_root: str,
@@ -68,14 +78,23 @@ def _security_scan_pipes(
             import json as _json
             with open(_os.path.join(pipe_dir, files[-1]), "r", encoding="utf-8") as f:
                 snapshot = _json.load(f)
-        except Exception:
+        except (IOError, OSError, _json.JSONDecodeError, UnicodeDecodeError) as ex:
+            # Antes era `except: continue` cego. Loga pra debug e segue,
+            # mas erros de programacao (KeyError, TypeError) agora propagam.
+            import logging as _logging
+            _logging.getLogger(__name__).warning(
+                "snapshot %s ilegivel: %s", files[-1], ex
+            )
             continue
         env_label = p.get("env_label") or (snapshot.get("metadata") or {}).get("env_label")
         targets = semantic_scanner.extract_targets_from_snapshot(snapshot, env_label=env_label)
         findings = semantic_scanner.scan_targets(targets, rules)
         summary = semantic_scanner.summarize_findings(findings)
+        # by_severity defensivo: futuras versoes do summarize_findings podem
+        # mudar shape; acesso com default evita KeyError silencioso.
+        by_sev = summary.get("by_severity") or {}
         for k in ("high", "med", "low"):
-            total[k] += summary["by_severity"].get(k, 0)
+            total[k] += by_sev.get(k, 0)
         by_pipe.append({
             "pipe_id": p["id"],
             "pipe_name": p.get("name", p["id"]),
@@ -154,7 +173,8 @@ def build_daily_digest(
     if leadtime.get("available"):
         for pair in leadtime.get("pairs", []) or []:
             for promoted in (pair.get("promoted") or [])[:3]:
-                if (promoted.get("lag_days") or 0) >= 5:
+                # _safe_float normaliza int/float/None/string sem crashar.
+                if _safe_float(promoted.get("lag_days")) >= 5:
                     alerts.append({
                         "kind": "leadtime_slow",
                         "severity": "med",
@@ -179,7 +199,10 @@ def build_daily_digest(
                     ),
                 })
 
-    if burnup_data and burnup_data.get("overall_pct", 100) < 60:
+    # overall_pct pode vir None quando burnup_data sinaliza available=True mas
+    # nao tem itens pra comparar. `None < 60` levanta TypeError em Py3.
+    _overall_pct = burnup_data.get("overall_pct") if burnup_data else None
+    if burnup_data and _overall_pct is not None and _overall_pct < 60:
         alerts.append({
             "kind": "burnup_low",
             "severity": "med",

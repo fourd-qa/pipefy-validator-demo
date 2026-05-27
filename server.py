@@ -209,8 +209,13 @@ def _extract_fail_from_output_xml():
                     return (text[:600], hint)
             if elem.tag == "msg":
                 elem.clear()
-    except Exception:
-        pass
+    except Exception as ex:
+        # Antes era `pass` cego: erros de XML mal-formado ou IO eram engolidos
+        # sem rastro. Loga pra debug, mas mantem retorno vazio (caller decide).
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "_extract_fail_from_output_xml falhou: %s", ex
+        )
     return ("", "")
 
 
@@ -232,12 +237,17 @@ def _pipe_override_vars(data):
 
 
 def _normalize_token(raw):
-    """Aceita 'Bearer xxx' ou só 'xxx', retorna sempre 'Bearer xxx'."""
+    """Aceita 'Bearer xxx' ou só 'xxx', retorna sempre 'Bearer xxx'.
+
+    Tolerante a whitespace nao-padrao apos 'Bearer' (tab, espacos multiplos).
+    Antes usava split(' ', 1) que corrompia token quando vinha 'Bearer\\txxx'
+    ou 'bearer  xxx' (a parte tab/espaco extra virava parte do token)."""
     s = str(raw or "").strip()
     if not s:
         return ""
-    if s.lower().startswith("bearer "):
-        return "Bearer " + s.split(" ", 1)[1].strip()
+    parts = s.split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return "Bearer " + parts[1].strip()
     return "Bearer " + s
 
 
@@ -1347,11 +1357,13 @@ def _pipefy_graphql(query, variables):
 
 def _fetch_automations_for_pipe(repo_id, org_id):
     """Coleta lista de automations via GraphQL com paginacao. Retorna
-    (automations_list, error_dict). Aceita ate 5 paginas (limit defensivo).
-    Sem repo_id ou sem org_id retorna ([], None) e o snapshot fica sem
-    automations (campo vazio, nao erro)."""
+    (automations_list, error_dict, truncated_bool). Aceita ate 5 paginas
+    (limit defensivo); se atingir o cap com hasNextPage=True ainda, marca
+    truncated=True pro caller poder sinalizar no snapshot/outcome.
+    Sem repo_id ou sem org_id retorna ([], None, False) e o snapshot
+    fica sem automations (campo vazio, nao erro)."""
     if not repo_id or not org_id:
-        return [], None
+        return [], None, False
     query = """
     query GetAutomations($repoId: ID!, $orgId: ID!, $after: String) {
       automations(repoId: $repoId, organizationId: $orgId, after: $after) {
@@ -1370,14 +1382,16 @@ def _fetch_automations_for_pipe(repo_id, org_id):
     """
     automations = []
     after = None
-    for _ in range(5):  # cap defensivo: 5 paginas x N por pagina
+    truncated = False
+    PAGE_CAP = 5
+    for i in range(PAGE_CAP):
         data, err = _pipefy_graphql(query, {
             "repoId": str(repo_id),
             "orgId": str(org_id),
             "after": after,
         })
         if err:
-            return automations, err
+            return automations, err, False
         page = (data or {}).get("automations") or {}
         for edge in page.get("edges") or []:
             node = edge.get("node")
@@ -1389,7 +1403,10 @@ def _fetch_automations_for_pipe(repo_id, org_id):
         after = page_info.get("endCursor")
         if not after:
             break
-    return automations, None
+        # Se chegou na ultima iteracao com hasNextPage=True, atingiu o cap.
+        if i == PAGE_CAP - 1:
+            truncated = True
+    return automations, None, truncated
 
 
 def _fetch_and_save_pipe_snapshot(pipe):
@@ -1439,7 +1456,7 @@ def _fetch_and_save_pipe_snapshot(pipe):
         return {"pipe_id": pipe_id, "name": pipe_name, "ok": False, **err}
 
     # Tentativa de coletar automations. Falha aqui eh degradacao, nao erro fatal.
-    automations, autom_err = _fetch_automations_for_pipe(repo_id, MONITOR_PIPEFY_ORG_ID)
+    automations, autom_err, automations_truncated = _fetch_automations_for_pipe(repo_id, MONITOR_PIPEFY_ORG_ID)
 
     data_block = dict(pipe_data or {})
     data_block["automations"] = automations
@@ -1452,7 +1469,10 @@ def _fetch_and_save_pipe_snapshot(pipe):
             "env_label": pipe.get("env_label", ""),
             "source": "cron_auto",
             "tool_version": "1.3",  # bump: agora inclui description, expiration_time_by_card, cards_count em phases (Fase D)
-            "automations_collected": autom_err is None and (repo_id and MONITOR_PIPEFY_ORG_ID),
+            # bool(...) garante bool real no JSON, antes podia virar string vazia
+            # ou string com repo_id por causa de short-circuit and.
+            "automations_collected": bool(autom_err is None and repo_id and MONITOR_PIPEFY_ORG_ID),
+            "automations_truncated": automations_truncated,
         },
         "data": data_block,
     }
@@ -1472,6 +1492,8 @@ def _fetch_and_save_pipe_snapshot(pipe):
         outcome["automations_warning"] = autom_err.get("error", "falha coletando automations")
     elif not repo_id or not MONITOR_PIPEFY_ORG_ID:
         outcome["automations_warning"] = "repo_id ou MONITOR_PIPEFY_ORG_ID ausente; automations vazias"
+    elif automations_truncated:
+        outcome["automations_warning"] = "automations truncadas no cap de 5 paginas; pipe pode ter mais automations nao coletadas"
 
     # Pendencia 3 da Fase A: roda scan semantico + persiste no historico.
     snapshot_filename = os.path.basename(out_path)
