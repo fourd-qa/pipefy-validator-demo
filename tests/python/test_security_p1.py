@@ -140,6 +140,20 @@ def test_discover_pipes_bloqueia_scheme_file(tmp_path, monkeypatch):
     assert "scheme" in res.get_json()["error"].lower()
 
 
+def test_discover_pipes_bloqueia_http_no_pipefy_oficial(tmp_path, monkeypatch):
+    """Regressao P2.1: HTTPS obrigatorio mesmo para hosts no allowlist.
+    Antes, http://api.pipefy.com passava e expunha o PAT Bearer a MITM."""
+    server = _reload_server(tmp_path, monkeypatch)
+    res = server.app.test_client().post("/api/discover-pipes", json={
+        "token": "x",
+        "base_url": "http://api.pipefy.com/graphql",
+        "org_id": "1",
+    })
+    assert res.status_code == 400
+    err = res.get_json()["error"].lower()
+    assert "http" in err and ("loopback" in err or "https" in err)
+
+
 def test_discover_pipes_aceita_pipefy_oficial(tmp_path, monkeypatch, mocker):
     """URL oficial passa pela validacao. Mocka requests.post pra nao bater no Pipefy real."""
     server = _reload_server(tmp_path, monkeypatch)

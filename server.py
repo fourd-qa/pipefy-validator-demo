@@ -2438,7 +2438,12 @@ def _validate_pipefy_url(url):
     """Valida base_url contra allowlist pra evitar SSRF.
     Retorna (ok: bool, error_msg: str). Sem scheme http(s) ou host fora do
     allowlist = bloqueado. Permite override via env ALLOWED_PIPEFY_HOSTS
-    (CSV) pra ambientes com Pipefy on-prem ou proxy corporativo."""
+    (CSV) pra ambientes com Pipefy on-prem ou proxy corporativo.
+
+    HTTPS obrigatorio exceto pra loopback (localhost, 127.0.0.1) onde HTTP
+    e aceito pra facilitar dev local. Sem isso, operador podia setar
+    ALLOWED_PIPEFY_HOSTS=onprem.cliente.com e usar http:// expondo o PAT
+    Bearer em canal nao criptografado (MITM)."""
     import urllib.parse as _up
     try:
         parsed = _up.urlparse(url or "")
@@ -2449,6 +2454,8 @@ def _validate_pipefy_url(url):
     host = (parsed.hostname or "").lower()
     if not host:
         return False, "Host vazio"
+    if parsed.scheme == "http" and host not in ("localhost", "127.0.0.1", "::1"):
+        return False, f"HTTP so permitido em loopback (use https para {host})"
     extra = os.environ.get("ALLOWED_PIPEFY_HOSTS", "").strip()
     allowed = set(_ALLOWED_PIPEFY_HOSTS)
     if extra:
