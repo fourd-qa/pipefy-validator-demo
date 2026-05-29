@@ -158,6 +158,41 @@ def _global_auth():
     return _check_basic_auth()
 
 
+# CSP precisa permitir 'unsafe-inline' porque o frontend vanilla usa muitos
+# event handlers e estilos inline. fonts.googleapis.com/gstatic.com pra Inter
+# e JetBrains Mono. api.pipefy.com permite fetch direto do client-side.
+_CSP_DEFAULT = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data:; "
+    "connect-src 'self' https://api.pipefy.com https://*.pipefy.com; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'"
+)
+
+
+@app.after_request
+def _security_headers(resp):
+    """Adiciona headers de seguranca em todas as respostas.
+
+    Antes a app servia sem CSP, X-Frame-Options, HSTS, etc. Em prod com
+    HTTPS no Render, faltava defense-in-depth contra XSS, clickjacking
+    e MIME sniffing. Aplicado via after_request pra cobrir HTML + JSON +
+    static. setdefault() permite override caso algum endpoint precise."""
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    resp.headers.setdefault(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains",
+    )
+    resp.headers.setdefault("Content-Security-Policy", _CSP_DEFAULT)
+    return resp
+
+
 @app.route("/healthz")
 def healthz():
     """Liveness probe pra Render/K8s. Não exige Basic Auth."""
@@ -170,8 +205,14 @@ def get_default_env():
     pré-popular o modal de onboarding. Token vai no payload, mas só consumido
     pelo frontend que escolhe se grava no vault. Se DEFAULT_PIPEFY_TOKEN não
     estiver setada, retorna { available: false } e frontend mantém fluxo manual.
+
+    Gate de segurança: role 'demo' (sandbox publico) nao pode ler o token. So
+    role 'lideranca' ou modo dev/loopback. Antes, qualquer credencial valida
+    do Basic Auth conseguia exfiltrar o PAT default em texto plano.
     """
     if not DEFAULT_PIPEFY_TOKEN:
+        return jsonify({"available": False})
+    if _require_lideranca() is not None:
         return jsonify({"available": False})
     return jsonify({
         "available": True,
@@ -2390,6 +2431,33 @@ def env_write_deprecated(_=None):
     }), 410
 
 
+_ALLOWED_PIPEFY_HOSTS = frozenset({"api.pipefy.com", "app.pipefy.com"})
+
+
+def _validate_pipefy_url(url):
+    """Valida base_url contra allowlist pra evitar SSRF.
+    Retorna (ok: bool, error_msg: str). Sem scheme http(s) ou host fora do
+    allowlist = bloqueado. Permite override via env ALLOWED_PIPEFY_HOSTS
+    (CSV) pra ambientes com Pipefy on-prem ou proxy corporativo."""
+    import urllib.parse as _up
+    try:
+        parsed = _up.urlparse(url or "")
+    except (TypeError, ValueError):
+        return False, "URL invalida"
+    if parsed.scheme not in ("http", "https"):
+        return False, f"Scheme '{parsed.scheme}' nao permitido"
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return False, "Host vazio"
+    extra = os.environ.get("ALLOWED_PIPEFY_HOSTS", "").strip()
+    allowed = set(_ALLOWED_PIPEFY_HOSTS)
+    if extra:
+        allowed.update(h.strip().lower() for h in extra.split(",") if h.strip())
+    if host not in allowed:
+        return False, f"Host '{host}' fora do allowlist"
+    return True, ""
+
+
 @app.route("/api/discover-pipes", methods=["POST"])
 def discover_pipes():
     """Lista pipes da organização Pipefy via GraphQL.
@@ -2397,12 +2465,17 @@ def discover_pipes():
     Retorna: { pipes: [{ name, uuid, repo_id }] }
 
     Endpoint isolado: não toca em /api/run nem altera estado global.
+    base_url passa por allowlist pra evitar SSRF (cloud metadata, hosts
+    internos da VPC). Allowlist override via ALLOWED_PIPEFY_HOSTS env.
     """
     raw = request.get_json(silent=True)
     data = raw if isinstance(raw, dict) else {}
     creds = _extract_pipefy_creds(data)
     if not creds:
         return jsonify({"error": "token + base_url obrigatórios"}), 400
+    ok, msg = _validate_pipefy_url(creds["base_url"])
+    if not ok:
+        return jsonify({"error": f"base_url invalida: {msg}"}), 400
     org_id = (data.get("org_id") or data.get("pipefy_org_id") or "").strip()
     if not org_id:
         return jsonify({"error": "org_id obrigatório pra listar pipes"}), 400
